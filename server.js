@@ -354,7 +354,10 @@ app.get('/api/test-email', async (req, res) => {
     try {
         await mailer.sendMail({ to: process.env.SENDER_EMAIL || process.env.GMAIL_USER, subject: 'Render email test', html: '<p>If you see this, email delivery works!</p>' });
         res.json({ ok: true });
-    } catch (e) { res.json({ ok: false, error: e.message }); }
+    } catch (e) {
+        const key = process.env.BREVO_API_KEY || '';
+        res.json({ ok: false, error: e.message, brevoSays: e.response ? e.response.data : null, keyPrefix: key.slice(0, 8), keyLength: key.length });
+    }
 });
 
 app.use('/books', express.static(path.join(__dirname, 'books')));
