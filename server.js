@@ -28,7 +28,17 @@ if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) {
 // OPTIONAL email delivery (degrades gracefully if not configured)
 let mailer = null;
 if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASS) {
-    mailer = nodemailer.createTransport({ service: 'gmail', auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASS } });
+        mailer = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false,
+        family: 4,
+        connectionTimeout: 30000,
+        greetingTimeout: 30000,
+        socketTimeout: 60000,
+        auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASS },
+        tls: { minVersion: 'TLSv1.2' }
+    });
     console.log('📧 Email delivery: ON');
 } else {
     console.log('⚠️ Gmail not configured — link-only delivery');
@@ -313,6 +323,7 @@ app.post('/api/create-book', rateLimiter, async (req, res) => {
         }
 
         // 4. EMAIL (optional, never fails the book)
+                let emailed = false;
         if (mailer && email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
             try {
                 await mailer.sendMail({
@@ -321,6 +332,7 @@ app.post('/api/create-book', rateLimiter, async (req, res) => {
                     subject: `${childName}'s Personalized Storybook is ready! 🎉`,
                     html: `<div style="font-family:Georgia,serif;padding:24px;background:#fdf8ef;border-radius:12px"><h2 style="color:#5a2a4d">📚 ${childName}'s ${title}</h2><p>Hello! Your personalized storybook is ready.</p><p><a href="${pdfUrl}" style="background:#28a745;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none">Download ${childName}'s Book</a></p><p style="color:#777;font-size:13px">This link never expires. Made with love by Storybook Studio.</p></div>`
                 });
+                                emailed = true;
                 console.log("📧 Email sent to", email);
             } catch (e) {
                 console.log("⚠️ Email failed (book still delivered via link):", e.message);
@@ -328,11 +340,20 @@ app.post('/api/create-book', rateLimiter, async (req, res) => {
         }
 
         console.log(`✅ Done in ${((Date.now() - t0) / 1000).toFixed(0)}s | ${pageNo} pages`);
-        res.json({ success: true, pdfUrl: pdfUrl });
+                res.json({ success: true, pdfUrl: pdfUrl, emailed: emailed });
     } catch (error) {
         console.error("❌ ERROR:", error.response ? error.response.data : error.message);
         res.status(500).json({ success: false, error: error.message });
     }
+});
+
+app.get('/api/test-email', async (req, res) => {
+    if (!process.env.EMAIL_TEST_TOKEN || req.query.token !== process.env.EMAIL_TEST_TOKEN) return res.status(403).json({ ok: false });
+    if (!mailer) return res.json({ ok: false, error: 'mailer not configured' });
+    try {
+        await mailer.sendMail({ from: `"Storybook Studio" <${process.env.GMAIL_USER}>`, to: process.env.GMAIL_USER, subject: 'Render SMTP test', text: 'If you see this, Render can reach Gmail SMTP.' });
+        res.json({ ok: true });
+    } catch (e) { res.json({ ok: false, error: e.message }); }
 });
 
 app.use('/books', express.static(path.join(__dirname, 'books')));
