@@ -29,22 +29,20 @@ if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) {
 
 // OPTIONAL email delivery (degrades gracefully if not configured)
 let mailer = null;
-if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASS) {
-        mailer = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 587,
-        secure: false,
-        family: 4,
-        dnsLookup: (address, callback) => dns.lookup(address, { family: 4 }, callback),
-        connectionTimeout: 30000,
-        greetingTimeout: 30000,
-        socketTimeout: 60000,
-        auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASS },
-        tls: { minVersion: 'TLSv1.2' }
-    });
-    console.log('📧 Email delivery: ON');
+if (process.env.BREVO_API_KEY && process.env.SENDER_EMAIL) {
+    mailer = {
+        sendMail: async ({ to, subject, html, text }) => {
+            await axios.post('https://api.brevo.com/v3/smtp/email', {
+                sender: { name: 'Storybook Studio', email: process.env.SENDER_EMAIL },
+                to: [{ email: to }],
+                subject: subject,
+                html: html || `<p>${text}</p>`
+            }, { headers: { 'api-key': process.env.BREVO_API_KEY, 'Content-Type': 'application/json' } });
+        }
+    };
+    console.log('📧 Email delivery: ON (Brevo HTTPS)');
 } else {
-    console.log('⚠️ Gmail not configured — link-only delivery');
+    console.log('⚠️ Brevo not configured — link-only delivery');
 }
 
 const booksFolder = path.join(__dirname, 'books');
@@ -354,7 +352,7 @@ app.get('/api/test-email', async (req, res) => {
     if (!process.env.EMAIL_TEST_TOKEN || req.query.token !== process.env.EMAIL_TEST_TOKEN) return res.status(403).json({ ok: false });
     if (!mailer) return res.json({ ok: false, error: 'mailer not configured' });
     try {
-        await mailer.sendMail({ from: `"Storybook Studio" <${process.env.GMAIL_USER}>`, to: process.env.GMAIL_USER, subject: 'Render SMTP test', text: 'If you see this, Render can reach Gmail SMTP.' });
+        await mailer.sendMail({ to: process.env.SENDER_EMAIL || process.env.GMAIL_USER, subject: 'Render email test', html: '<p>If you see this, email delivery works!</p>' });
         res.json({ ok: true });
     } catch (e) { res.json({ ok: false, error: e.message }); }
 });
