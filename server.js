@@ -6,6 +6,8 @@ const Replicate = require('replicate');
 const { PDFDocument, rgb, degrees } = require('pdf-lib');
 const fs = require('fs');
 const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
+const nodemailer = require('nodemailer');
 
 const app = express();
 app.set('trust proxy', true);
@@ -13,6 +15,24 @@ app.use(express.json({ limit: '15mb' }));
 app.use(cors());
 
 const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN });
+
+// OPTIONAL permanent storage (degrades gracefully if not configured)
+let supabase = null;
+if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) {
+    supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+    console.log('☁️ Supabase permanent storage: ON');
+} else {
+    console.log('⚠️ Supabase not configured — using local storage fallback');
+}
+
+// OPTIONAL email delivery (degrades gracefully if not configured)
+let mailer = null;
+if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASS) {
+    mailer = nodemailer.createTransport({ service: 'gmail', auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASS } });
+    console.log('📧 Email delivery: ON');
+} else {
+    console.log('⚠️ Gmail not configured — link-only delivery');
+}
 
 const booksFolder = path.join(__dirname, 'books');
 if (!fs.existsSync(booksFolder)) fs.mkdirSync(booksFolder);
@@ -22,7 +42,6 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 const STYLE = 'hand-painted children\'s storybook illustration, soft gouache texture, warm pastel palette, gentle storybook lighting, cohesive series style, no text, no letters, no watermark: ';
 const PACING = 10000;
 
-// ============ LOCKED COVER GUARDRAIL ZONES ============
 const Z = {
     name:  { bottom: 690 },
     medal: { cx: 300, cy: 450, r: 120 },
@@ -55,7 +74,6 @@ function rateLimiter(req, res, next) {
     next();
 }
 
-// ============ THEME KITS: locked format, variable art ============
 function themeKit(base) {
     const b = base.toLowerCase();
     if (b.includes('space')) return { cover: rgb(0.05, 0.10, 0.32), accent: rgb(0.96, 0.78, 0.26), textBg: rgb(0.985, 0.965, 0.92), ink: rgb(0.20, 0.20, 0.30), flatWord: 'solid flat deep indigo navy', motifs: 'tiny stars, crescent moons, little silver rockets and planets' };
@@ -94,7 +112,6 @@ function drawCentered(page, text, y, size, font, color, opacity) {
     const w = font.widthOfTextAtSize(text, size);
     page.drawText(text, { x: (PAGE_W - w) / 2, y, size, font, color, opacity: opacity === undefined ? 1 : opacity });
 }
-// LOCKED hand-lettered treatment: gentle wave + per-letter tilt + soft shadow
 function drawFlowLine(page, text, y, size, font, color, wave) {
     const widths = []; let total = 0;
     for (const ch of text) { const w = font.widthOfTextAtSize(ch, size); widths.push(w); total += w + 0.8; }
@@ -141,13 +158,13 @@ async function fetchImage(pdfDoc, url) {
 app.post('/api/create-book', rateLimiter, async (req, res) => {
     const t0 = Date.now();
     try {
-        const { childName, theme, photoData, bookLength, dedication } = req.body;
+        const { childName, theme, photoData, bookLength, dedication, email } = req.body;
         const base = String(theme || 'Adventure').split(' (')[0];
         const scenes = (String(bookLength).toLowerCase().startsWith('long')) ? 8 : 4;
         const pal = themeKit(base);
         const title = themeTitle(base);
         assertZones();
-        console.log(`📘 Book v5 (locked cover) | ${childName} | ${base} | scenes=${scenes} | photo=${photoData ? 'yes' : 'no'}`);
+        console.log(`📘 Book v6 | ${childName} | ${base} | scenes=${scenes} | photo=${photoData ? 'yes' : 'no'} | email=${email ? 'yes' : 'no'}`);
 
         console.log("Step 1: Writing story...");
         const storyResponse = await withRetry('story', () => axios.post('https://api.deepseek.com/v1/chat/completions', {
@@ -182,19 +199,16 @@ app.post('/api/create-book', rateLimiter, async (req, res) => {
         const serifBI = await pdfDoc.embedFont('Times-BoldItalic');
         if (!serif || !serifB || !serifI || !serifBI) throw new Error('Font embedding failed');
 
-        // ---- LOCKED COVER: background art ----
         console.log("  → Cover background...");
         const bgPrompt = STYLE + `ornate storybook cover BACKGROUND only: elaborate golden-cream vine and leaf border with small vignettes of ${pal.motifs} confined strictly to the outer fifteen percent edges; two gentle painted flourish arches of tiny leaves and stars, one arching across the top center framing an empty name plaque area, and one arching across the lower middle framing an empty title plaque area; the rest of the inner field is ${pal.flatWord}, flat and empty except a few sparse tiny stars; absolutely no character, no person, no moon, no text, no letters anywhere; rich painterly detail`;
         const bgImg = await withRetry('cover background', async () => fetchImage(pdfDoc, await generateImage(bgPrompt, null)));
         await sleep(PACING);
 
-        // ---- LOCKED COVER: child medallion ----
         console.log("  → Child medallion...");
         const vigPrompt = STYLE + `circular painted vignette portrait of ${photoData ? 'the exact same child from the reference photo' : 'a cute child'} as the storybook hero, head and shoulders, joyful expression, soft golden rim light, a few tiny ${pal.motifs} sparkles around the head, surrounded by ${pal.flatWord} background filling all four corners, vignette edges softly fading into that flat background`;
         const vigImg = await withRetry('child vignette', async () => fetchImage(pdfDoc, await generateImage(vigPrompt, photoData)));
         await sleep(PACING);
 
-        // ---- DECORATIVE PAGE FRAME ----
         console.log("  → Decorative page frame...");
         const framePrompt = STYLE + `decorative rectangular border frame for a children's book page, repeating hand-painted motifs of ${pal.motifs} woven with ribbons and leaves around all four edges, wide plain warm cream empty center occupying seventy percent of the page, soft pastel palette, gentle textures`;
         const frameImg = await withRetry('frame image', async () => fetchImage(pdfDoc, await generateImage(framePrompt, null)));
@@ -202,7 +216,6 @@ app.post('/api/create-book', rateLimiter, async (req, res) => {
 
         let pageNo = 0;
 
-        // ---- PAGE 1: LOCKED COVER COMPOSITION ----
         const cover = pdfDoc.addPage([PAGE_W, PAGE_H]); pageNo++;
         cover.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.cover });
         cover.drawImage(bgImg, coverFit(bgImg, PAGE_W, PAGE_H));
@@ -224,7 +237,6 @@ app.post('/api/create-book', rateLimiter, async (req, res) => {
             ty -= 46;
         }
 
-        // ---- PAGE 2: DEDICATION ----
         const ded = pdfDoc.addPage([PAGE_W, PAGE_H]); pageNo++;
         ded.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.textBg });
         ded.drawImage(frameImg, coverFit(frameImg, PAGE_W, PAGE_H));
@@ -239,7 +251,6 @@ app.post('/api/create-book', rateLimiter, async (req, res) => {
         }
         drawCentered(ded, `Printed just for you • ${new Date().getFullYear()}`, 130, 11, serif, pal.ink, 0.85);
 
-        // ---- SPREADS ----
         for (let i = 0; i < pages.length; i++) {
             const page = pages[i];
             console.log(`  → Scene ${i + 1}/${pages.length}: ${page.scene_title}`);
@@ -270,7 +281,6 @@ app.post('/api/create-book', rateLimiter, async (req, res) => {
             }
         }
 
-        // ---- BACK COVER (clean, no logo) ----
         const back = pdfDoc.addPage([PAGE_W, PAGE_H]); pageNo++;
         back.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.cover });
         drawFrameVectors(back, pal);
@@ -278,15 +288,47 @@ app.post('/api/create-book', rateLimiter, async (req, res) => {
         drawCentered(back, `${childName}`, 350, 32, serifBI, pal.accent);
         drawCentered(back, `Crafted uniquely in ${new Date().getFullYear()} • A one-of-a-kind keepsake`, 140, 11, serif, pal.accent);
 
+        // 3. SAVE: Supabase first (permanent), local fallback
         console.log("Step 3: Saving PDF...");
         const pdfBytes = await pdfDoc.save();
         const safeName = String(childName).replace(/[^a-zA-Z0-9_-]/g, '_');
         const fileName = `book_${safeName}_${Date.now()}.pdf`;
-        fs.writeFileSync(path.join(booksFolder, fileName), pdfBytes);
-        console.log(`✅ Done in ${((Date.now() - t0) / 1000).toFixed(0)}s | ${pageNo} pages`);
+        let pdfUrl = null;
 
-        const publicUrl = `${req.protocol}://${req.get('host')}/books/${fileName}`;
-        res.json({ success: true, pdfUrl: publicUrl });
+        if (supabase) {
+            try {
+                const up = await supabase.storage.from('storybooks').upload(fileName, pdfBytes, { contentType: 'application/pdf', upsert: false });
+                if (up.error) throw new Error(up.error.message);
+                pdfUrl = supabase.storage.from('storybooks').getPublicUrl(fileName).data.publicUrl;
+                console.log("☁️ Saved permanently to Supabase");
+            } catch (e) {
+                console.log("⚠️ Supabase upload failed, using local fallback:", e.message);
+                pdfUrl = null;
+            }
+        }
+        if (!pdfUrl) {
+            fs.writeFileSync(path.join(booksFolder, fileName), pdfBytes);
+            pdfUrl = `${req.protocol}://${req.get('host')}/books/${fileName}`;
+            console.log("💾 Saved locally (fallback)");
+        }
+
+        // 4. EMAIL (optional, never fails the book)
+        if (mailer && email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            try {
+                await mailer.sendMail({
+                    from: `"Storybook Studio" <${process.env.GMAIL_USER}>`,
+                    to: email,
+                    subject: `${childName}'s Personalized Storybook is ready! 🎉`,
+                    html: `<div style="font-family:Georgia,serif;padding:24px;background:#fdf8ef;border-radius:12px"><h2 style="color:#5a2a4d">📚 ${childName}'s ${title}</h2><p>Hello! Your personalized storybook is ready.</p><p><a href="${pdfUrl}" style="background:#28a745;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none">Download ${childName}'s Book</a></p><p style="color:#777;font-size:13px">This link never expires. Made with love by Storybook Studio.</p></div>`
+                });
+                console.log("📧 Email sent to", email);
+            } catch (e) {
+                console.log("⚠️ Email failed (book still delivered via link):", e.message);
+            }
+        }
+
+        console.log(`✅ Done in ${((Date.now() - t0) / 1000).toFixed(0)}s | ${pageNo} pages`);
+        res.json({ success: true, pdfUrl: pdfUrl });
     } catch (error) {
         console.error("❌ ERROR:", error.response ? error.response.data : error.message);
         res.status(500).json({ success: false, error: error.message });
