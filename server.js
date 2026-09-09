@@ -36,7 +36,7 @@ if (process.env.BREVO_API_KEY && process.env.SENDER_EMAIL) {
                 sender: { name: 'Storybook Studio', email: process.env.SENDER_EMAIL },
                 to: [{ email: to }],
                 subject: subject,
-                html: html || `<p>${text}</p>`
+                htmlContent: html || `<p>${text}</p>`
             }, { headers: { 'api-key': process.env.BREVO_API_KEY, 'Content-Type': 'application/json' } });
         }
     };
