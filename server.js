@@ -1,4 +1,6 @@
 require('dotenv').config();
+const dns = require('dns');
+dns.setDefaultResultOrder('ipv4first');
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
@@ -33,6 +35,7 @@ if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASS) {
         port: 587,
         secure: false,
         family: 4,
+        dnsLookup: (address, callback) => dns.lookup(address, { family: 4 }, callback),
         connectionTimeout: 30000,
         greetingTimeout: 30000,
         socketTimeout: 60000,
