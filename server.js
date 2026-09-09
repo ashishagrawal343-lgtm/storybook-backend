@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const Replicate = require('replicate');
-const { PDFDocument, rgb, StandardFonts, degrees } = require('pdf-lib');
+const { PDFDocument, rgb, degrees } = require('pdf-lib');
 const fs = require('fs');
 const path = require('path');
 
@@ -20,9 +20,22 @@ if (!fs.existsSync(booksFolder)) fs.mkdirSync(booksFolder);
 const PAGE_W = 600, PAGE_H = 800;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const STYLE = 'hand-painted children\'s storybook illustration, soft gouache texture, warm pastel palette, gentle storybook lighting, cohesive series style, no text, no letters, no watermark: ';
+const PACING = 10000;
 
-// ---- ROBUSTNESS: retry wrapper ----
-async function withRetry(label, fn, attempts = 2, wait = 5000) {
+// ============ LOCKED COVER GUARDRAIL ZONES ============
+const Z = {
+    name:  { bottom: 690 },
+    medal: { cx: 300, cy: 450, r: 120 },
+    title: { top: 300, bottom: 150 }
+};
+function assertZones() {
+    const ok = Z.name.bottom > (Z.medal.cy + Z.medal.r + 12) &&
+               (Z.medal.cy - Z.medal.r - 12) > Z.title.top &&
+               Z.title.bottom > 0;
+    if (!ok) throw new Error('COVER GUARDRAIL VIOLATION: zones overlap');
+}
+
+async function withRetry(label, fn, attempts = 3, wait = 6000) {
     for (let i = 1; i <= attempts; i++) {
         try { return await fn(); }
         catch (e) {
@@ -33,7 +46,6 @@ async function withRetry(label, fn, attempts = 2, wait = 5000) {
     }
 }
 
-// ---- ROBUSTNESS: simple per-IP rate limit (3 books/min) ----
 const hits = new Map();
 function rateLimiter(req, res, next) {
     const ip = req.ip; const now = Date.now();
@@ -43,14 +55,14 @@ function rateLimiter(req, res, next) {
     next();
 }
 
-// ---- DESIGN: theme palettes (original, inspired by premium keepsake books) ----
-function paletteFor(base) {
+// ============ THEME KITS: locked format, variable art ============
+function themeKit(base) {
     const b = base.toLowerCase();
-    if (b.includes('space')) return { cover: rgb(0.05, 0.10, 0.32), accent: rgb(0.96, 0.78, 0.26), textBg: rgb(0.985, 0.965, 0.92), ink: rgb(0.16, 0.16, 0.28) };
-    if (b.includes('animal')) return { cover: rgb(0.10, 0.30, 0.24), accent: rgb(0.95, 0.80, 0.45), textBg: rgb(0.985, 0.965, 0.92), ink: rgb(0.18, 0.22, 0.18) };
-    if (b.includes('princess')) return { cover: rgb(0.55, 0.16, 0.35), accent: rgb(0.99, 0.85, 0.60), textBg: rgb(0.99, 0.96, 0.94), ink: rgb(0.30, 0.15, 0.22) };
-    if (b.includes('super')) return { cover: rgb(0.45, 0.08, 0.12), accent: rgb(0.98, 0.75, 0.20), textBg: rgb(0.985, 0.96, 0.92), ink: rgb(0.28, 0.14, 0.12) };
-    return { cover: rgb(0.05, 0.10, 0.32), accent: rgb(0.96, 0.78, 0.26), textBg: rgb(0.985, 0.965, 0.92), ink: rgb(0.16, 0.16, 0.28) };
+    if (b.includes('space')) return { cover: rgb(0.05, 0.10, 0.32), accent: rgb(0.96, 0.78, 0.26), textBg: rgb(0.985, 0.965, 0.92), ink: rgb(0.20, 0.20, 0.30), flatWord: 'solid flat deep indigo navy', motifs: 'tiny stars, crescent moons, little silver rockets and planets' };
+    if (b.includes('animal')) return { cover: rgb(0.10, 0.30, 0.24), accent: rgb(0.95, 0.80, 0.45), textBg: rgb(0.985, 0.965, 0.92), ink: rgb(0.20, 0.24, 0.20), flatWord: 'solid flat deep forest green', motifs: 'friendly forest animals, oak leaves, acorns and wildflowers' };
+    if (b.includes('princess')) return { cover: rgb(0.55, 0.16, 0.35), accent: rgb(0.99, 0.85, 0.60), textBg: rgb(0.99, 0.96, 0.94), ink: rgb(0.32, 0.17, 0.24), flatWord: 'solid flat deep rose plum', motifs: 'roses, tiny golden crowns and silk ribbons' };
+    if (b.includes('super')) return { cover: rgb(0.45, 0.08, 0.12), accent: rgb(0.98, 0.75, 0.20), textBg: rgb(0.985, 0.96, 0.92), ink: rgb(0.30, 0.16, 0.14), flatWord: 'solid flat deep crimson', motifs: 'bright stars, hero shields and lightning bolts' };
+    return { cover: rgb(0.05, 0.10, 0.32), accent: rgb(0.96, 0.78, 0.26), textBg: rgb(0.985, 0.965, 0.92), ink: rgb(0.20, 0.20, 0.30), flatWord: 'solid flat deep indigo navy', motifs: 'flowers, leaves, ribbons and golden bells' };
 }
 function themeTitle(base) {
     const b = base.toLowerCase();
@@ -61,7 +73,6 @@ function themeTitle(base) {
     return 'Treasury of Wonderful Adventures';
 }
 
-// ---- LAYOUT HELPERS ----
 function coverFit(img, pw, ph) {
     const ir = img.width / img.height, pr = pw / ph;
     let w, h;
@@ -79,23 +90,32 @@ function wrapText(text, font, size, maxWidth) {
     if (cur) lines.push(cur);
     return lines;
 }
-function drawCentered(page, text, y, size, font, color) {
+function drawCentered(page, text, y, size, font, color, opacity) {
     const w = font.widthOfTextAtSize(text, size);
-    page.drawText(text, { x: (PAGE_W - w) / 2, y, size, font, color });
+    page.drawText(text, { x: (PAGE_W - w) / 2, y, size, font, color, opacity: opacity === undefined ? 1 : opacity });
 }
-function drawFrame(page, pal) {
-    page.drawRectangle({ x: 14, y: 14, width: PAGE_W - 28, height: PAGE_H - 28, borderColor: pal.accent, borderWidth: 2 });
-    page.drawRectangle({ x: 24, y: 24, width: PAGE_W - 48, height: PAGE_H - 48, borderColor: pal.accent, borderWidth: 1 });
-    const corners = [[24, 24], [PAGE_W - 24, 24], [24, PAGE_H - 24], [PAGE_W - 24, PAGE_H - 24]];
+// LOCKED hand-lettered treatment: gentle wave + per-letter tilt + soft shadow
+function drawFlowLine(page, text, y, size, font, color, wave) {
+    const widths = []; let total = 0;
+    for (const ch of text) { const w = font.widthOfTextAtSize(ch, size); widths.push(w); total += w + 0.8; }
+    let cur = (PAGE_W - total) / 2;
+    let i = 0;
+    for (const ch of text) {
+        const dy = Math.sin(i * 0.55) * wave;
+        const rot = Math.sin(i * 0.7) * 3;
+        page.drawText(ch, { x: cur + 2, y: y + dy - 2, size, font, color: rgb(0, 0, 0), opacity: 0.35, rotate: degrees(rot) });
+        page.drawText(ch, { x: cur, y: y + dy, size, font, color, rotate: degrees(rot) });
+        cur += widths[i] + 0.8;
+        i++;
+    }
+}
+function drawFrameVectors(page, pal) {
+    page.drawRectangle({ x: 12, y: 12, width: PAGE_W - 24, height: PAGE_H - 24, borderColor: pal.accent, borderWidth: 2, borderOpacity: 0.9 });
+    page.drawRectangle({ x: 20, y: 20, width: PAGE_W - 40, height: PAGE_H - 40, borderColor: pal.accent, borderWidth: 1, borderOpacity: 0.6 });
+    const corners = [[20, 20], [PAGE_W - 20, 20], [20, PAGE_H - 20], [PAGE_W - 20, PAGE_H - 20]];
     for (const [cx, cy] of corners) {
         page.drawRectangle({ x: cx - 5, y: cy - 5, width: 10, height: 10, color: pal.accent, rotate: degrees(45) });
     }
-}
-function drawCrest(page, cx, cy, pal) {
-    page.drawRectangle({ x: cx - 18, y: cy, width: 36, height: 7, color: pal.accent });
-    page.drawRectangle({ x: cx - 14, y: cy + 10, width: 7, height: 7, color: pal.accent, rotate: degrees(45) });
-    page.drawRectangle({ x: cx - 3.5, y: cy + 14, width: 7, height: 7, color: pal.accent, rotate: degrees(45) });
-    page.drawRectangle({ x: cx + 7, y: cy + 10, width: 7, height: 7, color: pal.accent, rotate: degrees(45) });
 }
 
 async function generateImage(prompt, photoData) {
@@ -124,11 +144,11 @@ app.post('/api/create-book', rateLimiter, async (req, res) => {
         const { childName, theme, photoData, bookLength, dedication } = req.body;
         const base = String(theme || 'Adventure').split(' (')[0];
         const scenes = (String(bookLength).toLowerCase().startsWith('long')) ? 8 : 4;
-        const pal = paletteFor(base);
+        const pal = themeKit(base);
         const title = themeTitle(base);
-        console.log(`📘 Book v3 | ${childName} | ${base} | scenes=${scenes} | photo=${photoData ? 'yes' : 'no'}`);
+        assertZones();
+        console.log(`📘 Book v5 (locked cover) | ${childName} | ${base} | scenes=${scenes} | photo=${photoData ? 'yes' : 'no'}`);
 
-        // 1. STORY (validated)
         console.log("Step 1: Writing story...");
         const storyResponse = await withRetry('story', () => axios.post('https://api.deepseek.com/v1/chat/completions', {
             model: 'deepseek-chat',
@@ -143,63 +163,83 @@ app.post('/api/create-book', rateLimiter, async (req, res) => {
         const rawPages = JSON.parse(storyText);
         if (!Array.isArray(rawPages) || !rawPages.length) throw new Error('Story JSON invalid');
         const pages = rawPages.slice(0, scenes).map(p => ({
-            scene_title: String(p.scene_title || `Scene`).slice(0, 60),
+            scene_title: String(p.scene_title || 'Scene').slice(0, 60),
             page_text: String(p.page_text || '').slice(0, 700),
             image_prompt: String(p.image_prompt || 'a magical storybook scene').slice(0, 500)
         }));
         console.log("✅ Story validated!");
 
-        // 2. BOOK BUILD
-        console.log("Step 2: Building premium book...");
+        console.log("Step 2: Painting locked cover, frame & scenes...");
         const pdfDoc = await PDFDocument.create();
         pdfDoc.setTitle(`${childName}'s ${title}`);
         pdfDoc.setAuthor('Storybook Studio');
         pdfDoc.setSubject(`A personalized storybook for ${childName}`);
         pdfDoc.setCreator('Storybook Studio AI');
 
-        const serif = await pdfDoc.embedFont(StandardFonts.TimesRoman);
-        const serifB = await pdfDoc.embedFont(StandardFonts.TimesBold);
-        const serifI = await pdfDoc.embedFont(StandardFonts.TimesItalic);
-        const serifBI = await pdfDoc.embedFont(StandardFonts.TimesBoldItalic);
+        const serif = await pdfDoc.embedFont('Times-Roman');
+        const serifB = await pdfDoc.embedFont('Times-Bold');
+        const serifI = await pdfDoc.embedFont('Times-Italic');
+        const serifBI = await pdfDoc.embedFont('Times-BoldItalic');
+        if (!serif || !serifB || !serifI || !serifBI) throw new Error('Font embedding failed');
+
+        // ---- LOCKED COVER: background art ----
+        console.log("  → Cover background...");
+        const bgPrompt = STYLE + `ornate storybook cover BACKGROUND only: elaborate golden-cream vine and leaf border with small vignettes of ${pal.motifs} confined strictly to the outer fifteen percent edges; two gentle painted flourish arches of tiny leaves and stars, one arching across the top center framing an empty name plaque area, and one arching across the lower middle framing an empty title plaque area; the rest of the inner field is ${pal.flatWord}, flat and empty except a few sparse tiny stars; absolutely no character, no person, no moon, no text, no letters anywhere; rich painterly detail`;
+        const bgImg = await withRetry('cover background', async () => fetchImage(pdfDoc, await generateImage(bgPrompt, null)));
+        await sleep(PACING);
+
+        // ---- LOCKED COVER: child medallion ----
+        console.log("  → Child medallion...");
+        const vigPrompt = STYLE + `circular painted vignette portrait of ${photoData ? 'the exact same child from the reference photo' : 'a cute child'} as the storybook hero, head and shoulders, joyful expression, soft golden rim light, a few tiny ${pal.motifs} sparkles around the head, surrounded by ${pal.flatWord} background filling all four corners, vignette edges softly fading into that flat background`;
+        const vigImg = await withRetry('child vignette', async () => fetchImage(pdfDoc, await generateImage(vigPrompt, photoData)));
+        await sleep(PACING);
+
+        // ---- DECORATIVE PAGE FRAME ----
+        console.log("  → Decorative page frame...");
+        const framePrompt = STYLE + `decorative rectangular border frame for a children's book page, repeating hand-painted motifs of ${pal.motifs} woven with ribbons and leaves around all four edges, wide plain warm cream empty center occupying seventy percent of the page, soft pastel palette, gentle textures`;
+        const frameImg = await withRetry('frame image', async () => fetchImage(pdfDoc, await generateImage(framePrompt, null)));
+        await sleep(PACING);
+
         let pageNo = 0;
 
-        // ---- PAGE 1: COVER ----
-        console.log("  → Cover...");
-        const coverPrompt = STYLE + (photoData
-            ? `circular vignette portrait of the exact same child from the reference photo as a storybook hero, ${base} theme, cozy magical background, centered composition, soft edges`
-            : `circular vignette portrait of a cute child storybook hero, ${base} theme, cozy magical background, centered composition, soft edges`);
-        const coverImg = await withRetry('cover image', async () => fetchImage(pdfDoc, await generateImage(coverPrompt, photoData)));
-
+        // ---- PAGE 1: LOCKED COVER COMPOSITION ----
         const cover = pdfDoc.addPage([PAGE_W, PAGE_H]); pageNo++;
         cover.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.cover });
-        drawFrame(cover, pal);
-        drawCentered(cover, `${childName}'s`, 690, 34, serifBI, pal.accent);
-        cover.drawRectangle({ x: 168, y: 378, width: 264, height: 264, color: pal.textBg });
-        cover.drawRectangle({ x: 176, y: 386, width: 248, height: 248, borderColor: pal.accent, borderWidth: 2 });
-        cover.drawImage(coverImg, { x: 180, y: 390, width: 240, height: 240, ...coverFit(coverImg, 240, 240) });
-        let ty = 330;
-        for (const line of wrapText(title, serifB, 38, 470)) {
-            drawCentered(cover, line, ty, 38, serifB, rgb(0.99, 0.98, 0.94));
+        cover.drawImage(bgImg, coverFit(bgImg, PAGE_W, PAGE_H));
+        const d = Z.medal.r * 2;
+        const fit = coverFit(vigImg, d, d);
+        const dx = (Z.medal.cx - Z.medal.r) + fit.x;
+        const dy2 = (Z.medal.cy - Z.medal.r) + fit.y;
+        if (Math.abs((dx + fit.width / 2) - Z.medal.cx) > 2 || Math.abs((dy2 + fit.height / 2) - Z.medal.cy) > 2) throw new Error('Medallion placement guardrail failed');
+        cover.drawImage(vigImg, { x: dx, y: dy2, width: fit.width, height: fit.height });
+        cover.drawEllipse({ x: Z.medal.cx, y: Z.medal.cy, xScale: Z.medal.r + 5, yScale: Z.medal.r + 5, borderColor: pal.accent, borderWidth: 3.5 });
+        cover.drawEllipse({ x: Z.medal.cx, y: Z.medal.cy, xScale: Z.medal.r + 11, yScale: Z.medal.r + 11, borderColor: pal.accent, borderWidth: 1.5, borderOpacity: 0.7 });
+        drawFlowLine(cover, `${childName}'s`, 700, 44, serifBI, pal.accent, 2);
+        let tSize = 40;
+        let tLines = wrapText(title, serifB, tSize, 470);
+        if (tLines.length > 3) { tSize = 34; tLines = wrapText(title, serifB, tSize, 470); }
+        let ty = 292;
+        for (const line of tLines) {
+            drawFlowLine(cover, line, ty, tSize, serifB, rgb(0.99, 0.98, 0.94), 3);
             ty -= 46;
         }
-        drawCrest(cover, PAGE_W / 2, 120, pal);
-        drawCentered(cover, 'A  PERSONALIZED  STORYBOOK', 92, 11, serif, pal.accent);
 
         // ---- PAGE 2: DEDICATION ----
         const ded = pdfDoc.addPage([PAGE_W, PAGE_H]); pageNo++;
         ded.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.textBg });
-        drawFrame(ded, pal);
-        ded.drawRectangle({ x: PAGE_W / 2 - 5, y: 640, width: 10, height: 10, color: pal.accent, rotate: degrees(45) });
-        drawCentered(ded, `For ${childName},`, 560, 30, serifBI, pal.accent);
-        let dy = 480;
+        ded.drawImage(frameImg, coverFit(frameImg, PAGE_W, PAGE_H));
+        ded.drawRectangle({ x: PAGE_W / 2 - 5, y: 596, width: 10, height: 10, color: pal.cover, rotate: degrees(45) });
+        drawCentered(ded, `For ${childName},`, 520, 32, serifBI, pal.cover);
         const dedText = (dedication && dedication.trim()) ? dedication.trim() : 'may this little story remind you, every single night, just how hugely loved you are.';
-        for (const line of wrapText(dedText, serifI, 18, 420)) {
+        const dedLines = wrapText(dedText, serifI, 18, 380);
+        let dy = 450 - ((450 - 210) - dedLines.length * 32) / 2;
+        for (const line of dedLines) {
             drawCentered(ded, line, dy, 18, serifI, pal.ink);
-            dy -= 30;
+            dy -= 32;
         }
-        drawCentered(ded, `Printed just for you • ${new Date().getFullYear()}`, 80, 11, serif, pal.ink);
+        drawCentered(ded, `Printed just for you • ${new Date().getFullYear()}`, 130, 11, serif, pal.ink, 0.85);
 
-        // ---- SPREADS: image page + verse page ----
+        // ---- SPREADS ----
         for (let i = 0; i < pages.length; i++) {
             const page = pages[i];
             console.log(`  → Scene ${i + 1}/${pages.length}: ${page.scene_title}`);
@@ -212,33 +252,32 @@ app.post('/api/create-book', rateLimiter, async (req, res) => {
             imgPage.drawImage(pdfImage, coverFit(pdfImage, PAGE_W, PAGE_H));
 
             const textPage = pdfDoc.addPage([PAGE_W, PAGE_H]); pageNo++;
-            textPage.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.textBg });
-            drawFrame(textPage, pal);
-            drawCentered(textPage, page.scene_title, 690, 24, serifB, pal.accent);
-            textPage.drawRectangle({ x: PAGE_W / 2 - 4, y: 656, width: 8, height: 8, color: pal.accent, rotate: degrees(45) });
-            let by = 600;
-            for (const line of wrapText(page.page_text, serif, 17, 440)) {
-                drawCentered(textPage, line, by, 17, serif, pal.ink);
-                by -= 30;
+            textPage.drawRectangle({ x: 0, y: 0, width: PAGE_W, PAGE_H, color: pal.textBg });
+            textPage.drawImage(frameImg, coverFit(frameImg, PAGE_W, PAGE_H));
+            drawCentered(textPage, page.scene_title, 600, 26, serifB, pal.cover);
+            textPage.drawRectangle({ x: PAGE_W / 2 - 4, y: 566, width: 8, height: 8, color: pal.cover, rotate: degrees(45) });
+            const verseLines = wrapText(page.page_text, serif, 18, 400);
+            let by = 520 - ((520 - 160) - verseLines.length * 32) / 2;
+            for (const line of verseLines) {
+                drawCentered(textPage, line, by, 18, serif, pal.ink);
+                by -= 32;
             }
-            drawCentered(textPage, String(pageNo), 42, 11, serif, pal.ink);
+            drawCentered(textPage, String(pageNo), 112, 11, serif, pal.ink, 0.8);
 
             if (i < pages.length - 1) {
                 console.log("  ⏳ 10s pacing...");
-                await sleep(10000);
+                await sleep(PACING);
             }
         }
 
-        // ---- BACK COVER ----
+        // ---- BACK COVER (clean, no logo) ----
         const back = pdfDoc.addPage([PAGE_W, PAGE_H]); pageNo++;
         back.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.cover });
-        drawFrame(back, pal);
-        drawCrest(back, PAGE_W / 2, 430, pal);
-        drawCentered(back, 'This book belongs to', 380, 16, serifI, rgb(0.99, 0.98, 0.94));
-        drawCentered(back, `${childName}`, 330, 32, serifBI, pal.accent);
+        drawFrameVectors(back, pal);
+        drawCentered(back, 'This book belongs to', 400, 16, serifI, rgb(0.99, 0.98, 0.94));
+        drawCentered(back, `${childName}`, 350, 32, serifBI, pal.accent);
         drawCentered(back, `Crafted uniquely in ${new Date().getFullYear()} • A one-of-a-kind keepsake`, 140, 11, serif, pal.accent);
 
-        // 3. SAVE & SERVE
         console.log("Step 3: Saving PDF...");
         const pdfBytes = await pdfDoc.save();
         const safeName = String(childName).replace(/[^a-zA-Z0-9_-]/g, '_');
