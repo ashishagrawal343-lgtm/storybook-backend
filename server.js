@@ -8,8 +8,9 @@ const Replicate = require('replicate');
 const { PDFDocument, rgb, degrees } = require('pdf-lib');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
-const nodemailer = require('nodemailer');
+const Razorpay = require('razorpay');
 
 const app = express();
 app.set('trust proxy', true);
@@ -17,6 +18,18 @@ app.use(express.json({ limit: '15mb' }));
 app.use(cors());
 
 const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN });
+
+// Razorpay initialization (degrades gracefully to simulation if keys are not set)
+let razorpay = null;
+if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET && !process.env.RAZORPAY_KEY_ID.includes('YOUR_')) {
+    razorpay = new Razorpay({
+        key_id: process.env.RAZORPAY_KEY_ID,
+        key_secret: process.env.RAZORPAY_KEY_SECRET
+    });
+    console.log('💳 Razorpay Gateway: ON (Live/Test keys active)');
+} else {
+    console.log('⚠️ Razorpay keys not configured — running in simulated checkout mode for testing');
+}
 
 // OPTIONAL permanent storage (degrades gracefully if not configured)
 let supabase = null;
@@ -33,7 +46,7 @@ if (process.env.BREVO_API_KEY && process.env.SENDER_EMAIL) {
     mailer = {
         sendMail: async ({ to, subject, html, text }) => {
             await axios.post('https://api.brevo.com/v3/smtp/email', {
-                sender: { name: 'Storybook Studio', email: process.env.SENDER_EMAIL },
+                sender: { name: 'TwinkleTale', email: process.env.SENDER_EMAIL },
                 to: [{ email: to }],
                 subject: subject,
                 htmlContent: html || `<p>${text}</p>`
@@ -50,14 +63,30 @@ if (!fs.existsSync(booksFolder)) fs.mkdirSync(booksFolder);
 
 const PAGE_W = 600, PAGE_H = 800;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-const STYLE = 'hand-painted children\'s storybook illustration, soft gouache texture, warm pastel palette, gentle storybook lighting, cohesive series style, no text, no letters, no watermark: ';
+const STYLE = 'Award-winning children\'s picture book illustration, hand-painted gouache and soft watercolor texture, warm pastel palette, gentle storybook lighting, dreamy whimsical atmosphere, high detail, cohesive series style, no text, no words, no letters, no watermark: ';
 const PACING = 10000;
+
+// Preview session cache and Job status tracking
+const previewSessions = new Map(); // previewId -> cached story + images
+const activeJobs = new Map();       // jobId -> progress & status
+
+// Clear old preview sessions after 2 hours
+setInterval(() => {
+    const now = Date.now();
+    for (const [id, item] of previewSessions.entries()) {
+        if (now - item.timestamp > 2 * 3600 * 1000) previewSessions.delete(id);
+    }
+    for (const [id, item] of activeJobs.entries()) {
+        if (now - item.timestamp > 2 * 3600 * 1000) activeJobs.delete(id);
+    }
+}, 30 * 60 * 1000);
 
 const Z = {
     name:  { bottom: 690 },
     medal: { cx: 300, cy: 450, r: 120 },
     title: { top: 300, bottom: 150 }
 };
+
 function assertZones() {
     const ok = Z.name.bottom > (Z.medal.cy + Z.medal.r + 12) &&
                (Z.medal.cy - Z.medal.r - 12) > Z.title.top &&
@@ -80,7 +109,7 @@ const hits = new Map();
 function rateLimiter(req, res, next) {
     const ip = req.ip; const now = Date.now();
     const arr = (hits.get(ip) || []).filter(t => now - t < 60000);
-    if (arr.length >= 3) return res.status(429).json({ success: false, error: 'Too many books at once. Please wait a minute and try again.' });
+    if (arr.length >= 8) return res.status(429).json({ success: false, error: 'Too many requests. Please wait a minute and try again.' });
     arr.push(now); hits.set(ip, arr);
     next();
 }
@@ -88,18 +117,28 @@ function rateLimiter(req, res, next) {
 function themeKit(base) {
     const b = base.toLowerCase();
     if (b.includes('space')) return { cover: rgb(0.05, 0.10, 0.32), accent: rgb(0.96, 0.78, 0.26), textBg: rgb(0.985, 0.965, 0.92), ink: rgb(0.20, 0.20, 0.30), flatWord: 'solid flat deep indigo navy', motifs: 'tiny stars, crescent moons, little silver rockets and planets' };
-    if (b.includes('animal')) return { cover: rgb(0.10, 0.30, 0.24), accent: rgb(0.95, 0.80, 0.45), textBg: rgb(0.985, 0.965, 0.92), ink: rgb(0.20, 0.24, 0.20), flatWord: 'solid flat deep forest green', motifs: 'friendly forest animals, oak leaves, acorns and wildflowers' };
-    if (b.includes('princess')) return { cover: rgb(0.55, 0.16, 0.35), accent: rgb(0.99, 0.85, 0.60), textBg: rgb(0.99, 0.96, 0.94), ink: rgb(0.32, 0.17, 0.24), flatWord: 'solid flat deep rose plum', motifs: 'roses, tiny golden crowns and silk ribbons' };
+    if (b.includes('animal') || b.includes('forest')) return { cover: rgb(0.10, 0.30, 0.24), accent: rgb(0.95, 0.80, 0.45), textBg: rgb(0.985, 0.965, 0.92), ink: rgb(0.20, 0.24, 0.20), flatWord: 'solid flat deep forest green', motifs: 'friendly forest animals, oak leaves, acorns and wildflowers' };
+    if (b.includes('princess') || b.includes('fairy')) return { cover: rgb(0.55, 0.16, 0.35), accent: rgb(0.99, 0.85, 0.60), textBg: rgb(0.99, 0.96, 0.94), ink: rgb(0.32, 0.17, 0.24), flatWord: 'solid flat deep rose plum', motifs: 'roses, tiny golden crowns and silk ribbons' };
     if (b.includes('super')) return { cover: rgb(0.45, 0.08, 0.12), accent: rgb(0.98, 0.75, 0.20), textBg: rgb(0.985, 0.96, 0.92), ink: rgb(0.30, 0.16, 0.14), flatWord: 'solid flat deep crimson', motifs: 'bright stars, hero shields and lightning bolts' };
+    if (b.includes('dinosaur')) return { cover: rgb(0.18, 0.28, 0.15), accent: rgb(0.94, 0.76, 0.30), textBg: rgb(0.985, 0.965, 0.92), ink: rgb(0.22, 0.24, 0.18), flatWord: 'solid flat deep moss green', motifs: 'prehistoric ferns, gentle friendly baby dinosaurs and amber leaves' };
     return { cover: rgb(0.05, 0.10, 0.32), accent: rgb(0.96, 0.78, 0.26), textBg: rgb(0.985, 0.965, 0.92), ink: rgb(0.20, 0.20, 0.30), flatWord: 'solid flat deep indigo navy', motifs: 'flowers, leaves, ribbons and golden bells' };
 }
+
 function themeTitle(base) {
     const b = base.toLowerCase();
     if (b.includes('space')) return 'Treasury of Space Adventures';
-    if (b.includes('animal')) return 'Treasury of Animal Friends';
-    if (b.includes('princess')) return 'Treasury of Princess Tales';
+    if (b.includes('animal') || b.includes('forest')) return 'Treasury of Animal Friends';
+    if (b.includes('princess') || b.includes('fairy')) return 'Treasury of Princess Tales';
     if (b.includes('super')) return 'Treasury of Superhero Adventures';
+    if (b.includes('dinosaur')) return 'Treasury of Dinosaur Tales';
     return 'Treasury of Wonderful Adventures';
+}
+
+function getSceneCount(bookLength) {
+    const s = String(bookLength || '').toLowerCase();
+    if (s.includes('24') || s.includes('long')) return 12; // 12 scenes = 24 interior pages (12 left images + 12 right texts)
+    if (s.includes('16')) return 8;                       // 8 scenes = 16 interior pages
+    return 6;                                             // 6 scenes = 12 interior pages (Short Book standard)
 }
 
 function coverFit(img, pw, ph) {
@@ -108,6 +147,7 @@ function coverFit(img, pw, ph) {
     if (ir > pr) { h = ph; w = ph * ir; } else { w = pw; h = pw / ir; }
     return { x: (pw - w) / 2, y: (ph - h) / 2, width: w, height: h };
 }
+
 function wrapText(text, font, size, maxWidth) {
     const words = String(text).split(/\s+/).filter(Boolean);
     const lines = []; let cur = '';
@@ -119,10 +159,12 @@ function wrapText(text, font, size, maxWidth) {
     if (cur) lines.push(cur);
     return lines;
 }
+
 function drawCentered(page, text, y, size, font, color, opacity) {
     const w = font.widthOfTextAtSize(text, size);
     page.drawText(text, { x: (PAGE_W - w) / 2, y, size, font, color, opacity: opacity === undefined ? 1 : opacity });
 }
+
 function drawFlowLine(page, text, y, size, font, color, wave) {
     const widths = []; let total = 0;
     for (const ch of text) { const w = font.widthOfTextAtSize(ch, size); widths.push(w); total += w + 0.8; }
@@ -137,6 +179,7 @@ function drawFlowLine(page, text, y, size, font, color, wave) {
         i++;
     }
 }
+
 function drawFrameVectors(page, pal) {
     page.drawRectangle({ x: 12, y: 12, width: PAGE_W - 24, height: PAGE_H - 24, borderColor: pal.accent, borderWidth: 2, borderOpacity: 0.9 });
     page.drawRectangle({ x: 20, y: 20, width: PAGE_W - 40, height: PAGE_H - 40, borderColor: pal.accent, borderWidth: 1, borderOpacity: 0.6 });
@@ -153,91 +196,100 @@ async function generateImage(prompt, photoData) {
                 input: { input_image: photoData, prompt: prompt, output_format: "png" }
             });
             return Array.isArray(out) ? out[0] : out;
-        } catch (e) { console.log("    (face model failed, falling back)"); }
+        } catch (e) { console.log("    (face model failed, falling back to flux-1.1-pro)"); }
     }
     const out = await replicate.run("black-forest-labs/flux-1.1-pro", {
         input: { prompt: prompt, aspect_ratio: "3:4", output_format: "png" }
     });
     return Array.isArray(out) ? out[0] : out;
 }
-async function fetchImage(pdfDoc, url) {
-    const bytes = await axios.get(url, { responseType: 'arraybuffer', timeout: 30000 });
-    try { return await pdfDoc.embedPng(bytes.data); }
-    catch (e) { return await pdfDoc.embedJpg(bytes.data); }
+
+async function fetchImageBuffer(url) {
+    const res = await axios.get(url, { responseType: 'arraybuffer', timeout: 30000 });
+    return Buffer.from(res.data);
 }
 
-app.post('/api/create-book', rateLimiter, async (req, res) => {
+async function embedImageBuffer(pdfDoc, buf) {
+    try { return await pdfDoc.embedPng(buf); }
+    catch (e) { return await pdfDoc.embedJpg(buf); }
+}
+
+// ====================================================================
+// FLOW B: STEP 1 - CREATE FREE COVER TEASER PREVIEW
+// ====================================================================
+app.post('/api/create-preview', rateLimiter, async (req, res) => {
     const t0 = Date.now();
     try {
-        const { childName, theme, photoData, bookLength, dedication, email } = req.body;
+        const { childName, gender, age, theme, photoData, dedication, email } = req.body;
+        if (!childName) return res.status(400).json({ success: false, error: 'Child name is required' });
+
+        const genderClean = (String(gender || '').toLowerCase().trim() === 'girl') ? 'girl' : 'boy';
+        const childAge = parseInt(age, 10) || 5;
+        const pronoun = (genderClean === 'girl') ? 'her' : 'his';
+        const subjectPronoun = (genderClean === 'girl') ? 'she' : 'he';
+        const charAnchor = `a cute ${childAge}-year-old ${genderClean} named ${childName}`;
+
         const base = String(theme || 'Adventure').split(' (')[0];
-        const scenes = (String(bookLength).toLowerCase().startsWith('long')) ? 8 : 4;
         const pal = themeKit(base);
         const title = themeTitle(base);
         assertZones();
-        console.log(`📘 Book v6 | ${childName} | ${base} | scenes=${scenes} | photo=${photoData ? 'yes' : 'no'} | email=${email ? 'yes' : 'no'}`);
 
-        console.log("Step 1: Writing story...");
-        const storyResponse = await withRetry('story', () => axios.post('https://api.deepseek.com/v1/chat/completions', {
+        console.log(`✨ Generating Preview | ${childName} (${genderClean}, ${childAge}) | ${base}`);
+
+        // Step 1: DeepSeek story outline & opening teaser rhyme
+        const storyResponse = await withRetry('preview story outline', () => axios.post('https://api.deepseek.com/v1/chat/completions', {
             model: 'deepseek-chat',
             messages: [
-                { role: 'system', content: `You are an award-winning children's book author. Output ONLY a valid JSON array of ${scenes} objects. No markdown, no extra text. Each object must have "scene_title" (2-4 words), "page_text" (35-50 words of warm read-aloud language for ages 3-8), and "image_prompt" (one sentence describing a single vivid scene for a hand-painted storybook illustration featuring the same child protagonist).` },
-                { role: 'user', content: `Write a ${scenes}-scene story about a child named ${childName} going on a ${theme} adventure. Keep the same child character throughout.` }
+                {
+                    role: 'system',
+                    content: `You are an award-winning children's storybook author for TwinkleTale. Output ONLY a valid JSON object with keys:
+"opening_rhyme": (4 lines of lyrical, warm read-aloud rhyme welcoming ${childName} into ${pronoun} bedtime adventure),
+"story_scenes": (an array of 12 objects, each with "scene_title", "page_text" [35-50 words], and "image_prompt" [one detailed sentence describing ${charAnchor} in this scene]).
+Strictly adhere to the child's gender: ${genderClean} (${pronoun}/${subjectPronoun}). No markdown, no commentary.`
+                },
+                {
+                    role: 'user',
+                    content: `Create an enchanting ${theme} bedtime storybook for ${childName}, a ${childAge}-year-old ${genderClean}.`
+                }
             ]
         }, { headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}` } }), 2, 3000);
 
         let storyText = storyResponse.data.choices[0].message.content;
         storyText = storyText.replace(/```json/g, '').replace(/```/g, '').trim();
-        const rawPages = JSON.parse(storyText);
-        if (!Array.isArray(rawPages) || !rawPages.length) throw new Error('Story JSON invalid');
-        const pages = rawPages.slice(0, scenes).map(p => ({
-            scene_title: String(p.scene_title || 'Scene').slice(0, 60),
-            page_text: String(p.page_text || '').slice(0, 700),
-            image_prompt: String(p.image_prompt || 'a magical storybook scene').slice(0, 500)
-        }));
-        console.log("✅ Story validated!");
+        const storyJson = JSON.parse(storyText);
+        const openingRhyme = storyJson.opening_rhyme || `Underneath the twinkling stars, where dreams begin to play,\nA special tale unfolds tonight, to softly guide your way.\nFor ${childName}, our little adventurer, so brave and kind and bright,\nA magical adventure starts before you sleep tonight.`;
+        const scenesData = Array.isArray(storyJson.story_scenes) ? storyJson.story_scenes : [];
 
-        console.log("Step 2: Painting locked cover, frame & scenes...");
-        const pdfDoc = await PDFDocument.create();
-        pdfDoc.setTitle(`${childName}'s ${title}`);
-        pdfDoc.setAuthor('Storybook Studio');
-        pdfDoc.setSubject(`A personalized storybook for ${childName}`);
-        pdfDoc.setCreator('Storybook Studio AI');
-
-        const serif = await pdfDoc.embedFont('Times-Roman');
-        const serifB = await pdfDoc.embedFont('Times-Bold');
-        const serifI = await pdfDoc.embedFont('Times-Italic');
-        const serifBI = await pdfDoc.embedFont('Times-BoldItalic');
-        if (!serif || !serifB || !serifI || !serifBI) throw new Error('Font embedding failed');
-
-        console.log("  → Cover background...");
+        // Step 2: Generate Cover Background + Child Vignette
+        console.log("  → Painting preview cover background...");
         const bgPrompt = STYLE + `ornate storybook cover BACKGROUND only: elaborate golden-cream vine and leaf border with small vignettes of ${pal.motifs} confined strictly to the outer fifteen percent edges; two gentle painted flourish arches of tiny leaves and stars, one arching across the top center framing an empty name plaque area, and one arching across the lower middle framing an empty title plaque area; the rest of the inner field is ${pal.flatWord}, flat and empty except a few sparse tiny stars; absolutely no character, no person, no moon, no text, no letters anywhere; rich painterly detail`;
-        const bgImg = await withRetry('cover background', async () => fetchImage(pdfDoc, await generateImage(bgPrompt, null)));
-        await sleep(PACING);
+        const bgUrl = await withRetry('cover background', async () => generateImage(bgPrompt, null));
+        const bgBuffer = await fetchImageBuffer(bgUrl);
 
-        console.log("  → Child medallion...");
-        const vigPrompt = STYLE + `circular painted vignette portrait of ${photoData ? 'the exact same child from the reference photo' : 'a cute child'} as the storybook hero, head and shoulders, joyful expression, soft golden rim light, a few tiny ${pal.motifs} sparkles around the head, surrounded by ${pal.flatWord} background filling all four corners, vignette edges softly fading into that flat background`;
-        const vigImg = await withRetry('child vignette', async () => fetchImage(pdfDoc, await generateImage(vigPrompt, photoData)));
-        await sleep(PACING);
+        console.log("  → Painting preview child medallion vignette...");
+        const vigPrompt = STYLE + `circular painted vignette portrait of ${photoData ? 'the exact same child from the reference photo' : charAnchor} as the storybook hero, head and shoulders, joyful expression, soft golden rim light, a few tiny ${pal.motifs} sparkles around the head, surrounded by ${pal.flatWord} background filling all four corners, vignette edges softly fading into that flat background`;
+        const vigUrl = await withRetry('child vignette', async () => generateImage(vigPrompt, photoData));
+        const vigBuffer = await fetchImageBuffer(vigUrl);
 
-        console.log("  → Decorative page frame...");
-        const framePrompt = STYLE + `decorative rectangular border frame for a children's book page, repeating hand-painted motifs of ${pal.motifs} woven with ribbons and leaves around all four edges, wide plain warm cream empty center occupying seventy percent of the page, soft pastel palette, gentle textures`;
-        const frameImg = await withRetry('frame image', async () => fetchImage(pdfDoc, await generateImage(framePrompt, null)));
-        await sleep(PACING);
+        // Step 3: Compose a 1-page Preview Cover PDF & store preview session
+        const previewDoc = await PDFDocument.create();
+        const serifB = await previewDoc.embedFont('Times-Bold');
+        const serifBI = await previewDoc.embedFont('Times-BoldItalic');
+        const bgImg = await embedImageBuffer(previewDoc, bgBuffer);
+        const vigImg = await embedImageBuffer(previewDoc, vigBuffer);
 
-        let pageNo = 0;
-
-        const cover = pdfDoc.addPage([PAGE_W, PAGE_H]); pageNo++;
+        const cover = previewDoc.addPage([PAGE_W, PAGE_H]);
         cover.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.cover });
         cover.drawImage(bgImg, coverFit(bgImg, PAGE_W, PAGE_H));
+
         const d = Z.medal.r * 2;
         const fit = coverFit(vigImg, d, d);
         const dx = (Z.medal.cx - Z.medal.r) + fit.x;
         const dy2 = (Z.medal.cy - Z.medal.r) + fit.y;
-        if (Math.abs((dx + fit.width / 2) - Z.medal.cx) > 2 || Math.abs((dy2 + fit.height / 2) - Z.medal.cy) > 2) throw new Error('Medallion placement guardrail failed');
         cover.drawImage(vigImg, { x: dx, y: dy2, width: fit.width, height: fit.height });
         cover.drawEllipse({ x: Z.medal.cx, y: Z.medal.cy, xScale: Z.medal.r + 5, yScale: Z.medal.r + 5, borderColor: pal.accent, borderWidth: 3.5 });
         cover.drawEllipse({ x: Z.medal.cx, y: Z.medal.cy, xScale: Z.medal.r + 11, yScale: Z.medal.r + 11, borderColor: pal.accent, borderWidth: 1.5, borderOpacity: 0.7 });
+
         drawFlowLine(cover, `${childName}'s`, 700, 44, serifBI, pal.accent, 2);
         let tSize = 40;
         let tLines = wrapText(title, serifB, tSize, 470);
@@ -248,12 +300,256 @@ app.post('/api/create-book', rateLimiter, async (req, res) => {
             ty -= 46;
         }
 
-        const ded = pdfDoc.addPage([PAGE_W, PAGE_H]); pageNo++;
+        const previewPdfBytes = await previewDoc.save();
+        const previewFileName = `preview_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.pdf`;
+        let previewPdfUrl = null;
+
+        if (supabase) {
+            try {
+                const up = await supabase.storage.from('storybooks').upload(previewFileName, previewPdfBytes, { contentType: 'application/pdf', upsert: false });
+                if (!up.error) previewPdfUrl = supabase.storage.from('storybooks').getPublicUrl(previewFileName).data.publicUrl;
+            } catch (e) { console.log('Supabase preview upload skipped:', e.message); }
+        }
+        if (!previewPdfUrl) {
+            fs.writeFileSync(path.join(booksFolder, previewFileName), previewPdfBytes);
+            pdfUrl = `${req.protocol}://${req.get('host')}/books/${previewFileName}`;
+        }
+
+        const previewId = `prev_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+        previewSessions.set(previewId, {
+            timestamp: Date.now(),
+            childName, gender: genderClean, age: childAge, theme, photoData, dedication, email,
+            charAnchor, pronoun, subjectPronoun, pal, title,
+            bgBuffer, vigBuffer, bgUrl, vigUrl,
+            scenesData, openingRhyme
+        });
+
+        console.log(`✅ Preview created in ${((Date.now() - t0) / 1000).toFixed(1)}s (id: ${previewId})`);
+
+        res.json({
+            success: true,
+            previewId,
+            childName,
+            gender: genderClean,
+            age: childAge,
+            bookTitle: title,
+            openingRhyme,
+            previewPdfUrl,
+            vignetteUrl: vigUrl,
+            coverBgUrl: bgUrl
+        });
+    } catch (err) {
+        console.error("❌ Preview error:", err.message);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// ====================================================================
+// FLOW B: STEP 2 - CREATE RAZORPAY ORDER
+// ====================================================================
+app.post('/api/create-order', rateLimiter, async (req, res) => {
+    try {
+        const { previewId, bookLength, email } = req.body;
+        const session = previewSessions.get(previewId);
+        if (!session && !previewId.startsWith('test_')) {
+            return res.status(404).json({ success: false, error: 'Preview session expired. Please preview your book again.' });
+        }
+
+        const isLong = String(bookLength || '').toLowerCase().includes('long') || String(bookLength || '').includes('24');
+        const amountPaise = isLong ? 29900 : 19900; // ₹299 for Long (24 pages), ₹199 for Short (12 pages)
+
+        if (razorpay) {
+            const order = await razorpay.orders.create({
+                amount: amountPaise,
+                currency: 'INR',
+                receipt: (previewId || `rcpt_${Date.now()}`).slice(0, 30),
+                notes: {
+                    previewId: previewId || '',
+                    bookLength: isLong ? '24 pages' : '12 pages',
+                    childName: session ? session.childName : 'Child',
+                    email: email || (session ? session.email : '')
+                }
+            });
+            return res.json({
+                success: true,
+                orderId: order.id,
+                amount: amountPaise,
+                currency: 'INR',
+                keyId: process.env.RAZORPAY_KEY_ID
+            });
+        } else {
+            // Simulated Test Order for zero-friction local and staging development
+            const simOrderId = `order_sim_${Date.now()}`;
+            return res.json({
+                success: true,
+                orderId: simOrderId,
+                amount: amountPaise,
+                currency: 'INR',
+                keyId: 'rzp_test_simulated_key',
+                isTestMode: true
+            });
+        }
+    } catch (err) {
+        console.error("❌ Order creation error:", err.message);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// ====================================================================
+// FLOW B: STEP 3 - VERIFY PAYMENT & DISPATCH GENERATION JOB
+// ====================================================================
+app.post('/api/verify-and-complete-book', rateLimiter, async (req, res) => {
+    try {
+        const {
+            previewId,
+            razorpay_order_id,
+            razorpay_payment_id,
+            razorpay_signature,
+            bookLength,
+            email
+        } = req.body;
+
+        const session = previewSessions.get(previewId);
+        if (!session) {
+            return res.status(404).json({ success: false, error: 'Preview session expired or not found' });
+        }
+
+        // Verify cryptographic signature if real Razorpay keys are active
+        if (razorpay && process.env.RAZORPAY_KEY_SECRET) {
+            const expectedSig = crypto
+                .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+                .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+                .digest('hex');
+
+            if (expectedSig !== razorpay_signature) {
+                return res.status(400).json({ success: false, error: 'Payment signature verification failed' });
+            }
+            console.log(`💳 Payment Verified: ${razorpay_payment_id} for order ${razorpay_order_id}`);
+        } else {
+            console.log(`💳 Test Payment processed: ${razorpay_payment_id || 'test_payment'} for order ${razorpay_order_id}`);
+        }
+
+        // Spawn async book generation job
+        const jobId = `job_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+        activeJobs.set(jobId, {
+            id: jobId,
+            timestamp: Date.now(),
+            status: 'generating',
+            progress: 15,
+            step: 'Painting decorative story borders...',
+            pdfUrl: null,
+            emailed: false,
+            error: null
+        });
+
+        // Run full assembly in background
+        assembleFullBookAsync(jobId, session, bookLength, email || session.email, req.protocol, req.get('host'));
+
+        res.json({ success: true, jobId });
+    } catch (err) {
+        console.error("❌ Verify error:", err.message);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// ====================================================================
+// JOB STATUS POLLING
+// ====================================================================
+app.get('/api/job-status/:jobId', (req, res) => {
+    const job = activeJobs.get(req.params.jobId);
+    if (!job) return res.status(404).json({ success: false, error: 'Job not found' });
+    res.json({
+        success: true,
+        status: job.status,
+        progress: job.progress,
+        step: job.step,
+        pdfUrl: job.pdfUrl,
+        emailed: job.emailed,
+        error: job.error
+    });
+});
+
+// ====================================================================
+// ASYNC BACKGROUND FULFILLMENT WORKER
+// Strict Left-Image / Right-Content Spread Layout
+// ====================================================================
+async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, protocol, host) {
+    const update = (progress, step) => {
+        const j = activeJobs.get(jobId);
+        if (j) { j.progress = progress; j.step = step; }
+    };
+
+    try {
+        const {
+            childName, gender, age, theme, photoData, dedication,
+            charAnchor, pronoun, pal, title,
+            bgBuffer, vigBuffer, scenesData
+        } = session;
+
+        const scenes = getSceneCount(bookLength);
+        console.log(`📖 Async Assembly for Job ${jobId} | ${childName} | scenes=${scenes}`);
+
+        const pdfDoc = await PDFDocument.create();
+        pdfDoc.setTitle(`${childName}'s ${title}`);
+        pdfDoc.setAuthor('TwinkleTale');
+        pdfDoc.setSubject(`A personalized keepsake bedtime storybook for ${childName}`);
+        pdfDoc.setCreator('TwinkleTale Studios AI');
+
+        const serif = await pdfDoc.embedFont('Times-Roman');
+        const serifB = await pdfDoc.embedFont('Times-Bold');
+        const serifI = await pdfDoc.embedFont('Times-Italic');
+        const serifBI = await pdfDoc.embedFont('Times-BoldItalic');
+
+        update(20, 'Painting decorative chapter borders...');
+        const framePrompt = STYLE + `decorative rectangular border frame for a children's book page, repeating hand-painted motifs of ${pal.motifs} woven with ribbons and leaves around all four edges, wide plain warm cream empty center occupying seventy percent of the page, soft pastel palette, gentle textures`;
+        const frameImgBuffer = await withRetry('frame image', async () => fetchImageBuffer(await generateImage(framePrompt, null)));
+        const frameImg = await embedImageBuffer(pdfDoc, frameImgBuffer);
+        await sleep(PACING);
+
+        // ================= PAGE 1: FRONT COVER =================
+        update(30, 'Binding front cover...');
+        const bgImg = await embedImageBuffer(pdfDoc, bgBuffer);
+        const vigImg = await embedImageBuffer(pdfDoc, vigBuffer);
+
+        const cover = pdfDoc.addPage([PAGE_W, PAGE_H]);
+        cover.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.cover });
+        cover.drawImage(bgImg, coverFit(bgImg, PAGE_W, PAGE_H));
+
+        const d = Z.medal.r * 2;
+        const fit = coverFit(vigImg, d, d);
+        const dx = (Z.medal.cx - Z.medal.r) + fit.x;
+        const dy2 = (Z.medal.cy - Z.medal.r) + fit.y;
+        cover.drawImage(vigImg, { x: dx, y: dy2, width: fit.width, height: fit.height });
+        cover.drawEllipse({ x: Z.medal.cx, y: Z.medal.cy, xScale: Z.medal.r + 5, yScale: Z.medal.r + 5, borderColor: pal.accent, borderWidth: 3.5 });
+        cover.drawEllipse({ x: Z.medal.cx, y: Z.medal.cy, xScale: Z.medal.r + 11, yScale: Z.medal.r + 11, borderColor: pal.accent, borderWidth: 1.5, borderOpacity: 0.7 });
+
+        drawFlowLine(cover, `${childName}'s`, 700, 44, serifBI, pal.accent, 2);
+        let tSize = 40;
+        let tLines = wrapText(title, serifB, tSize, 470);
+        if (tLines.length > 3) { tSize = 34; tLines = wrapText(title, serifB, tSize, 470); }
+        let ty = 292;
+        for (const line of tLines) {
+            drawFlowLine(cover, line, ty, tSize, serifB, rgb(0.99, 0.98, 0.94), 3);
+            ty -= 46;
+        }
+
+        // ================= PAGE 2 (LEFT): FRONTISPIECE / WELCOME =================
+        const frontis = pdfDoc.addPage([PAGE_W, PAGE_H]);
+        frontis.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.cover });
+        drawFrameVectors(frontis, pal);
+        drawCentered(frontis, 'TwinkleTale', 480, 22, serifBI, pal.accent);
+        drawCentered(frontis, 'Personalized Keepsake Storybooks', 450, 13, serifI, rgb(0.95, 0.95, 0.95), 0.9);
+        drawCentered(frontis, '✨', 410, 20, serif, pal.accent);
+        drawCentered(frontis, `A Special Bedtime Treasury for ${childName}`, 370, 16, serifB, rgb(0.99, 0.98, 0.94));
+        drawCentered(frontis, `Designed with love • Year ${new Date().getFullYear()}`, 200, 11, serif, pal.accent, 0.8);
+
+        // ================= PAGE 3 (RIGHT): DEDICATION PAGE =================
+        const ded = pdfDoc.addPage([PAGE_W, PAGE_H]);
         ded.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.textBg });
         ded.drawImage(frameImg, coverFit(frameImg, PAGE_W, PAGE_H));
         ded.drawRectangle({ x: PAGE_W / 2 - 5, y: 596, width: 10, height: 10, color: pal.cover, rotate: degrees(45) });
         drawCentered(ded, `For ${childName},`, 520, 32, serifBI, pal.cover);
-        const dedText = (dedication && dedication.trim()) ? dedication.trim() : 'may this little story remind you, every single night, just how hugely loved you are.';
+        const dedText = (dedication && dedication.trim()) ? dedication.trim() : `may this little story remind you, every single night, just how hugely loved and cherished you are. Dream big little star!`;
         const dedLines = wrapText(dedText, serifI, 18, 380);
         let dy = 450 - ((450 - 210) - dedLines.length * 32) / 2;
         for (const line of dedLines) {
@@ -262,89 +558,217 @@ app.post('/api/create-book', rateLimiter, async (req, res) => {
         }
         drawCentered(ded, `Printed just for you • ${new Date().getFullYear()}`, 130, 11, serif, pal.ink, 0.85);
 
-        for (let i = 0; i < pages.length; i++) {
-            const page = pages[i];
-            console.log(`  → Scene ${i + 1}/${pages.length}: ${page.scene_title}`);
-            const scenePrompt = STYLE + (photoData
-                ? `with the exact same child face as the reference photo: ${page.image_prompt}`
-                : `${page.image_prompt}`);
-            const pdfImage = await withRetry(`scene ${i + 1} image`, async () => fetchImage(pdfDoc, await generateImage(scenePrompt, photoData)));
+        // Validate or fallback scenes
+        const effectiveScenes = (scenesData || []).slice(0, scenes);
+        while (effectiveScenes.length < scenes) {
+            const idx = effectiveScenes.length + 1;
+            effectiveScenes.push({
+                scene_title: `Magical Wonder ${idx}`,
+                page_text: `Under the soft glow of twilight, ${childName} discovered a world full of kindness and starlight, smiling as ${pronoun} adventure continued with wonder and joy.`,
+                image_prompt: `whimsical storybook scene of ${charAnchor} exploring magical glowing landscapes full of wonder`
+            });
+        }
 
-            const imgPage = pdfDoc.addPage([PAGE_W, PAGE_H]); pageNo++;
-            imgPage.drawImage(pdfImage, coverFit(pdfImage, PAGE_W, PAGE_H));
+        // ================= INTERIOR SPREADS: LEFT IMAGE + RIGHT TEXT =================
+        let spreadIndex = 1;
+        for (let i = 0; i < scenes; i++) {
+            const scene = effectiveScenes[i];
+            const pct = Math.round(35 + (i / scenes) * 55);
+            update(pct, `Illustrating Scene ${i + 1} of ${scenes}: "${scene.scene_title}"...`);
+            console.log(`  → Scene ${i + 1}/${scenes}: ${scene.scene_title}`);
 
-            const textPage = pdfDoc.addPage([PAGE_W, PAGE_H]); pageNo++;
-            textPage.drawRectangle({ x: 0, y: 0, width: PAGE_W, PAGE_H, color: pal.textBg });
+            const scenePrompt = STYLE + `${charAnchor} with ${pronoun} joyful smile in the scene: ${scene.image_prompt}`;
+            const sceneImgBuf = await withRetry(`scene ${i + 1} image`, async () => fetchImageBuffer(await generateImage(scenePrompt, photoData)));
+            const sceneImg = await embedImageBuffer(pdfDoc, sceneImgBuf);
+
+            // LEFT PAGE: Full bleed Scene Illustration
+            const imgPage = pdfDoc.addPage([PAGE_W, PAGE_H]);
+            imgPage.drawImage(sceneImg, coverFit(sceneImg, PAGE_W, PAGE_H));
+
+            // RIGHT PAGE: Elegant Framed Verse Page
+            const textPage = pdfDoc.addPage([PAGE_W, PAGE_H]);
+            textPage.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.textBg });
             textPage.drawImage(frameImg, coverFit(frameImg, PAGE_W, PAGE_H));
-            drawCentered(textPage, page.scene_title, 600, 26, serifB, pal.cover);
+
+            drawCentered(textPage, scene.scene_title, 600, 26, serifB, pal.cover);
             textPage.drawRectangle({ x: PAGE_W / 2 - 4, y: 566, width: 8, height: 8, color: pal.cover, rotate: degrees(45) });
-            const verseLines = wrapText(page.page_text, serif, 18, 400);
+
+            const verseLines = wrapText(scene.page_text, serif, 18, 400);
             let by = 520 - ((520 - 160) - verseLines.length * 32) / 2;
             for (const line of verseLines) {
                 drawCentered(textPage, line, by, 18, serif, pal.ink);
                 by -= 32;
             }
-            drawCentered(textPage, String(pageNo), 112, 11, serif, pal.ink, 0.8);
+            drawCentered(textPage, `Spread ${spreadIndex}`, 112, 11, serif, pal.ink, 0.75);
+            spreadIndex++;
 
-            if (i < pages.length - 1) {
-                console.log("  ⏳ 10s pacing...");
+            if (i < scenes - 1) {
+                console.log("  ⏳ Pacing 10s...");
                 await sleep(PACING);
             }
         }
 
-        const back = pdfDoc.addPage([PAGE_W, PAGE_H]); pageNo++;
+        // ================= KEEPSAKE CERTIFICATE PAGE =================
+        update(92, 'Generating keepsake certificate...');
+        const cert = pdfDoc.addPage([PAGE_W, PAGE_H]);
+        cert.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.textBg });
+        cert.drawImage(frameImg, coverFit(frameImg, PAGE_W, PAGE_H));
+        drawCentered(cert, 'Official Keepsake Certificate', 580, 24, serifBI, pal.cover);
+        cert.drawRectangle({ x: PAGE_W / 2 - 4, y: 546, width: 8, height: 8, color: pal.cover, rotate: degrees(45) });
+        drawCentered(cert, 'This bedtime treasury belongs to', 460, 18, serifI, pal.ink);
+        drawCentered(cert, childName, 390, 36, serifB, pal.cover);
+        drawCentered(cert, '⭐ ⭐ ⭐', 330, 16, serif, pal.accent);
+        drawCentered(cert, `Crafted uniquely in ${new Date().getFullYear()} • Handcrafted with love`, 260, 14, serifI, pal.ink);
+        drawCentered(cert, 'TwinkleTale Personalized Books', 140, 11, serif, pal.ink, 0.8);
+
+        // ================= BACK COVER =================
+        update(95, 'Sealing book back cover...');
+        const back = pdfDoc.addPage([PAGE_W, PAGE_H]);
         back.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.cover });
         drawFrameVectors(back, pal);
-        drawCentered(back, 'This book belongs to', 400, 16, serifI, rgb(0.99, 0.98, 0.94));
-        drawCentered(back, `${childName}`, 350, 32, serifBI, pal.accent);
-        drawCentered(back, `Crafted uniquely in ${new Date().getFullYear()} • A one-of-a-kind keepsake`, 140, 11, serif, pal.accent);
+        drawCentered(back, 'TwinkleTale', 450, 32, serifBI, pal.accent);
+        drawCentered(back, 'Every child is the hero of their own bedtime story.', 405, 14, serifI, rgb(0.98, 0.98, 0.98));
+        drawCentered(back, `Created especially for ${childName}`, 340, 22, serifB, pal.accent);
+        drawCentered(back, `A one-of-a-kind keepsake • ${new Date().getFullYear()}`, 140, 11, serif, pal.accent);
 
-        // 3. SAVE: Supabase first (permanent), local fallback
-        console.log("Step 3: Saving PDF...");
+        // ================= SAVE & UPLOAD =================
+        update(97, 'Saving print-ready PDF...');
         const pdfBytes = await pdfDoc.save();
         const safeName = String(childName).replace(/[^a-zA-Z0-9_-]/g, '_');
-        const fileName = `book_${safeName}_${Date.now()}.pdf`;
+        const fileName = `twinkletale_${safeName}_${Date.now()}.pdf`;
         let pdfUrl = null;
 
         if (supabase) {
             try {
                 const up = await supabase.storage.from('storybooks').upload(fileName, pdfBytes, { contentType: 'application/pdf', upsert: false });
-                if (up.error) throw new Error(up.error.message);
-                pdfUrl = supabase.storage.from('storybooks').getPublicUrl(fileName).data.publicUrl;
-                console.log("☁️ Saved permanently to Supabase");
+                if (!up.error) pdfUrl = supabase.storage.from('storybooks').getPublicUrl(fileName).data.publicUrl;
+                console.log("☁️ Saved permanently to Supabase:", pdfUrl);
             } catch (e) {
-                console.log("⚠️ Supabase upload failed, using local fallback:", e.message);
+                console.log("⚠️ Supabase upload failed, falling back to local:", e.message);
                 pdfUrl = null;
             }
         }
         if (!pdfUrl) {
             fs.writeFileSync(path.join(booksFolder, fileName), pdfBytes);
-            pdfUrl = `${req.protocol}://${req.get('host')}/books/${fileName}`;
-            console.log("💾 Saved locally (fallback)");
+            pdfUrl = `${protocol}://${host}/books/${fileName}`;
+            console.log("💾 Saved locally (fallback):", pdfUrl);
         }
 
-        // 4. EMAIL (optional, never fails the book)
-                let emailed = false;
-        if (mailer && email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        // ================= EMAIL DELIVERY =================
+        let emailed = false;
+        if (mailer && parentEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(parentEmail)) {
+            update(99, 'Dispatching personalized delivery email...');
             try {
                 await mailer.sendMail({
-                    from: `"Storybook Studio" <${process.env.GMAIL_USER}>`,
-                    to: email,
-                    subject: `${childName}'s Personalized Storybook is ready! 🎉`,
-                    html: `<div style="font-family:Georgia,serif;padding:24px;background:#fdf8ef;border-radius:12px"><h2 style="color:#5a2a4d">📚 ${childName}'s ${title}</h2><p>Hello! Your personalized storybook is ready.</p><p><a href="${pdfUrl}" style="background:#28a745;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none">Download ${childName}'s Book</a></p><p style="color:#777;font-size:13px">This link never expires. Made with love by Storybook Studio.</p></div>`
+                    to: parentEmail,
+                    subject: `✨ ${childName}'s Personalized Storybook is Ready! (TwinkleTale)`,
+                    html: `<div style="font-family:Georgia,serif;padding:32px;background:#FAF7F2;border-radius:12px;max-width:600px;margin:0 auto;border:1px solid #EAE4D9">
+                        <h2 style="color:#161B33;margin-top:0">✨ ${childName}'s ${title} is ready!</h2>
+                        <p style="font-size:16px;color:#333;line-height:1.6">Hello! We have finished crafting your personalized keepsake bedtime storybook for <strong>${childName}</strong>.</p>
+                        <p style="text-align:center;margin:30px 0">
+                            <a href="${pdfUrl}" target="_blank" style="background:#1B4938;color:#FAF7F2;padding:14px 28px;border-radius:8px;text-decoration:none;font-size:16px;font-weight:bold;display:inline-block">📥 Download Print-Ready Storybook (PDF)</a>
+                        </p>
+                        <p style="font-size:13px;color:#777;line-height:1.5">You can read this on any phone, iPad, tablet, or print it out on A4/Letter paper to make a physical bedside book.</p>
+                        <hr style="border:none;border-top:1px solid #DDD;margin:24px 0">
+                        <p style="font-size:12px;color:#999;text-align:center">This link is permanent and never expires.<br>Crafted with love by TwinkleTale Studios.</p>
+                    </div>`
                 });
-                                emailed = true;
-                console.log("📧 Email sent to", email);
+                emailed = true;
+                console.log("📧 Delivery email sent to:", parentEmail);
             } catch (e) {
-                console.log("⚠️ Email failed (book still delivered via link):", e.message);
+                console.log("⚠️ Email delivery notice:", e.message);
             }
         }
 
-        console.log(`✅ Done in ${((Date.now() - t0) / 1000).toFixed(0)}s | ${pageNo} pages`);
-                res.json({ success: true, pdfUrl: pdfUrl, emailed: emailed });
-    } catch (error) {
-        console.error("❌ ERROR:", error.response ? error.response.data : error.message);
-        res.status(500).json({ success: false, error: error.message });
+        const job = activeJobs.get(jobId);
+        if (job) {
+            job.status = 'completed';
+            job.progress = 100;
+            job.step = 'Your storybook is ready!';
+            job.pdfUrl = pdfUrl;
+            job.emailed = emailed;
+        }
+        console.log(`🎉 Job ${jobId} Completed! Pages=${pdfDoc.getPageCount()} | PDF: ${pdfUrl}`);
+    } catch (err) {
+        console.error(`❌ Job ${jobId} Failed:`, err.message);
+        const job = activeJobs.get(jobId);
+        if (job) {
+            job.status = 'failed';
+            job.error = err.message;
+            job.step = 'Generation encountered an error';
+        }
+    }
+}
+
+// ====================================================================
+// DIRECT BOOK GENERATION (LEGACY / SMOKE TEST ENDPOINT)
+// ====================================================================
+app.post('/api/create-book', rateLimiter, async (req, res) => {
+    const t0 = Date.now();
+    try {
+        const { childName, gender, age, theme, photoData, bookLength, dedication, email } = req.body;
+        if (!childName) return res.status(400).json({ success: false, error: 'Child name is required' });
+
+        const genderClean = (String(gender || '').toLowerCase().trim() === 'girl') ? 'girl' : 'boy';
+        const childAge = parseInt(age, 10) || 5;
+        const pronoun = (genderClean === 'girl') ? 'her' : 'his';
+        const subjectPronoun = (genderClean === 'girl') ? 'she' : 'he';
+        const charAnchor = `a cute ${childAge}-year-old ${genderClean} named ${childName}`;
+
+        const base = String(theme || 'Adventure').split(' (')[0];
+        const scenes = getSceneCount(bookLength);
+        const pal = themeKit(base);
+        const title = themeTitle(base);
+        assertZones();
+
+        console.log(`📘 Direct Book v7 | ${childName} (${genderClean}, ${childAge}) | ${base} | scenes=${scenes}`);
+
+        const storyResponse = await withRetry('story', () => axios.post('https://api.deepseek.com/v1/chat/completions', {
+            model: 'deepseek-chat',
+            messages: [
+                {
+                    role: 'system',
+                    content: `You are an award-winning children's storybook author for TwinkleTale. Output ONLY a valid JSON array of ${scenes} objects. No markdown, no extra text.
+The child protagonist is ${childName}, a ${childAge}-year-old ${genderClean}. Strictly maintain ${childName}'s gender (${genderClean}, pronouns ${subjectPronoun}/${pronoun}).
+Each object must have "scene_title" (2-4 words), "page_text" (35-50 words of warm read-aloud language for ages 2-8), and "image_prompt" (one sentence describing a single vivid scene featuring ${charAnchor}).`
+                },
+                {
+                    role: 'user',
+                    content: `Write a ${scenes}-scene story about ${childName} going on a ${theme} bedtime adventure.`
+                }
+            ]
+        }, { headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}` } }), 2, 3000);
+
+        let storyText = storyResponse.data.choices[0].message.content;
+        storyText = storyText.replace(/```json/g, '').replace(/```/g, '').trim();
+        const rawPages = JSON.parse(storyText);
+        const pages = (Array.isArray(rawPages) ? rawPages : []).slice(0, scenes);
+
+        const session = {
+            childName, gender: genderClean, age: childAge, theme, photoData, dedication,
+            charAnchor, pronoun, subjectPronoun, pal, title,
+            bgBuffer: null, vigBuffer: null, scenesData: pages
+        };
+
+        // Generate Cover background + vignette
+        const bgPrompt = STYLE + `ornate storybook cover BACKGROUND only: elaborate golden-cream vine and leaf border with small vignettes of ${pal.motifs} confined strictly to the outer fifteen percent edges; two gentle painted flourish arches of tiny leaves and stars, one arching across the top center framing an empty name plaque area, and one arching across the lower middle framing an empty title plaque area; the rest of the inner field is ${pal.flatWord}, flat and empty except a few sparse tiny stars; absolutely no character, no person, no moon, no text, no letters anywhere; rich painterly detail`;
+        session.bgBuffer = await fetchImageBuffer(await generateImage(bgPrompt, null));
+        await sleep(PACING);
+
+        const vigPrompt = STYLE + `circular painted vignette portrait of ${photoData ? 'the exact same child from the reference photo' : charAnchor} as the storybook hero, head and shoulders, joyful expression, soft golden rim light, a few tiny ${pal.motifs} sparkles around the head, surrounded by ${pal.flatWord} background filling all four corners, vignette edges softly fading into that flat background`;
+        session.vigBuffer = await fetchImageBuffer(await generateImage(vigPrompt, photoData));
+        await sleep(PACING);
+
+        // Run full assembly synchronously for smoke test
+        const testJobId = `direct_${Date.now()}`;
+        activeJobs.set(testJobId, { id: testJobId, status: 'generating', progress: 50, step: 'Generating', pdfUrl: null, emailed: false });
+        await assembleFullBookAsync(testJobId, session, bookLength, email, req.protocol, req.get('host'));
+
+        const finished = activeJobs.get(testJobId);
+        res.json({ success: true, pdfUrl: finished.pdfUrl, emailed: finished.emailed, elapsedSeconds: ((Date.now() - t0) / 1000).toFixed(0) });
+    } catch (err) {
+        console.error("❌ Error in create-book:", err.message);
+        res.status(500).json({ success: false, error: err.message });
     }
 });
 
@@ -352,15 +776,14 @@ app.get('/api/test-email', async (req, res) => {
     if (!process.env.EMAIL_TEST_TOKEN || req.query.token !== process.env.EMAIL_TEST_TOKEN) return res.status(403).json({ ok: false });
     if (!mailer) return res.json({ ok: false, error: 'mailer not configured' });
     try {
-        await mailer.sendMail({ to: process.env.SENDER_EMAIL || process.env.GMAIL_USER, subject: 'Render email test', html: '<p>If you see this, email delivery works!</p>' });
+        await mailer.sendMail({ to: process.env.SENDER_EMAIL, subject: 'TwinkleTale email delivery test', html: '<p>TwinkleTale email delivery is active!</p>' });
         res.json({ ok: true });
     } catch (e) {
-        const key = process.env.BREVO_API_KEY || '';
-        res.json({ ok: false, error: e.message, brevoSays: e.response ? e.response.data : null, keyPrefix: key.slice(0, 8), keyLength: key.length });
+        res.json({ ok: false, error: e.message, brevoSays: e.response ? e.response.data : null });
     }
 });
 
 app.use('/books', express.static(path.join(__dirname, 'books')));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 TwinkleTale Server running on port ${PORT}`));
