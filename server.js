@@ -100,7 +100,7 @@ if (!fs.existsSync(fontsFolder)) fs.mkdirSync(fontsFolder);
 
 const PAGE_W = 600, PAGE_H = 800;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-const STYLE = 'Award-winning whimsical children\'s picture book illustration, soft hand-painted watercolor and gouache texture, gentle Studio Ghibli warmth and charm, cozy storybook atmosphere, adorable expressive child character with rounded cute features, warm magical lighting, clean composition, soft pastel tones, dreamy bedtime feeling, no text, no words, no letters, no watermark, not 3D CGI, not realistic photo, not plastic: ';
+const STYLE = 'Masterpiece children\'s storybook illustration, rich painterly storybook realism, soft digital gouache and fine oils texture, warm cinematic volumetric lighting, gentle golden hour rim light, adorable expressive child character with soulful sparkling dark eyes, natural soft dimensional skin tones with gentle peachy warmth, finely rendered silky hair catching the light, charming button nose and joyful smile, highly detailed enchanted surroundings with floating magical motes and glowing starlight, cinematic depth of field, art by Oliver Jeffers and Chris Van Allsburg, award-winning picture book, no text, no words, no letters, no watermark, not flat 2D cartoon, not 3D CGI plastic render: ';
 const PACING = 10000;
 
 // Preview session cache and Job status tracking
@@ -233,12 +233,12 @@ function getCharacterDetails(childName, gender, age, theme) {
     }
 
     const charAnchorText = (genderClean === 'little star')
-        ? `adorable ${childAge}-year-old child named ${childName} with sweet round rosy cheeks, cheerful curved eyes, button nose, friendly joyful smile, cozy storybook watercolor illustration style with gentle Ghibli charm, ${outfit}`
-        : `adorable ${childAge}-year-old ${genderClean} named ${childName} with sweet round rosy cheeks, cheerful curved eyes, button nose, friendly joyful smile, cozy storybook watercolor illustration style with gentle Ghibli charm, ${outfit}`;
+        ? `adorable ${childAge}-year-old child named ${childName} with soulful sparkling dark eyes, natural soft dimensional skin tones with gentle peachy warmth, charming button nose, joyful warm smile, finely rendered hair with golden rim lighting, painterly storybook realism, ${outfit}`
+        : `adorable ${childAge}-year-old ${genderClean} named ${childName} with soulful sparkling dark eyes, natural soft dimensional skin tones with gentle peachy warmth, charming button nose, joyful warm smile, finely rendered hair with golden rim lighting, painterly storybook realism, ${outfit}`;
 
     const charAnchorVisual = (genderClean === 'little star')
-        ? `adorable ${childAge}-year-old child with sweet round rosy cheeks, cheerful curved eyes, button nose, friendly joyful smile, cozy storybook watercolor illustration style with gentle Ghibli charm, ${outfit}`
-        : `adorable ${childAge}-year-old ${genderClean} with sweet round rosy cheeks, cheerful curved eyes, button nose, friendly joyful smile, cozy storybook watercolor illustration style with gentle Ghibli charm, ${outfit}`;
+        ? `adorable ${childAge}-year-old child with soulful sparkling dark eyes, natural soft dimensional skin tones with gentle peachy warmth, charming button nose, joyful warm smile, finely rendered hair with golden rim lighting, painterly storybook realism, ${outfit}`
+        : `adorable ${childAge}-year-old ${genderClean} with soulful sparkling dark eyes, natural soft dimensional skin tones with gentle peachy warmth, charming button nose, joyful warm smile, finely rendered hair with golden rim lighting, painterly storybook realism, ${outfit}`;
 
     return { genderClean, childAge, pronoun, subjectPronoun, charAnchor: charAnchorVisual, charAnchorVisual, charAnchorText, outfit };
 }
@@ -404,8 +404,8 @@ function drawFrameVectors(page, pal) {
 async function generateAvatar(photoData, charAnchor) {
     if (photoData) {
         try {
-            console.log("  → Transforming reference photo into cozy watercolor storybook avatar via flux-kontext-pro...");
-            const avatarPrompt = `Transform the child in this photo into an adorable, charming storybook character in a soft hand-painted watercolor and gouache picture book style, gentle Studio Ghibli warmth. Round cute rosy cheeks, warm joyful curved eyes, sweet button nose, friendly happy smile. Capture the child's exact hairstyle, hair color, eye shape, and sweet expression faithfully, but rendered as a cozy hand-painted storybook illustration. Not 3D CGI, not realistic photo, not plastic, no text, no watermark`;
+            console.log("  → Transforming reference photo into rich painterly storybook avatar via flux-kontext-pro...");
+            const avatarPrompt = `Transform the child in this photo into an adorable, charming storybook hero in lush painterly storybook realism, soft digital gouache and fine oils texture, gentle cinematic golden lighting. Soulful sparkling dark eyes with lifelike reflection, natural soft dimensional skin tones with warm peachy glow, sweet button nose, joyful happy smile, finely rendered silky hair strands catching the rim light. Capture the child's exact hairstyle, hair color, eye shape, and sweet expression faithfully, rendered with rich picture book artistry. Not flat 2D cartoon, not stiff 3D CGI, not plastic, no text, no watermark`;
             const out = await replicate.run("black-forest-labs/flux-kontext-pro", {
                 input: {
                     input_image: photoData,
@@ -420,8 +420,8 @@ async function generateAvatar(photoData, charAnchor) {
         }
     }
 
-    console.log("  → Painting watercolor storybook portrait via flux-1.1-pro...");
-    const prompt = STYLE + `portrait of ${charAnchor} as an adorable storybook hero, soft warm studio lighting, cheerful expression, cozy watercolor picture book illustration, clean soft background`;
+    console.log("  → Painting rich storybook portrait via flux-1.1-pro...");
+    const prompt = STYLE + `portrait of ${charAnchor} as an adorable storybook hero, soft warm studio lighting, cheerful expression, rich painterly storybook illustration, clean soft background`;
     const out = await replicate.run("black-forest-labs/flux-1.1-pro", {
         input: { prompt: prompt, aspect_ratio: "1:1", output_format: "png" }
     });
@@ -433,7 +433,7 @@ async function generateCoverPainting(charAnchor, base, pal, photoData, bespokePr
     console.log(`  → Painting full-bleed storybook cover for ${base} theme...`);
     const prompt = bespokePrompt
         ? (STYLE + bespokePrompt)
-        : (STYLE + `full-bleed children's book cover illustration of ${charAnchor} as the joyful adventure hero exploring a breathtaking, magical ${base} world with ${pal.motifs}; child is smiling warmly in the lower-center of the scene; wide open tranquil uncluttered empty ${pal.flatWord} sky in the upper third of the composition, pure background art, warm magical golden hour lighting, rich painterly watercolor texture, gentle Ghibli warmth, masterpiece picture book cover, no text, no words, no letters, no title, no typography, no watermark, no border, no frame`);
+        : (STYLE + `full-bleed children's book cover illustration of ${charAnchor} as the joyful adventure hero exploring a breathtaking, magical ${base} world with ${pal.motifs}; child is smiling warmly in the lower-center of the scene; wide open tranquil uncluttered empty ${pal.flatWord} sky in the upper third of the composition, pure background art, warm magical volumetric golden hour lighting, rich digital gouache and fine oils texture, painterly storybook realism, masterpiece picture book cover, no text, no words, no letters, no title, no typography, no watermark, no border, no frame`);
     return await generateImage(prompt, photoData);
 }
 
@@ -500,8 +500,8 @@ app.post('/api/create-preview', rateLimiter, async (req, res) => {
                     content: `You are an award-winning children's storybook author and visual art director for TwinkleTale. Output ONLY a valid JSON object with keys:
 "book_title": (a unique, poetic, charming 3-5 word storybook title in ${lang} specifically tailored to ${childName}'s bedtime adventure in ${theme}, e.g. "${childName} और जादुई डॉल्फ़िन" or "${childName} and the Starlight Voyage"),
 "opening_rhyme": (4 lines of lyrical, warm read-aloud rhyme welcoming ${childName} into their bedtime adventure in ${lang}),
-"cover_image_prompt": (a detailed 70-90 word visual art prompt in English describing the front cover painting: describe ${charAnchor} exploring a breathtaking, magical ${theme} world with ${pal.motifs}; child is smiling warmly in the lower-center; upper third of scene has a wide open, tranquil, completely empty blank pastel sky with soft clouds and gentle starlight, pure background art with NO text, NO words, NO letters, NO name, NO typography; warm magical golden lighting, soft watercolor and gouache texture with gentle Studio Ghibli warmth),
-"story_scenes": (an array of 12 objects, each with "scene_title" [2-4 words in ${lang}], "page_text" [35-50 words in ${lang}], and "image_prompt" [a detailed 70-90 word visual art prompt in English describing ${charAnchor} in this specific scene with cute expressions, magical details, companion creatures, warm lighting, and cozy watercolor/Ghibli textures; NEVER include any child's name in image_prompt]).
+"cover_image_prompt": (a detailed 70-90 word visual art prompt in English describing the front cover painting in rich stylized painterly realism: describe ${charAnchor} as the cheerful hero actively interacting with a breathtaking, magical ${theme} world with ${pal.motifs}; child has soulful sparkling eyes and a warm joyful expression; upper third of scene has a wide open, tranquil, completely empty blank pastel sky with soft floating clouds and gentle starlight, pure background art with NO text, NO words, NO letters, NO name, NO typography; cinematic volumetric golden hour lighting, gentle rim light, rich digital gouache and fine oils texture),
+"story_scenes": (an array of 12 objects, each with "scene_title" [2-4 words in ${lang}], "page_text" [35-50 words in ${lang}], and "image_prompt" [an active, evocative 70-90 word visual art prompt in English describing ${charAnchor} actively interacting with the world in this scene (e.g., reaching out with wonder, holding glowing starlight motes in palms, exploring beside friendly companion creatures, gazing through portals, discovering hidden treasures); soulful sparkling eyes, natural dimensional skin tones with gentle peachy warmth, cinematic lighting, rich depth of field, atmospheric magical embers, painterly storybook realism; NEVER include any child's name in image_prompt]).
 ${genderGuidance}
 LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme", "scene_title", "page_text") MUST be written beautifully in ${lang} using its authentic script. All visual prompts ("cover_image_prompt", "image_prompt") MUST be in English. No markdown, no commentary.`
                 },
@@ -807,6 +807,61 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         drawVectorStar(cover, PAGE_W / 2 - 115, 38, 5, 5, 2.2, pal.accent);
         drawVectorStar(cover, PAGE_W / 2 + 115, 38, 5, 5, 2.2, pal.accent);
 
+        // ================= PAGE 2: WELCOME & DEDICATION (INSIDE FRONT SPREAD) =================
+        update(33, 'Crafting welcome dedication page...');
+        const dedPage = pdfDoc.addPage([PAGE_W, PAGE_H]);
+        dedPage.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.textBg });
+        dedPage.drawImage(frameImg, coverFit(frameImg, PAGE_W, PAGE_H));
+
+        // Top Header
+        drawCentered(dedPage, 'TWINKLETALE KEEPSAKE TREASURY', 665, 10, serifB, pal.accent, 0.95);
+        drawVectorDiamond(dedPage, PAGE_W / 2, 648, 6, pal.accent);
+
+        // Book Title in Authentic Language
+        const dedTitle = session.bookTitle || title || `${childName}'s Adventure`;
+        const dedTitleFont = chooseFont(dedTitle, bookFont, serifB);
+        let dtSize = 26;
+        let dtLines = wrapText(dedTitle, dedTitleFont, dtSize, 420);
+        if (dtLines.length > 2) { dtSize = 22; dtLines = wrapText(dedTitle, dedTitleFont, dtSize, 420); }
+        let dty = 612;
+        for (const line of dtLines) {
+            drawCentered(dedPage, line, dty, dtSize, dedTitleFont, pal.cover);
+            dty -= 34;
+        }
+
+        // Opening Rhyme
+        const rhyme = session.openingRhyme || `Underneath the twinkling stars, where dreams begin to play,\nA special tale unfolds tonight, to softly guide your way.\nFor ${childName}, our little dreamer, so brave and kind and bright,\nA magical bedtime story starts before you sleep tonight.`;
+        const rhymeFont = chooseFont(rhyme, bookFont, serifI);
+        const rhymeLines = wrapText(rhyme, rhymeFont, 14, 400);
+        let ry = dty - 16;
+        for (const line of rhymeLines) {
+            drawCentered(dedPage, line, ry, 14, rhymeFont, pal.ink, 0.9);
+            ry -= 24;
+        }
+
+        // Golden divider
+        dedPage.drawLine({ start: { x: 140, y: ry - 12 }, end: { x: PAGE_W - 140, y: ry - 12 }, color: pal.accent, thickness: 1, opacity: 0.6 });
+        drawVectorStar(dedPage, PAGE_W / 2, ry - 12, 5, 8, 3.5, pal.accent);
+
+        // Personalized Parent Dedication Block
+        const forLabel = `Especially for ${childName}`;
+        const forFont = chooseFont(forLabel, bookFont, serifB);
+        drawCentered(dedPage, forLabel, ry - 40, 16, forFont, pal.cover);
+
+        const dedMsg = (dedication && dedication.trim())
+            ? dedication.trim()
+            : `May this bedtime story remind you, every single night, just how hugely loved and cherished you are. Dream big, little star!`;
+        const dedMsgFont = chooseFont(dedMsg, bookFont, serifI);
+        const dedMsgLines = wrapText(dedMsg, dedMsgFont, 13, 390);
+        let my = ry - 68;
+        for (const line of dedMsgLines) {
+            drawCentered(dedPage, line, my, 13, dedMsgFont, pal.ink, 0.85);
+            my -= 22;
+        }
+
+        // Keepsake footer
+        drawCentered(dedPage, 'TwinkleTale Studios • Keepsake Treasury Edition', 70, 9, serif, pal.ink, 0.6);
+
         // Validate or fallback scenes
         const effectiveScenes = (scenesData || []).slice(0, scenes);
         while (effectiveScenes.length < scenes) {
@@ -886,19 +941,17 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         endPage.drawLine({ start: { x: 120, y: 575 }, end: { x: PAGE_W - 120, y: 575 }, color: pal.accent, thickness: 1, opacity: 0.6 });
         drawVectorDiamond(endPage, PAGE_W / 2, 575, 8, pal.accent);
 
-        // Dedication Block
-        const forText = `Crafted especially for ${childName}`;
+        // Bedtime Blessing Block
+        const forText = `Sleep With The Stars, ${childName}`;
         const forFont = chooseFont(forText, bookFont, serifB);
         drawCentered(endPage, forText, 525, 20, forFont, pal.accent);
 
-        const dedText = (dedication && dedication.trim())
-            ? dedication.trim()
-            : `May this bedtime story remind you, every single night, just how hugely loved and cherished you are. Dream big, little star!`;
-        const dedFont = chooseFont(dedText, bookFont, serifI);
-        const dedLines = wrapText(dedText, dedFont, 16, 420);
+        const closingBlessing = `May your dreams tonight take you on wondrous journeys across starlit skies and enchanted lands. Rest your eyes, little adventurer, knowing you are deeply loved, hugely cherished, and capable of wonderful things.`;
+        const blessFont = chooseFont(closingBlessing, bookFont, serifI);
+        const blessLines = wrapText(closingBlessing, blessFont, 16, 420);
         let dy = 470;
-        for (const line of dedLines) {
-            drawCentered(endPage, line, dy, 16, dedFont, rgb(0.98, 0.98, 0.98), 0.95);
+        for (const line of blessLines) {
+            drawCentered(endPage, line, dy, 16, blessFont, rgb(0.98, 0.98, 0.98), 0.95);
             dy -= 26;
         }
 
@@ -917,8 +970,29 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         const yr = new Date().getFullYear();
         drawCentered(endPage, `Handcrafted with love • ${yr} • All Rights Reserved`, 100, 10, serif, pal.accent, 0.75);
 
-        // ================= STRICT PAGE COUNT GUARDRAIL =================
-        const expectedPages = (scenes * 2) + 2;
+        // ================= FINAL PAGE: OFFICIAL KEEPSAKE BACK COVER =================
+        update(96, 'Binding official keepsake back cover...');
+        const backCover = pdfDoc.addPage([PAGE_W, PAGE_H]);
+        backCover.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.cover });
+        drawFrameVectors(backCover, pal);
+
+        // Central gold seal
+        drawVectorStar(backCover, PAGE_W / 2, 530, 5, 24, 11, pal.accent);
+        drawCentered(backCover, 'TwinkleTale', 480, 26, serifBI, pal.accent);
+        drawCentered(backCover, 'Personalized Keepsake Storybooks', 455, 12, serifI, rgb(0.95, 0.95, 0.95), 0.9);
+
+        backCover.drawLine({ start: { x: 160, y: 425 }, end: { x: PAGE_W - 160, y: 425 }, color: pal.accent, thickness: 1, opacity: 0.6 });
+        drawVectorDiamond(backCover, PAGE_W / 2, 425, 7, pal.accent);
+
+        drawCentered(backCover, '"Every child is the hero of their own bedtime story."', 385, 13, serifI, rgb(0.92, 0.92, 0.92), 0.85);
+        const backHeroTag = `Handcrafted with love for ${childName}`;
+        drawCentered(backCover, backHeroTag, 355, 12, chooseFont(backHeroTag, bookFont, serifB), pal.accent, 0.9);
+
+        drawCentered(backCover, 'A Keepsake Treasury To Treasure Forever', 160, 11, serifI, pal.accent, 0.85);
+        drawCentered(backCover, 'www.twinkletale.com • Keepsake Edition', 60, 10, serif, pal.accent, 0.7);
+
+        // ================= STRICT PAGE COUNT GUARDRAIL (PRINT-SHOP MULTIPLES OF 4) =================
+        const expectedPages = (scenes * 2) + 4;
         if (pdfDoc.getPageCount() !== expectedPages) {
             throw new Error(`PAGE COUNT GUARDRAIL VIOLATION: Expected exactly ${expectedPages} pages but generated ${pdfDoc.getPageCount()}`);
         }

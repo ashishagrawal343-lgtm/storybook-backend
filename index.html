@@ -1403,8 +1403,8 @@
 
             <ul class="spread-features" style="margin-bottom:25px;">
               <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> <strong>12 Story Pages</strong> (6 Full Spreads)</li>
-              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> <strong>14 Total Physical Pages</strong> (Cover, 6 Spreads, Ending Keepsake)</li>
-              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> Personalized with child's 3D Pixar avatar & name</li>
+              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> <strong>16 Total Physical Pages</strong> (Cover, Dedication Spread, 6 Spreads, Keepsake Seal, Back Cover)</li>
+              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> Personalized with child's keepsake portrait & name</li>
               <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> Available in all 11 languages (Hindi, English, etc.)</li>
               <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> High-Res 300 DPI PDF download & delivery email</li>
             </ul>
@@ -1430,8 +1430,8 @@
 
             <ul class="spread-features" style="margin-bottom:25px;">
               <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> <strong>24 Story Pages</strong> (12 Full Spreads)</li>
-              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> <strong>26 Total Physical Pages</strong> (Cover, 12 Spreads, Ending Keepsake)</li>
-              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> 12 unique 3D Pixar scene illustrations & locked outfit</li>
+              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> <strong>28 Total Physical Pages</strong> (Cover, Dedication Spread, 12 Spreads, Keepsake Seal, Back Cover)</li>
+              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> 12 unique storybook scene illustrations & locked outfit</li>
               <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> Deeper bedtime storyline & character development</li>
               <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> All 11 languages with authentic script typography</li>
             </ul>
@@ -1618,13 +1618,13 @@
               <div class="edition-card selected" id="formEditionShort" onclick="selectEdition('short')">
                 <span class="edition-badge">Standard</span>
                 <div class="edition-title">Treasury Edition</div>
-                <div class="edition-pages">12 Story Pages (14 Total) • 6 Illustrated Spreads</div>
+                <div class="edition-pages">12 Story Pages (16 Total) • 6 Illustrated Spreads</div>
                 <div class="edition-price">₹199</div>
               </div>
               <div class="edition-card" id="formEditionLong" onclick="selectEdition('long')">
                 <span class="edition-badge" style="background:var(--gold); color:var(--navy);">Deluxe</span>
                 <div class="edition-title">Grand Treasury</div>
-                <div class="edition-pages">24 Story Pages (26 Total) • 12 Illustrated Spreads</div>
+                <div class="edition-pages">24 Story Pages (28 Total) • 12 Illustrated Spreads</div>
                 <div class="edition-price">₹299</div>
               </div>
             </div>
@@ -1678,7 +1678,7 @@
                 <span class="edition-summary-price" id="previewEditionPrice">₹199</span>
               </div>
               <div class="edition-summary-desc" id="previewEditionPages">
-                12 Story Pages (14 Total Pages) • 6 Illustrated Spreads • Print-Ready PDF
+                12 Story Pages (16 Total Pages) • 6 Illustrated Spreads • Print-Ready PDF
               </div>
             </div>
 
@@ -2003,8 +2003,8 @@
       if (badge) badge.innerHTML = isLong ? '<i class="fas fa-crown"></i> Grand Treasury Edition' : '<i class="fas fa-book"></i> Treasury Edition';
       if (price) price.textContent = isLong ? '₹299' : '₹199';
       if (pages) pages.textContent = isLong
-        ? '24 Story Pages (26 Total Physical Pages) • 12 Illustrated Spreads • Print-Ready PDF'
-        : '12 Story Pages (14 Total Physical Pages) • 6 Illustrated Spreads • Print-Ready PDF';
+        ? '24 Story Pages (28 Total Physical Pages) • 12 Illustrated Spreads • Print-Ready PDF'
+        : '12 Story Pages (16 Total Physical Pages) • 6 Illustrated Spreads • Print-Ready PDF';
       if (btnPrice) btnPrice.textContent = isLong ? '₹299' : '₹199';
     }
 
@@ -2114,8 +2114,8 @@
       document.getElementById('modalPrice').textContent = priceStr;
       document.getElementById('modalTotalPayable').textContent = priceStr;
       document.getElementById('modalBookMeta').textContent = isLong
-        ? 'Grand Treasury • 26 Total Physical Pages (12 Spreads)'
-        : 'Treasury Edition • 14 Total Physical Pages (6 Spreads)';
+        ? 'Grand Treasury • 28 Total Physical Pages (12 Spreads)'
+        : 'Treasury Edition • 16 Total Physical Pages (6 Spreads)';
       document.getElementById('modalChildMeta').textContent = `Hero: ${childName} • Language: ${lang}`;
 
       document.getElementById('checkoutModal').style.display = 'flex';
