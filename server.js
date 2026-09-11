@@ -7,12 +7,44 @@ const cors = require('cors');
 const axios = require('axios');
 const Replicate = require('replicate');
 const { PDFDocument, rgb, degrees } = require('pdf-lib');
-const fontkit = require('@pdf-lib/fontkit');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
 const Razorpay = require('razorpay');
+
+// ====================================================================
+// CRITICAL PATCH: fontkit GPOS null anchor bug fix for Indic/Arabic fonts
+// ====================================================================
+try {
+    const fontkitDistPath = path.join(__dirname, 'node_modules/@pdf-lib/fontkit/dist/fontkit.umd.js');
+    if (fs.existsSync(fontkitDistPath)) {
+        let code = fs.readFileSync(fontkitDistPath, 'utf8');
+        let patched = false;
+        if (code.includes('var x = anchor.xCoordinate;')) {
+            code = code.replace(
+                '_proto.getAnchor = function getAnchor(anchor) {',
+                '_proto.getAnchor = function getAnchor(anchor) {\n    if (!anchor) return { x: 0, y: 0 };'
+            );
+            patched = true;
+        }
+        if (code.includes('_proto.applyAnchor = function applyAnchor(markRecord, baseAnchor, baseGlyphIndex) {')) {
+            code = code.replace(
+                '_proto.applyAnchor = function applyAnchor(markRecord, baseAnchor, baseGlyphIndex) {',
+                '_proto.applyAnchor = function applyAnchor(markRecord, baseAnchor, baseGlyphIndex) {\n    if (!baseAnchor || !markRecord || !markRecord.markAnchor) return;'
+            );
+            patched = true;
+        }
+        if (patched) {
+            fs.writeFileSync(fontkitDistPath, code);
+            console.log('✅ Fontkit GPOS anchor patch applied successfully');
+        }
+    }
+} catch (patchErr) {
+    console.warn('⚠️ Could not apply fontkit patch:', patchErr.message);
+}
+
+const fontkit = require('@pdf-lib/fontkit');
 
 const app = express();
 app.set('trust proxy', true);
@@ -21,7 +53,7 @@ app.use(cors());
 
 const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN });
 
-// Razorpay initialization (degrades gracefully to simulation if keys are not set)
+// Razorpay initialization
 let razorpay = null;
 if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET && !process.env.RAZORPAY_KEY_ID.includes('YOUR_')) {
     razorpay = new Razorpay({
@@ -33,7 +65,7 @@ if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET && !process.e
     console.log('⚠️ Razorpay keys not configured — running in simulated checkout mode for testing');
 }
 
-// OPTIONAL permanent storage (degrades gracefully if not configured)
+// Supabase permanent storage
 let supabase = null;
 if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) {
     supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
@@ -42,7 +74,7 @@ if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) {
     console.log('⚠️ Supabase not configured — using local storage fallback');
 }
 
-// OPTIONAL email delivery (degrades gracefully if not configured)
+// Email delivery
 let mailer = null;
 if (process.env.BREVO_API_KEY && process.env.SENDER_EMAIL) {
     mailer = {
@@ -72,10 +104,9 @@ const STYLE = 'Award-winning children\'s picture book illustration, hand-painted
 const PACING = 10000;
 
 // Preview session cache and Job status tracking
-const previewSessions = new Map(); // previewId -> cached story + images
-const activeJobs = new Map();       // jobId -> progress & status
+const previewSessions = new Map();
+const activeJobs = new Map();
 
-// Clear old sessions after 2 hours
 setInterval(() => {
     const now = Date.now();
     for (const [id, item] of previewSessions.entries()) {
@@ -114,7 +145,7 @@ const hits = new Map();
 function rateLimiter(req, res, next) {
     const ip = req.ip; const now = Date.now();
     const arr = (hits.get(ip) || []).filter(t => now - t < 60000);
-    if (arr.length >= 10) return res.status(429).json({ success: false, error: 'Too many requests. Please wait a minute and try again.' });
+    if (arr.length >= 12) return res.status(429).json({ success: false, error: 'Too many requests. Please wait a minute and try again.' });
     arr.push(now); hits.set(ip, arr);
     next();
 }
@@ -156,9 +187,9 @@ function themeTitle(base) {
 
 function getSceneCount(bookLength) {
     const s = String(bookLength || '').toLowerCase();
-    if (s.includes('24') || s.includes('long')) return 12; // 12 scenes = 24 interior pages (12 left images + 12 right texts)
+    if (s.includes('24') || s.includes('long')) return 12; // 12 scenes = 24 interior pages
     if (s.includes('16')) return 8;                       // 8 scenes = 16 interior pages
-    return 6;                                             // 6 scenes = 12 interior pages (Short Book standard)
+    return 6;                                             // 6 scenes = 12 interior pages (Treasury standard)
 }
 
 function getCharacterDetails(childName, gender, age) {
@@ -188,6 +219,16 @@ function getCharacterDetails(childName, gender, age) {
     return { genderClean, childAge, pronoun, subjectPronoun, charAnchor };
 }
 
+// Helper to safely extract string URL from Replicate output
+function extractUrl(out) {
+    if (!out) return '';
+    const item = Array.isArray(out) ? out[0] : out;
+    if (typeof item === 'string') return item;
+    if (item && typeof item.url === 'function') return item.url();
+    if (item && item.href) return item.href;
+    return String(item || '');
+}
+
 // MULTILINGUAL FONT EMBEDDING
 async function getFontForLanguage(pdfDoc, lang) {
     pdfDoc.registerFontkit(fontkit);
@@ -215,10 +256,9 @@ async function getFontForLanguage(pdfDoc, lang) {
             if (fs.existsSync(p)) return await pdfDoc.embedFont(fs.readFileSync(p));
         }
     } catch (e) {
-        console.log(`⚠️ Font embed fallback for ${lang}:`, e.message);
+        console.log(`⚠️ Font embed notice for ${lang}:`, e.message);
     }
 
-    // Default Latin serif font
     return await pdfDoc.embedFont('Times-Roman');
 }
 
@@ -230,7 +270,9 @@ function coverFit(img, pw, ph) {
 }
 
 function wrapText(text, font, size, maxWidth) {
-    const words = String(text).split(/\s+/).filter(Boolean);
+    const str = String(text || '').trim();
+    if (!str) return [];
+    const words = str.split(/\s+/).filter(Boolean);
     const lines = []; let cur = '';
     for (const w of words) {
         const test = cur ? cur + ' ' + w : w;
@@ -238,12 +280,11 @@ function wrapText(text, font, size, maxWidth) {
             if (font.widthOfTextAtSize(test, size) <= maxWidth) cur = test;
             else { if (cur) lines.push(cur); cur = w; }
         } catch (e) {
-            // In case of any glyph measurement edge case
             if (cur) lines.push(cur); cur = w;
         }
     }
     if (cur) lines.push(cur);
-    return lines.length ? lines : [String(text)];
+    return lines.length ? lines : [str];
 }
 
 function drawCentered(page, text, y, size, font, color, opacity) {
@@ -251,7 +292,8 @@ function drawCentered(page, text, y, size, font, color, opacity) {
         const w = font.widthOfTextAtSize(text, size);
         page.drawText(text, { x: (PAGE_W - w) / 2, y, size, font, color, opacity: opacity === undefined ? 1 : opacity });
     } catch (e) {
-        page.drawText(text, { x: 50, y, size, font, color, opacity: opacity === undefined ? 1 : opacity });
+        try { page.drawText(text, { x: 50, y, size, font, color, opacity: opacity === undefined ? 1 : opacity }); }
+        catch (e2) { console.log('⚠️ drawCentered fallback notice:', e2.message); }
     }
 }
 
@@ -292,17 +334,18 @@ async function generateImage(prompt, photoData) {
             const out = await replicate.run("black-forest-labs/flux-kontext-pro", {
                 input: { input_image: photoData, prompt: prompt, output_format: "png" }
             });
-            return Array.isArray(out) ? out[0] : out;
+            return extractUrl(out);
         } catch (e) { console.log("    (face model failed, falling back to flux-1.1-pro)"); }
     }
     const out = await replicate.run("black-forest-labs/flux-1.1-pro", {
         input: { prompt: prompt, aspect_ratio: "3:4", output_format: "png" }
     });
-    return Array.isArray(out) ? out[0] : out;
+    return extractUrl(out);
 }
 
 async function fetchImageBuffer(url) {
-    const res = await axios.get(url, { responseType: 'arraybuffer', timeout: 30000 });
+    const cleanUrl = extractUrl(url);
+    const res = await axios.get(cleanUrl, { responseType: 'arraybuffer', timeout: 30000 });
     return Buffer.from(res.data);
 }
 
@@ -330,9 +373,9 @@ app.post('/api/create-preview', rateLimiter, async (req, res) => {
 
         console.log(`✨ Preview | ${childName} (${genderClean}, ${childAge}) | ${base} | Lang=${lang}`);
 
-        // Step 1: DeepSeek story outline & opening teaser rhyme in selected language
+        // Step 1: DeepSeek story outline & opening rhyme in target language
         const genderGuidance = (genderClean === 'little star')
-            ? `The child is non-binary / gender-neutral (Little Star). Use gender-inclusive wording, using they/them pronouns or referring warmly to ${childName}.`
+            ? `The child is non-binary / gender-neutral (Little Star). Use gentle, gender-inclusive wording, using they/them pronouns or referring warmly to ${childName}.`
             : `The child protagonist is ${childName}, a ${childAge}-year-old ${genderClean} (${pronoun}/${subjectPronoun}).`;
 
         const storyResponse = await withRetry('preview story outline', () => axios.post('https://api.deepseek.com/v1/chat/completions', {
@@ -362,13 +405,17 @@ LANGUAGE REQUIREMENT: All child-facing text ("opening_rhyme", "scene_title", "pa
         // Step 2: Generate Cover Background + Child Vignette
         console.log("  → Painting preview cover background...");
         const bgPrompt = STYLE + `ornate storybook cover BACKGROUND only: elaborate golden-cream vine and leaf border with small vignettes of ${pal.motifs} confined strictly to the outer fifteen percent edges; two gentle painted flourish arches of tiny leaves and stars, one arching across the top center framing an empty name plaque area, and one arching across the lower middle framing an empty title plaque area; the rest of the inner field is ${pal.flatWord}, flat and empty except a few sparse tiny stars; absolutely no character, no person, no moon, no text, no letters anywhere; rich painterly detail`;
-        const bgUrl = await withRetry('cover background', async () => generateImage(bgPrompt, null));
-        const bgBuffer = await fetchImageBuffer(bgUrl);
+        const bgUrlRaw = await withRetry('cover background', async () => generateImage(bgPrompt, null));
+        const bgBuffer = await fetchImageBuffer(bgUrlRaw);
 
         console.log("  → Painting preview child medallion vignette...");
         const vigPrompt = STYLE + `circular painted vignette portrait of ${photoData ? 'the exact same child from the reference photo' : charAnchor} as the storybook hero, head and shoulders, joyful expression, soft golden rim light, a few tiny ${pal.motifs} sparkles around the head, surrounded by ${pal.flatWord} background filling all four corners, vignette edges softly fading into that flat background`;
-        const vigUrl = await withRetry('child vignette', async () => generateImage(vigPrompt, photoData));
-        const vigBuffer = await fetchImageBuffer(vigUrl);
+        const vigUrlRaw = await withRetry('child vignette', async () => generateImage(vigPrompt, photoData));
+        const vigBuffer = await fetchImageBuffer(vigUrlRaw);
+
+        // Convert buffers to permanent base64 data-URIs to prevent broken images
+        const vigDataUrl = 'data:image/png;base64,' + vigBuffer.toString('base64');
+        const bgDataUrl = 'data:image/png;base64,' + bgBuffer.toString('base64');
 
         const previewId = `prev_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
         previewSessions.set(previewId, {
@@ -376,7 +423,7 @@ LANGUAGE REQUIREMENT: All child-facing text ("opening_rhyme", "scene_title", "pa
             childName, gender: genderClean, age: childAge, theme, language: lang,
             photoData, dedication, email,
             charAnchor, pronoun, subjectPronoun, pal, title,
-            bgBuffer, vigBuffer, bgUrl, vigUrl,
+            bgBuffer, vigBuffer, bgUrl: bgDataUrl, vigUrl: vigDataUrl,
             scenesData, openingRhyme
         });
 
@@ -391,8 +438,10 @@ LANGUAGE REQUIREMENT: All child-facing text ("opening_rhyme", "scene_title", "pa
             language: lang,
             bookTitle: title,
             openingRhyme,
-            vignetteUrl: vigUrl,
-            coverBgUrl: bgUrl
+            vignetteDataUrl: vigDataUrl,
+            coverBgDataUrl: bgDataUrl,
+            vignetteUrl: vigDataUrl,
+            coverBgUrl: bgDataUrl
         });
     } catch (err) {
         console.error("❌ Preview error:", err.message);
@@ -407,12 +456,12 @@ app.post('/api/create-order', rateLimiter, async (req, res) => {
     try {
         const { previewId, bookLength, email } = req.body;
         const session = previewSessions.get(previewId);
-        if (!session && !previewId.startsWith('test_')) {
+        if (!session && !String(previewId || '').startsWith('test_')) {
             return res.status(404).json({ success: false, error: 'Preview session expired. Please preview your book again.' });
         }
 
         const isLong = String(bookLength || '').toLowerCase().includes('long') || String(bookLength || '').includes('24');
-        const amountPaise = isLong ? 29900 : 19900; // ₹299 for Long (24 pages), ₹199 for Short (12 pages)
+        const amountPaise = isLong ? 29900 : 19900;
 
         if (razorpay) {
             const order = await razorpay.orders.create({
@@ -434,7 +483,6 @@ app.post('/api/create-order', rateLimiter, async (req, res) => {
                 keyId: process.env.RAZORPAY_KEY_ID
             });
         } else {
-            // Simulated Test Order for zero-friction local and staging development
             const simOrderId = `order_sim_${Date.now()}`;
             return res.json({
                 success: true,
@@ -481,7 +529,7 @@ app.post('/api/verify-and-complete-book', rateLimiter, async (req, res) => {
             }
             console.log(`💳 Payment Verified: ${razorpay_payment_id} for order ${razorpay_order_id}`);
         } else {
-            console.log(`💳 Test Payment processed: ${razorpay_payment_id || 'test_payment'} for order ${razorpay_order_id}`);
+            console.log(`💳 Test Payment simulated: ${razorpay_payment_id || 'test_payment'}`);
         }
 
         const jobId = `job_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
@@ -496,7 +544,6 @@ app.post('/api/verify-and-complete-book', rateLimiter, async (req, res) => {
             error: null
         });
 
-        // Run full assembly in background
         assembleFullBookAsync(jobId, session, bookLength, email || session.email, req.protocol, req.get('host'));
 
         res.json({ success: true, jobId });
@@ -548,11 +595,11 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         pdfDoc.setSubject(`A personalized keepsake bedtime storybook for ${childName}`);
         pdfDoc.setCreator('TwinkleTale Studios AI');
 
-        // Embed language-aware typography
         const bookFont = await getFontForLanguage(pdfDoc, language);
         const serifBI = await pdfDoc.embedFont('Times-BoldItalic');
         const serifB = await pdfDoc.embedFont('Times-Bold');
         const serifI = await pdfDoc.embedFont('Times-Italic');
+        const serif = await pdfDoc.embedFont('Times-Roman');
 
         update(20, 'Painting decorative chapter borders...');
         const framePrompt = STYLE + `decorative rectangular border frame for a children's book page, repeating hand-painted motifs of ${pal.motifs} woven with ribbons and leaves around all four edges, wide plain warm cream empty center occupying seventy percent of the page, soft pastel palette, gentle textures`;
@@ -698,14 +745,14 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
                 if (!up.error) pdfUrl = supabase.storage.from('storybooks').getPublicUrl(fileName).data.publicUrl;
                 console.log("☁️ Saved permanently to Supabase:", pdfUrl);
             } catch (e) {
-                console.log("⚠️ Supabase upload failed, falling back to local:", e.message);
+                console.log("⚠️ Supabase upload notice:", e.message);
                 pdfUrl = null;
             }
         }
         if (!pdfUrl) {
             fs.writeFileSync(path.join(booksFolder, fileName), pdfBytes);
             pdfUrl = `${protocol}://${host}/books/${fileName}`;
-            console.log("💾 Saved locally (fallback):", pdfUrl);
+            console.log("💾 Saved locally:", pdfUrl);
         }
 
         // ================= EMAIL DELIVERY =================
@@ -772,7 +819,7 @@ app.post('/api/create-book', rateLimiter, async (req, res) => {
         const title = themeTitle(base);
         assertZones();
 
-        console.log(`📘 Direct Book v8 | ${childName} (${genderClean}, ${childAge}) | ${base} | Lang=${lang} | scenes=${scenes}`);
+        console.log(`📘 Direct Book | ${childName} (${genderClean}, ${childAge}) | ${base} | Lang=${lang}`);
 
         const genderGuidance = (genderClean === 'little star')
             ? `The child is non-binary / gender-neutral (Little Star). Use gender-inclusive wording with they/them or ${childName}.`
@@ -800,20 +847,20 @@ Write all scene text in ${lang} using its authentic script.`
         const rawPages = JSON.parse(storyText);
         const pages = (Array.isArray(rawPages) ? rawPages : []).slice(0, scenes);
 
+        const bgPrompt = STYLE + `ornate storybook cover BACKGROUND only: elaborate golden-cream vine and leaf border with small vignettes of ${pal.motifs} confined strictly to the outer fifteen percent edges; two gentle painted flourish arches of tiny leaves and stars, one arching across the top center framing an empty name plaque area, and one arching across the lower middle framing an empty title plaque area; the rest of the inner field is ${pal.flatWord}, flat and empty except a few sparse tiny stars; absolutely no character, no person, no moon, no text, no letters anywhere; rich painterly detail`;
+        const bgBuffer = await fetchImageBuffer(await generateImage(bgPrompt, null));
+        await sleep(PACING);
+
+        const vigPrompt = STYLE + `circular painted vignette portrait of ${photoData ? 'the exact same child from the reference photo' : charAnchor} as the storybook hero, head and shoulders, joyful expression, soft golden rim light, a few tiny ${pal.motifs} sparkles around the head, surrounded by ${pal.flatWord} background filling all four corners, vignette edges softly fading into that flat background`;
+        const vigBuffer = await fetchImageBuffer(await generateImage(vigPrompt, photoData));
+        await sleep(PACING);
+
         const session = {
             childName, gender: genderClean, age: childAge, theme, language: lang,
             photoData, dedication, email,
             charAnchor, pronoun, subjectPronoun, pal, title,
-            bgBuffer: null, vigBuffer: null, scenesData: pages
+            bgBuffer, vigBuffer, scenesData: pages
         };
-
-        const bgPrompt = STYLE + `ornate storybook cover BACKGROUND only: elaborate golden-cream vine and leaf border with small vignettes of ${pal.motifs} confined strictly to the outer fifteen percent edges; two gentle painted flourish arches of tiny leaves and stars, one arching across the top center framing an empty name plaque area, and one arching across the lower middle framing an empty title plaque area; the rest of the inner field is ${pal.flatWord}, flat and empty except a few sparse tiny stars; absolutely no character, no person, no moon, no text, no letters anywhere; rich painterly detail`;
-        session.bgBuffer = await fetchImageBuffer(await generateImage(bgPrompt, null));
-        await sleep(PACING);
-
-        const vigPrompt = STYLE + `circular painted vignette portrait of ${photoData ? 'the exact same child from the reference photo' : charAnchor} as the storybook hero, head and shoulders, joyful expression, soft golden rim light, a few tiny ${pal.motifs} sparkles around the head, surrounded by ${pal.flatWord} background filling all four corners, vignette edges softly fading into that flat background`;
-        session.vigBuffer = await fetchImageBuffer(await generateImage(vigPrompt, photoData));
-        await sleep(PACING);
 
         const testJobId = `direct_${Date.now()}`;
         activeJobs.set(testJobId, { id: testJobId, status: 'generating', progress: 50, step: 'Generating', pdfUrl: null, emailed: false });

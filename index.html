@@ -1,0 +1,2215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="TwinkleTale - Personalized Keepsake Children's Storybooks. Every child is the hero of their own bedtime story. Available in 11 languages with free instant preview!">
+  <meta name="keywords" content="personalized storybook, children's books India, custom bedtime stories, personalized gifts kids">
+  <meta property="og:title" content="TwinkleTale - Magical Personalized Children's Storybooks">
+  <meta property="og:description" content="Turn your child into the hero of their bedtime story in 11 languages. Free 40-second preview!">
+  <meta property="og:type" content="website">
+  <title>TwinkleTale | Personalized Bedtime Keepsake Storybooks</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;0,900;1,500;1,700&family=Outfit:wght@300;400;500;600;700&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    :root {
+      --bg-cream: #FAF7F2;
+      --bg-card: #FFFFFF;
+      --navy: #161B33;
+      --navy-light: #22294A;
+      --gold: #D4AF37;
+      --gold-light: #F3CA65;
+      --gold-gradient: linear-gradient(135deg, #D4AF37 0%, #F5CE68 50%, #B89025 100%);
+      --coral: #E06D53;
+      --coral-hover: #C9573E;
+      --forest: #1B4938;
+      --text-dark: #222533;
+      --text-muted: #6B7280;
+      --border-light: #EBE5D8;
+      --input-bg: #FCFBF9;
+      --shadow-sm: 0 4px 12px rgba(22, 27, 51, 0.05);
+      --shadow-md: 0 10px 30px rgba(22, 27, 51, 0.08);
+      --shadow-lg: 0 20px 50px rgba(22, 27, 51, 0.12);
+      --radius-sm: 10px;
+      --radius-md: 16px;
+      --radius-lg: 24px;
+    }
+
+    /* DARK MODE PALETTE */
+    body.dark-mode {
+      --bg-cream: #0E1222;
+      --bg-card: #181E36;
+      --navy: #FFFFFF;
+      --navy-light: #2A3356;
+      --text-dark: #FAF7F2;
+      --text-muted: #A3AABF;
+      --border-light: #2C3558;
+      --input-bg: #14192E;
+      --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.5);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Outfit', sans-serif;
+      background-color: var(--bg-cream);
+      color: var(--text-dark);
+      line-height: 1.6;
+      overflow-x: hidden;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    h1, h2, h3, .font-serif {
+      font-family: 'Playfair Display', serif;
+    }
+    .font-handwriting {
+      font-family: 'Caveat', cursive;
+    }
+
+    .container {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    /* Top Trust Bar */
+    .trust-bar {
+      background: #111526;
+      color: #ECE7DD;
+      font-size: 0.84rem;
+      padding: 8px 0;
+      text-align: center;
+      letter-spacing: 0.5px;
+    }
+    .trust-bar span { margin: 0 10px; display: inline-flex; align-items: center; gap: 5px; }
+    .trust-bar i { color: var(--gold); }
+
+    /* Site Header */
+    header.site-header {
+      background: rgba(250, 247, 242, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-light);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 14px 0;
+      transition: background 0.3s, border-color 0.3s;
+    }
+    body.dark-mode header.site-header {
+      background: rgba(14, 18, 34, 0.95);
+    }
+    .nav-wrapper {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+    .brand-icon {
+      font-size: 1.8rem;
+      background: var(--gold-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .brand-title {
+      font-size: 1.65rem;
+      font-weight: 900;
+      color: var(--navy);
+      letter-spacing: -0.5px;
+    }
+    .brand-subtitle {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--gold);
+      display: block;
+      margin-top: -3px;
+      font-weight: 700;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Dark Mode Toggle Button */
+    .theme-toggle-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border-light);
+      background: var(--bg-card);
+      color: var(--text-dark);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+      transition: all 0.3s;
+      box-shadow: var(--shadow-sm);
+    }
+    .theme-toggle-btn:hover {
+      transform: rotate(20deg) scale(1.05);
+      border-color: var(--gold);
+    }
+
+    .nav-btn {
+      background: var(--navy);
+      color: #fff;
+      padding: 10px 22px;
+      border-radius: 50px;
+      font-weight: 600;
+      font-size: 0.92rem;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(22, 27, 51, 0.15);
+    }
+    body.dark-mode .nav-btn {
+      background: var(--coral);
+    }
+    .nav-btn:hover {
+      background: var(--coral);
+      transform: translateY(-2px);
+    }
+
+    /* Hero Section */
+    .hero {
+      padding: 55px 0 35px;
+      text-align: center;
+      position: relative;
+    }
+    .hero-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(212, 175, 55, 0.12);
+      border: 1px solid rgba(212, 175, 55, 0.35);
+      padding: 6px 16px;
+      border-radius: 30px;
+      color: var(--text-dark);
+      font-size: 0.88rem;
+      font-weight: 600;
+      margin-bottom: 18px;
+    }
+    .hero h1 {
+      font-size: 3.2rem;
+      line-height: 1.15;
+      color: var(--navy);
+      max-width: 900px;
+      margin: 0 auto 16px;
+    }
+    .hero h1 em {
+      font-style: italic;
+      color: var(--coral);
+    }
+    .hero p.lead {
+      font-size: 1.25rem;
+      color: var(--text-muted);
+      max-width: 720px;
+      margin: 0 auto 35px;
+      font-weight: 400;
+    }
+    .hero-cta-group {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 45px;
+    }
+    .btn-primary {
+      background: var(--coral);
+      color: #fff;
+      padding: 16px 36px;
+      border-radius: 50px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 10px 25px rgba(224, 109, 83, 0.35);
+      transition: all 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+    .btn-primary:hover {
+      background: var(--coral-hover);
+      transform: translateY(-3px);
+      box-shadow: 0 14px 30px rgba(224, 109, 83, 0.45);
+    }
+    .btn-secondary {
+      background: var(--bg-card);
+      color: var(--text-dark);
+      padding: 16px 30px;
+      border-radius: 50px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      border: 1px solid var(--border-light);
+      cursor: pointer;
+      transition: all 0.3s;
+      text-decoration: none;
+      box-shadow: var(--shadow-sm);
+    }
+    .btn-secondary:hover {
+      border-color: var(--gold);
+      transform: translateY(-2px);
+    }
+
+    /* Wonderbly Spread Showcase */
+    .showcase-banner {
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      padding: 30px;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--border-light);
+      margin: 20px auto 60px;
+      max-width: 1000px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      align-items: center;
+      text-align: left;
+    }
+    .book-mockup-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .book-mockup {
+      width: 100%;
+      max-width: 360px;
+      aspect-ratio: 3/4;
+      background: #12172B;
+      border-radius: 12px;
+      box-shadow: -15px 20px 40px rgba(0, 0, 0, 0.35);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 24px;
+      color: #fff;
+      border-left: 10px solid #080B16;
+    }
+    .mockup-header { text-align: center; }
+    .mockup-name {
+      font-family: 'Caveat', cursive;
+      font-size: 2.3rem;
+      color: var(--gold-light);
+      line-height: 1;
+    }
+    .mockup-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-top: 4px;
+      color: #fff;
+    }
+    .mockup-circle {
+      width: 135px;
+      height: 135px;
+      border-radius: 50%;
+      border: 4px solid var(--gold);
+      box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.4);
+      margin: 15px auto;
+      background: url('https://images.unsplash.com/photo-1503919545889-aef636e10ad4?w=500') center/cover no-repeat;
+    }
+    .mockup-footer {
+      text-align: center;
+      font-size: 0.72rem;
+      color: var(--gold-light);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .showcase-text h3 {
+      font-size: 1.8rem;
+      color: var(--navy);
+      margin-bottom: 12px;
+    }
+    .showcase-text p {
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      font-size: 1rem;
+    }
+    .spread-features {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .spread-features li {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 0.95rem;
+    }
+    .spread-features i {
+      color: var(--forest);
+      font-size: 1.1rem;
+      margin-top: 3px;
+    }
+    body.dark-mode .spread-features i { color: #4ADE80; }
+
+    /* ========================================================= */
+    /* OUR STORYBOOK EDITIONS & PRICING (FIRST PAGE OFFERING)   */
+    /* ========================================================= */
+    .pricing-section {
+      padding: 60px 0 40px;
+      text-align: center;
+      border-top: 1px solid var(--border-light);
+    }
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      max-width: 960px;
+      margin: 0 auto;
+      text-align: left;
+    }
+    .pricing-card {
+      background: var(--bg-card);
+      border: 2px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      padding: 36px 30px;
+      position: relative;
+      transition: all 0.3s ease;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .pricing-card:hover {
+      transform: translateY(-5px);
+      border-color: var(--gold);
+      box-shadow: var(--shadow-md);
+    }
+    .pricing-card.featured {
+      border-color: var(--gold);
+      background: linear-gradient(180deg, var(--bg-card) 0%, rgba(212, 175, 55, 0.05) 100%);
+      box-shadow: var(--shadow-md);
+    }
+    .pricing-badge {
+      position: absolute;
+      top: -14px;
+      right: 24px;
+      background: var(--gold-gradient);
+      color: #111526;
+      font-size: 0.76rem;
+      font-weight: 800;
+      padding: 5px 14px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    }
+
+    /* Customizer Section */
+    .customizer-section {
+      padding: 70px 0;
+      border-top: 1px solid var(--border-light);
+    }
+    .section-title-area {
+      text-align: center;
+      max-width: 680px;
+      margin: 0 auto 40px;
+    }
+    .section-subtitle {
+      color: var(--coral);
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.85rem;
+      letter-spacing: 2px;
+      display: block;
+      margin-bottom: 8px;
+    }
+    .section-title {
+      font-size: 2.5rem;
+      color: var(--navy);
+      margin-bottom: 12px;
+    }
+    .section-desc {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+    }
+
+    .customizer-card {
+      background: var(--bg-card);
+      max-width: 860px;
+      margin: 0 auto;
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--border-light);
+    }
+    .form-step-group {
+      margin-bottom: 32px;
+    }
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .step-badge {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--coral);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+    .step-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--navy);
+    }
+
+    .form-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .form-grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+    }
+    .input-field {
+      width: 100%;
+      padding: 14px 16px;
+      font-size: 1rem;
+      font-family: 'Outfit', sans-serif;
+      border: 1.5px solid var(--border-light);
+      border-radius: var(--radius-sm);
+      background: var(--input-bg);
+      color: var(--text-dark);
+      outline: none;
+      transition: all 0.3s;
+    }
+    .input-field:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.15);
+    }
+
+    /* 3-WAY GENDER SELECTOR (INCLUSIVE) */
+    .gender-selector {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+    }
+    .gender-btn {
+      padding: 14px 10px;
+      border: 2px solid var(--border-light);
+      border-radius: var(--radius-md);
+      background: var(--input-bg);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-dark);
+      transition: all 0.25s ease;
+      text-align: center;
+    }
+    .gender-btn i { font-size: 1.4rem; }
+    .gender-btn span.sub { font-size: 0.72rem; color: var(--text-muted); font-weight: 400; }
+    .gender-btn.selected {
+      border-color: var(--coral);
+      background: rgba(224, 109, 83, 0.08);
+      color: var(--coral);
+      box-shadow: 0 4px 14px rgba(224, 109, 83, 0.2);
+    }
+    .gender-btn.selected span.sub { color: var(--coral); }
+
+    /* 12-THEMES GRID */
+    .themes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
+      gap: 12px;
+    }
+    .theme-card {
+      border: 2px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 14px 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s;
+      background: var(--input-bg);
+      color: var(--text-dark);
+    }
+    .theme-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--gold);
+    }
+    .theme-card.selected {
+      border-color: var(--gold);
+      background: var(--navy-light);
+      color: #fff;
+      box-shadow: var(--shadow-md);
+    }
+    .theme-icon {
+      font-size: 1.7rem;
+      margin-bottom: 6px;
+      display: block;
+    }
+    .theme-name {
+      font-size: 0.82rem;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+
+    /* Photo Upload Box */
+    .photo-upload-box {
+      border: 2px dashed var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 22px;
+      text-align: center;
+      background: var(--input-bg);
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .photo-upload-box:hover {
+      border-color: var(--coral);
+    }
+    .photo-preview-circle {
+      width: 85px;
+      height: 85px;
+      border-radius: 50%;
+      border: 3px solid var(--gold);
+      margin: 0 auto 10px;
+      display: none;
+      background-size: cover;
+      background-position: center;
+    }
+    .upload-icon {
+      font-size: 2rem;
+      color: var(--gold);
+      margin-bottom: 6px;
+    }
+    .upload-text {
+      font-size: 0.95rem;
+      color: var(--navy);
+      font-weight: 600;
+    }
+    .upload-subtext {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    /* Dedications */
+    .dedication-pills {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .ded-pill {
+      font-size: 0.8rem;
+      background: rgba(212, 175, 55, 0.12);
+      padding: 5px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      color: var(--text-dark);
+      transition: background 0.2s;
+    }
+    .ded-pill:hover { background: rgba(212, 175, 55, 0.25); }
+
+    .generate-preview-btn {
+      width: 100%;
+      padding: 18px 24px;
+      border-radius: 50px;
+      background: var(--coral);
+      color: #fff;
+      font-size: 1.2rem;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 10px 30px rgba(224, 109, 83, 0.35);
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+    .generate-preview-btn:hover {
+      background: var(--coral-hover);
+      transform: translateY(-2px);
+    }
+    .btn-guarantee {
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 14px;
+    }
+
+    /* ========================================================= */
+    /* TEASER PREVIEW STAGE (FLOW B) */
+    /* ========================================================= */
+    #previewStage {
+      display: none;
+      padding: 70px 0;
+      border-top: 2px solid var(--gold);
+    }
+    .preview-card {
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      box-shadow: var(--shadow-lg);
+      max-width: 950px;
+      margin: 0 auto;
+      border: 1px solid var(--border-light);
+    }
+    .preview-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      align-items: center;
+    }
+    .preview-cover-box { text-align: center; }
+    .preview-book-mockup {
+      width: 100%;
+      max-width: 360px;
+      aspect-ratio: 3/4;
+      background-color: #12172B;
+      background-size: cover;
+      background-position: center;
+      border-radius: 12px;
+      box-shadow: -15px 20px 40px rgba(0, 0, 0, 0.4), 0 0 0 2px var(--gold);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 24px 20px;
+      color: #fff;
+      border-left: 10px solid #080B16;
+      margin: 0 auto;
+      transition: all 0.3s ease;
+    }
+    .preview-book-mockup::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 20px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.18) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.6) 100%);
+      pointer-events: none;
+    }
+    .preview-mockup-header { text-align: center; z-index: 2; }
+    .preview-mockup-name {
+      font-family: 'Caveat', cursive;
+      font-size: 2.5rem;
+      color: var(--gold-light);
+      line-height: 1;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+    }
+    .preview-mockup-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-top: 4px;
+      color: #fff;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+      line-height: 1.3;
+    }
+    .preview-mockup-circle {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      border: 4px solid var(--gold);
+      box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.4), 0 8px 25px rgba(0,0,0,0.5);
+      margin: 15px auto;
+      background-size: cover;
+      background-position: center;
+      position: relative;
+      overflow: hidden;
+      background-color: #22294A;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+    }
+    .preview-mockup-circle img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+      display: none;
+    }
+    .preview-mockup-footer {
+      text-align: center;
+      font-size: 0.72rem;
+      color: var(--gold-light);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      font-weight: 600;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+      z-index: 2;
+    }
+    .preview-meta h2 {
+      font-size: 2.1rem;
+      color: var(--navy);
+      margin-bottom: 12px;
+    }
+    .opening-rhyme-card {
+      background: rgba(212, 175, 55, 0.08);
+      border-left: 4px solid var(--gold);
+      padding: 18px;
+      border-radius: 8px;
+      font-style: italic;
+      color: var(--navy);
+      font-size: 1.05rem;
+      line-height: 1.7;
+      margin-bottom: 22px;
+      font-family: 'Playfair Display', serif;
+    }
+
+    /* Editions */
+    .edition-selector {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+    .edition-card {
+      border: 2px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.3s;
+      position: relative;
+      background: var(--input-bg);
+    }
+    .edition-card.selected {
+      border-color: var(--coral);
+      background: rgba(224, 109, 83, 0.08);
+      box-shadow: 0 4px 15px rgba(224, 109, 83, 0.15);
+    }
+    .edition-badge {
+      position: absolute;
+      top: -10px;
+      right: 12px;
+      background: var(--forest);
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 10px;
+      text-transform: uppercase;
+    }
+    .edition-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--navy);
+    }
+    .edition-pages {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin: 4px 0 6px;
+    }
+    .edition-price {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--coral);
+    }
+
+    .unlock-btn {
+      width: 100%;
+      padding: 18px;
+      border-radius: 50px;
+      background: var(--forest);
+      color: #fff;
+      font-size: 1.2rem;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 10px 25px rgba(27, 73, 56, 0.3);
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .unlock-btn:hover {
+      background: #14372a;
+      transform: translateY(-2px);
+    }
+
+    /* ========================================================= */
+    /* IN-PAGE CHECKOUT MODAL (LUXURY TEST/LIVE CHECKOUT)        */
+    /* ========================================================= */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(11, 14, 27, 0.78);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-card {
+      background: var(--bg-card);
+      border: 1.5px solid var(--gold);
+      border-radius: var(--radius-lg);
+      max-width: 480px;
+      width: 100%;
+      padding: 32px 28px;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+      position: relative;
+      animation: modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes modalSlideUp {
+      from { transform: translateY(25px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .modal-title-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .modal-title-group h3 {
+      font-size: 1.3rem;
+      color: var(--navy);
+      margin: 0;
+    }
+    .modal-close-btn {
+      background: none;
+      border: none;
+      font-size: 1.6rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      line-height: 1;
+      transition: color 0.2s;
+    }
+    .modal-close-btn:hover { color: var(--coral); }
+    .order-summary-box {
+      background: var(--input-bg);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      margin-bottom: 18px;
+    }
+    .order-summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .order-item-title {
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--navy);
+    }
+    .order-item-price {
+      font-weight: 800;
+      font-size: 1.25rem;
+      color: var(--coral);
+    }
+    .order-summary-meta {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .test-mode-notice {
+      background: rgba(212, 175, 55, 0.12);
+      border: 1px dashed var(--gold);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .test-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 700;
+      font-size: 0.82rem;
+      color: var(--navy);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .btn-confirm-pay {
+      width: 100%;
+      padding: 16px;
+      border-radius: 50px;
+      background: var(--forest);
+      color: #fff;
+      font-size: 1.1rem;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(27, 73, 56, 0.35);
+      transition: all 0.25s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .btn-confirm-pay:hover {
+      background: #14372a;
+      transform: translateY(-2px);
+    }
+    .btn-modal-cancel {
+      width: 100%;
+      padding: 10px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+    .btn-modal-cancel:hover { color: var(--navy); }
+    .modal-trust-footer {
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    /* ========================================================= */
+    /* PROGRESS / FULFILLMENT MODAL */
+    /* ========================================================= */
+    #progressStage {
+      display: none;
+      padding: 70px 0;
+      text-align: center;
+    }
+    .progress-card {
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      padding: 50px 30px;
+      max-width: 650px;
+      margin: 0 auto;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--border-light);
+    }
+    .spinner-ring {
+      width: 85px;
+      height: 85px;
+      border: 6px solid var(--border-light);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      margin: 0 auto 20px;
+      animation: spin 1.2s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .progress-title {
+      font-size: 2rem;
+      color: var(--navy);
+      margin-bottom: 10px;
+    }
+    .progress-bar-container {
+      width: 100%;
+      height: 12px;
+      background: var(--border-light);
+      border-radius: 20px;
+      overflow: hidden;
+      margin: 25px 0 15px;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      width: 15%;
+      background: var(--gold-gradient);
+      border-radius: 20px;
+      transition: width 0.4s ease;
+    }
+    .progress-step-text {
+      font-size: 1.05rem;
+      color: var(--navy);
+      font-weight: 600;
+    }
+
+    #downloadBox {
+      display: none;
+      margin-top: 30px;
+      animation: fadeIn 0.8s ease;
+    }
+    .btn-download-pdf {
+      background: var(--forest);
+      color: #fff;
+      padding: 18px 40px;
+      border-radius: 50px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 10px 25px rgba(27, 73, 56, 0.35);
+      transition: all 0.3s;
+    }
+    .btn-download-pdf:hover {
+      transform: translateY(-3px);
+    }
+
+    /* Benefits */
+    .benefits-section {
+      padding: 80px 0;
+      text-align: center;
+    }
+    .benefits-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 25px;
+      margin-top: 40px;
+    }
+    .benefit-card {
+      background: var(--bg-card);
+      padding: 32px 24px;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border-light);
+      text-align: left;
+      transition: all 0.3s;
+    }
+    .benefit-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-md);
+    }
+    .benefit-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 12px;
+      background: rgba(212, 175, 55, 0.15);
+      color: var(--navy);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 18px;
+    }
+    .benefit-card h4 {
+      font-size: 1.2rem;
+      color: var(--navy);
+      margin-bottom: 8px;
+    }
+    .benefit-card p {
+      color: var(--text-muted);
+      font-size: 0.92rem;
+    }
+
+    /* FAQ */
+    .faq-section {
+      padding: 80px 0;
+      border-top: 1px solid var(--border-light);
+    }
+    .faq-accordion {
+      max-width: 780px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .faq-item {
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-sm);
+      padding: 18px 22px;
+      background: var(--bg-card);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .faq-item:hover { border-color: var(--gold); }
+    .faq-question {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--navy);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .faq-answer {
+      color: var(--text-muted);
+      margin-top: 10px;
+      font-size: 0.95rem;
+      display: none;
+    }
+    .faq-item.active .faq-answer { display: block; }
+
+    /* Footer */
+    footer.site-footer {
+      background: #0B0E1B;
+      color: #ECE7DD;
+      padding: 60px 0 30px;
+      font-size: 0.92rem;
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+    .footer-brand h3 {
+      font-size: 1.7rem;
+      color: #fff;
+      margin-bottom: 10px;
+    }
+    .footer-links h5 {
+      color: var(--gold);
+      font-size: 0.95rem;
+      margin-bottom: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .footer-links ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .footer-links a {
+      color: #A3AABF;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .footer-links a:hover { color: #fff; }
+    .footer-bottom {
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding-top: 25px;
+      text-align: center;
+      color: #767E96;
+      font-size: 0.85rem;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Mobile / Tablet Responsive Optimizations */
+    @media (max-width: 900px) {
+      .showcase-banner, .preview-grid, .footer-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 650px) {
+      .hero h1 { font-size: 2.2rem; }
+      .form-grid-2, .gender-selector { grid-template-columns: 1fr; }
+      .customizer-card { padding: 25px 18px; }
+      .edition-selector { grid-template-columns: 1fr; }
+      .themes-grid { grid-template-columns: repeat(3, 1fr); }
+      .brand-title { font-size: 1.4rem; }
+    }
+    @media (max-width: 420px) {
+      .themes-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Trust Bar -->
+  <div class="trust-bar">
+    <div class="container">
+      <span><i class="fas fa-star"></i> Over 5,000+ Bedtime Smiles</span>
+      <span><i class="fas fa-globe"></i> 11 Languages Supported</span>
+      <span><i class="fas fa-bolt"></i> Instant Digital Keepsake</span>
+    </div>
+  </div>
+
+  <!-- Navbar -->
+  <header class="site-header">
+    <div class="container nav-wrapper">
+      <a href="#" class="brand-logo">
+        <span class="brand-icon"><i class="fas fa-moon"></i></span>
+        <div>
+          <span class="brand-title">TwinkleTale</span>
+          <span class="brand-subtitle">Keepsake Storybooks</span>
+        </div>
+      </a>
+      <div class="nav-actions">
+        <!-- Day / Dark Mode Moon Toggle Button -->
+        <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Day/Dark Mode" aria-label="Toggle Dark Mode">
+          <i class="fas fa-moon" id="themeIcon"></i>
+        </button>
+        <a href="#create" class="nav-btn">Create Storybook ✨</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-pill">
+        <i class="fas fa-wand-magic-sparkles" style="color: var(--gold);"></i> A bedtime treasure crafted uniquely for your child
+      </div>
+      <h1>Turn Your Child Into The Hero Of Their Own <em>Bedtime Story</em></h1>
+      <p class="lead">
+        A personalized, heirloom storybook woven with their name, photo, and favorite theme in 11 languages.
+        Preview your child's custom cover and opening rhyme for free in 40 seconds!
+      </p>
+
+      <div class="hero-cta-group">
+        <a href="#create" class="btn-primary">
+          <i class="fas fa-book-open"></i> Personalize Your Storybook
+        </a>
+        <a href="#previewShowcase" class="btn-secondary">
+          <i class="fas fa-eye"></i> See How It Looks
+        </a>
+      </div>
+
+      <!-- Wonderbly Spread Showcase -->
+      <div class="showcase-banner" id="previewShowcase">
+        <div class="book-mockup-wrapper">
+          <div class="book-mockup">
+            <div class="mockup-header">
+              <div class="mockup-name">Aarav's</div>
+              <div class="mockup-title">Treasury of Space & Stars</div>
+            </div>
+            <div class="mockup-circle"></div>
+            <div class="mockup-footer">TwinkleTale Keepsake Edition</div>
+          </div>
+        </div>
+        <div class="showcase-text">
+          <span class="section-subtitle">The Wonderbly Quality Standard</span>
+          <h3>Left-Image & Right-Verse Classic Spreads</h3>
+          <p>
+            Every storybook is designed like a classic hardcover picture book. 
+            On the left page: a breathtaking hand-painted watercolor illustration featuring your child. 
+            On the right page: an enchanting read-aloud verse in elegant typography.
+          </p>
+          <ul class="spread-features">
+            <li><i class="fas fa-check-circle"></i> <strong>Consistent Character Hero:</strong> Your child's likeness & gender preserved across every page.</li>
+            <li><i class="fas fa-check-circle"></i> <strong>Multilingual Magic:</strong> Available in English, Hindi, Bengali, Tamil, Telugu, Urdu, Spanish & more.</li>
+            <li><i class="fas fa-check-circle"></i> <strong>High-Res 300 DPI PDF:</strong> Crisp on tablets, phones, or printed out at home.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================= -->
+  <!-- OUR STORYBOOK EDITIONS & PRICING (FIRST PAGE OFFERING)   -->
+  <!-- ========================================================= -->
+  <section class="pricing-section" id="editions">
+    <div class="container">
+      <div class="section-title-area">
+        <span class="section-subtitle">Transparent Keepsake Pricing</span>
+        <h2 class="section-title">Our Storybook Editions & Formats</h2>
+        <p class="section-desc">Every edition features left-page watercolor artwork and right-page lyrical verses crafted uniquely for your child.</p>
+      </div>
+
+      <div class="pricing-grid">
+        <!-- Treasury Edition -->
+        <div class="pricing-card" id="pricingTreasury">
+          <div>
+            <span class="section-subtitle" style="font-size:0.75rem;">Bedtime Routine</span>
+            <h3 style="font-size:1.7rem; color:var(--navy); margin:4px 0 8px;">Treasury Edition</h3>
+            <p style="color:var(--text-muted); font-size:0.92rem; margin-bottom:18px;">
+              The classic bedtime storybook, perfect for toddlers and nightly snuggle-up reading (Ages 1–6).
+            </p>
+            <div style="display:flex; align-items:baseline; gap:6px; margin-bottom:20px;">
+              <span style="font-size:2.4rem; font-weight:800; color:var(--coral);">₹199</span>
+              <span style="color:var(--text-muted); font-size:0.9rem;">/ one-time digital keepsake</span>
+            </div>
+
+            <ul class="spread-features" style="margin-bottom:25px;">
+              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> <strong>12 Interior Story Pages</strong> (6 Full Spreads)</li>
+              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> <strong>16 Total Pages</strong> (Cover, Dedication, Certificate, Back)</li>
+              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> Personalized with child's name, face & gender</li>
+              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> Available in all 11 languages (Hindi, English, etc.)</li>
+              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> High-Res 300 DPI PDF download & delivery email</li>
+            </ul>
+          </div>
+          <button type="button" class="btn-primary" style="width:100%; justify-content:center;" onclick="selectEditionFromPricing('short')">
+            <span>Personalize Treasury (₹199)</span> <i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
+
+        <!-- Grand Treasury Edition -->
+        <div class="pricing-card featured" id="pricingGrand">
+          <div class="pricing-badge"><i class="fas fa-crown"></i> Most Cherished Heirloom</div>
+          <div>
+            <span class="section-subtitle" style="font-size:0.75rem; color:var(--gold);">Extended Epic Journey</span>
+            <h3 style="font-size:1.7rem; color:var(--navy); margin:4px 0 8px;">Grand Treasury</h3>
+            <p style="color:var(--text-muted); font-size:0.92rem; margin-bottom:18px;">
+              A 2x longer journey with 12 rich story chapters and breathtaking scenes for growing minds (Ages 4–10).
+            </p>
+            <div style="display:flex; align-items:baseline; gap:6px; margin-bottom:20px;">
+              <span style="font-size:2.4rem; font-weight:800; color:var(--coral);">₹299</span>
+              <span style="color:var(--text-muted); font-size:0.9rem;">/ one-time digital keepsake</span>
+            </div>
+
+            <ul class="spread-features" style="margin-bottom:25px;">
+              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> <strong>24 Interior Story Pages</strong> (12 Full Spreads)</li>
+              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> <strong>28 Total Pages</strong> (Cover, Frontispiece, Certificate, Back)</li>
+              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> 12 unique hand-painted watercolor scene illustrations</li>
+              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> Deeper bedtime storyline & character development</li>
+              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> All 11 languages with authentic script typography</li>
+            </ul>
+          </div>
+          <button type="button" class="btn-primary" style="width:100%; justify-content:center; background:var(--forest);" onclick="selectEditionFromPricing('long')">
+            <span>Personalize Grand Treasury (₹299)</span> <i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Customizer Section -->
+  <section class="customizer-section" id="create">
+    <div class="container">
+      <div class="section-title-area">
+        <span class="section-subtitle">Instant Personalization</span>
+        <h2 class="section-title">Design Your Child's Storybook</h2>
+        <p class="section-desc">Fill in the details below. We'll generate a free teaser cover with your child's name in under 40 seconds!</p>
+      </div>
+
+      <div class="customizer-card">
+        <form id="storybookForm" onsubmit="handleCreatePreview(event)">
+          
+          <!-- Step 0: Choose Book Edition & Length Upfront -->
+          <div class="form-step-group">
+            <div class="step-header">
+              <span class="step-badge"><i class="fas fa-book"></i></span>
+              <span class="step-title">Select Book Edition & Length</span>
+            </div>
+            <div class="edition-selector">
+              <div class="edition-card selected" id="formEditionShort" onclick="selectEdition('short')">
+                <span class="edition-badge">Standard</span>
+                <div class="edition-title">Treasury Edition</div>
+                <div class="edition-pages">12 Interior Pages (16 Total) • 6 Spreads</div>
+                <div class="edition-price">₹199</div>
+              </div>
+              <div class="edition-card" id="formEditionLong" onclick="selectEdition('long')">
+                <span class="edition-badge" style="background:var(--gold); color:var(--navy);">Deluxe</span>
+                <div class="edition-title">Grand Treasury</div>
+                <div class="edition-pages">24 Interior Pages (28 Total) • 12 Spreads</div>
+                <div class="edition-price">₹299</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 1: Child's Identity & Gender (Inclusive 3-Option Selector) -->
+          <div class="form-step-group">
+            <div class="step-header">
+              <span class="step-badge">1</span>
+              <span class="step-title">Who is the Storybook Hero?</span>
+            </div>
+            <div class="form-grid-2">
+              <div>
+                <label style="display:block; font-size:0.88rem; font-weight:600; margin-bottom:6px;">Child's First Name</label>
+                <input type="text" id="childName" class="input-field" placeholder="e.g. Aarav, Ananya, Kabir" required>
+              </div>
+              <div>
+                <label style="display:block; font-size:0.88rem; font-weight:600; margin-bottom:6px;">Child's Age (1 to 10)</label>
+                <input type="number" id="childAge" class="input-field" placeholder="e.g. 5" min="1" max="10" value="5" required>
+              </div>
+            </div>
+
+            <!-- Gender Selector: Boy, Girl, Little Star (Inclusive) -->
+            <div style="margin-top: 18px;">
+              <label style="display:block; font-size:0.88rem; font-weight:600; margin-bottom:6px;">Child's Identity (Ensures personalized pronouns & character art)</label>
+              <div class="gender-selector">
+                <div class="gender-btn selected" id="btnBoy" onclick="selectGender('boy')">
+                  <i class="fas fa-child"></i>
+                  <span>Boy</span>
+                  <span class="sub">He / Him</span>
+                </div>
+                <div class="gender-btn" id="btnGirl" onclick="selectGender('girl')">
+                  <i class="fas fa-child-dress"></i>
+                  <span>Girl</span>
+                  <span class="sub">She / Her</span>
+                </div>
+                <div class="gender-btn" id="btnStar" onclick="selectGender('star')">
+                  <i class="fas fa-star" style="color:var(--gold);"></i>
+                  <span>Little Star</span>
+                  <span class="sub">Gender-Inclusive / They</span>
+                </div>
+              </div>
+              <input type="hidden" id="childGender" value="boy">
+            </div>
+
+            <!-- Language Selector -->
+            <div style="margin-top: 18px;">
+              <label style="display:block; font-size:0.88rem; font-weight:600; margin-bottom:6px;">Story Language</label>
+              <select id="storyLanguage" class="input-field" style="cursor:pointer;">
+                <option value="English" selected>🇬🇧 English (Default)</option>
+                <option value="Hindi">🇮🇳 Hindi (हिंदी)</option>
+                <option value="Bengali">🇮🇳 Bengali (বাংলা)</option>
+                <option value="Tamil">🇮🇳 Tamil (தமிழ்)</option>
+                <option value="Telugu">🇮🇳 Telugu (తెలుగు)</option>
+                <option value="Urdu">🇵🇰 Urdu (اردو)</option>
+                <option value="Spanish">🇪🇸 Spanish (Español)</option>
+                <option value="French">🇫🇷 French (Français)</option>
+                <option value="German">🇩🇪 German (Deutsch)</option>
+                <option value="Arabic">🇸🇦 Arabic (العربية)</option>
+                <option value="Portuguese">🇧🇷 Portuguese (Português)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Step 2: 12 Diverse Themes (No "Adventure" constraint) -->
+          <div class="form-step-group">
+            <div class="step-header">
+              <span class="step-badge">2</span>
+              <span class="step-title">Choose Story Theme</span>
+            </div>
+            <div class="themes-grid">
+              <div class="theme-card selected" onclick="selectTheme(this, 'Space & Stars')">
+                <span class="theme-icon">🚀</span>
+                <span class="theme-name">Space & Stars</span>
+              </div>
+              <div class="theme-card" onclick="selectTheme(this, 'Forest & Animals')">
+                <span class="theme-icon">🐾</span>
+                <span class="theme-name">Animals</span>
+              </div>
+              <div class="theme-card" onclick="selectTheme(this, 'Kingdom & Castles')">
+                <span class="theme-icon">👑</span>
+                <span class="theme-name">Kingdom</span>
+              </div>
+              <div class="theme-card" onclick="selectTheme(this, 'Superheroes')">
+                <span class="theme-icon">⚡</span>
+                <span class="theme-name">Superheroes</span>
+              </div>
+              <div class="theme-card" onclick="selectTheme(this, 'Dinosaur Wonders')">
+                <span class="theme-icon">🦕</span>
+                <span class="theme-name">Dinosaurs</span>
+              </div>
+              <div class="theme-card" onclick="selectTheme(this, 'Ocean & Dolphins')">
+                <span class="theme-icon">🌊</span>
+                <span class="theme-name">Ocean</span>
+              </div>
+              <div class="theme-card" onclick="selectTheme(this, 'Fairies & Magic')">
+                <span class="theme-icon">🧚</span>
+                <span class="theme-name">Fairies</span>
+              </div>
+              <div class="theme-card" onclick="selectTheme(this, 'Trains & Tracks')">
+                <span class="theme-icon">🚂</span>
+                <span class="theme-name">Trains</span>
+              </div>
+              <div class="theme-card" onclick="selectTheme(this, 'Bedtime Lullabies')">
+                <span class="theme-icon">🌙</span>
+                <span class="theme-name">Lullabies</span>
+              </div>
+              <div class="theme-card" onclick="selectTheme(this, 'Circus & Carnivals')">
+                <span class="theme-icon">🎪</span>
+                <span class="theme-name">Circus</span>
+              </div>
+              <div class="theme-card" onclick="selectTheme(this, 'Unicorns & Rainbows')">
+                <span class="theme-icon">🌈</span>
+                <span class="theme-name">Unicorns</span>
+              </div>
+              <div class="theme-card" onclick="selectTheme(this, 'Jungle Safari')">
+                <span class="theme-icon">🌿</span>
+                <span class="theme-name">Safari</span>
+              </div>
+            </div>
+            <input type="hidden" id="selectedTheme" value="Space & Stars">
+          </div>
+
+          <!-- Step 3: Photo Upload (Optional Face-Lock) -->
+          <div class="form-step-group">
+            <div class="step-header">
+              <span class="step-badge">3</span>
+              <span class="step-title">Child's Photo (Optional)</span>
+            </div>
+            <div class="photo-upload-box" onclick="document.getElementById('photoInput').click()">
+              <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="previewUploadedPhoto(event)">
+              <div class="photo-preview-circle" id="photoCircle"></div>
+              <i class="fas fa-camera upload-icon" id="photoPlaceholderIcon"></i>
+              <div class="upload-text" id="photoUploadPrompt">Click to upload a clear front-facing photo</div>
+              <div class="upload-subtext">Our AI will illustrate your child's face into the front cover medallion!</div>
+            </div>
+          </div>
+
+          <!-- Step 4: Personal Dedication & Email -->
+          <div class="form-step-group">
+            <div class="step-header">
+              <span class="step-badge">4</span>
+              <span class="step-title">Personal Dedication & Delivery</span>
+            </div>
+            
+            <label style="display:block; font-size:0.88rem; font-weight:600; margin-bottom:6px;">Personal Dedication (Printed on Page 3)</label>
+            <div class="dedication-pills">
+              <span class="ded-pill" onclick="setDedication('May you always dream big and remember how hugely loved you are.')">✨ Dream big</span>
+              <span class="ded-pill" onclick="setDedication('To our little sunshine, shine bright every single night.')">☀️ Shine bright</span>
+              <span class="ded-pill" onclick="setDedication('A special bedtime keepsake from Chachu & Bua with endless love!')">🎁 From Chachu & Bua</span>
+            </div>
+            <textarea id="dedicationText" class="input-field" style="height: 75px; resize:vertical; margin-bottom: 18px;" placeholder="Write a warm note from Mom, Dad, Nani, or Chachu..."></textarea>
+
+            <label style="display:block; font-size:0.88rem; font-weight:600; margin-bottom:6px;">Parent's Email Address (For Digital Delivery)</label>
+            <input type="email" id="parentEmail" class="input-field" placeholder="e.g. yourname@gmail.com" required>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit" class="generate-preview-btn" id="previewBtn">
+            <span>✨ Generate Free Book Preview (40s)</span>
+            <i class="fas fa-arrow-right"></i>
+          </button>
+          <p class="btn-guarantee"><i class="fas fa-shield-halved" style="color:var(--forest);"></i> 100% Free Instant Teaser • No Credit Card Required</p>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================= -->
+  <!-- TEASER PREVIEW STAGE (FLOW B) -->
+  <!-- ========================================================= -->
+  <section id="previewStage">
+    <div class="container">
+      <div class="preview-card">
+        <div class="preview-grid">
+          <div class="preview-cover-box">
+            <div class="preview-book-mockup" id="previewBookMockup">
+              <div class="preview-mockup-header">
+                <div class="preview-mockup-name" id="previewMockupChildName">Aarav's</div>
+                <div class="preview-mockup-title" id="previewMockupCoverTitle">Treasury of Space & Stars</div>
+              </div>
+              <div class="preview-mockup-circle" id="previewMockupCircle">
+                <img id="previewCoverImg" src="" alt="Personalized Storybook Medallion" style="display:none; width:100%; height:100%; border-radius:50%; object-fit:cover;">
+                <i class="fas fa-star" id="previewMockupPlaceholderIcon" style="font-size:2.8rem; color:var(--gold);"></i>
+              </div>
+              <div class="preview-mockup-footer">TwinkleTale Keepsake Edition ✨</div>
+            </div>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-top:14px;">
+              <i class="fas fa-check-circle" style="color:var(--forest);"></i> Front Cover Preview with <strong id="previewChildNameBadge">Your Child</strong>
+            </p>
+          </div>
+
+          <div class="preview-meta">
+            <span class="section-subtitle">Your Book is Ready to Unlock!</span>
+            <h2 id="previewBookTitle">Aarav's Treasury of Space & Stars</h2>
+            
+            <div class="opening-rhyme-card" id="previewRhymeText">
+              "Underneath the twinkling stars, where dreams begin to play..."
+            </div>
+
+            <label style="display:block; font-weight:700; color:var(--navy); margin-bottom:10px;">Choose Book Edition:</label>
+            <div class="edition-selector">
+              <div class="edition-card selected" id="editionShort" onclick="selectEdition('short')">
+                <span class="edition-badge">Popular</span>
+                <div class="edition-title">Treasury Edition</div>
+                <div class="edition-pages">12 Interior Pages (16 Total) • 6 Spreads</div>
+                <div class="edition-price">₹199</div>
+              </div>
+              <div class="edition-card" id="editionLong" onclick="selectEdition('long')">
+                <span class="edition-badge" style="background:var(--gold); color:var(--navy);">Deluxe</span>
+                <div class="edition-title">Grand Treasury</div>
+                <div class="edition-pages">24 Interior Pages (28 Total) • 12 Spreads</div>
+                <div class="edition-price">₹299</div>
+              </div>
+            </div>
+
+            <button class="unlock-btn" onclick="startRazorpayCheckout()">
+              <i class="fas fa-lock-open"></i> Unlock & Download Full Storybook
+            </button>
+            <p style="text-align:center; font-size:0.82rem; color:var(--text-muted); margin-top:10px;">
+              <i class="fas fa-shield-check" style="color:var(--forest);"></i> Verified Razorpay Checkout • Instant PDF Download & Email
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================= -->
+  <!-- PROGRESS & DOWNLOAD STAGE -->
+  <!-- ========================================================= -->
+  <section id="progressStage">
+    <div class="container">
+      <div class="progress-card">
+        <div class="spinner-ring" id="progressSpinner"></div>
+        <h3 class="progress-title" id="progressHeading">Crafting Your Storybook...</h3>
+        <p style="color:var(--text-muted);" id="progressSubheading">Please keep this tab open while our AI paints your child's spreads.</p>
+        
+        <div class="progress-bar-container">
+          <div class="progress-bar-fill" id="progressBarFill"></div>
+        </div>
+        <div class="progress-step-text" id="progressStepText">Weaving personalized bedtime rhymes...</div>
+
+        <div id="downloadBox">
+          <div style="font-size:3rem; margin-bottom:12px;">🎉</div>
+          <h3 style="font-size:1.8rem; color:var(--navy); margin-bottom:10px;">Your Keepsake Book is Ready!</h3>
+          <p style="color:var(--text-muted); margin-bottom:25px;" id="emailConfirmationText">
+            A high-resolution, print-ready PDF has been generated and emailed to you.
+          </p>
+          <a href="#" id="downloadPdfLink" target="_blank" class="btn-download-pdf">
+            <i class="fas fa-file-pdf"></i> Download Storybook (PDF)
+          </a>
+          <p style="font-size:0.85rem; color:var(--text-muted); margin-top:15px;">
+            The download link is permanent and never expires.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Benefits -->
+  <section class="benefits-section">
+    <div class="container">
+      <span class="section-subtitle">Why Parents Love TwinkleTale</span>
+      <h2 class="section-title">The Perfect Keepsake For Bedtime</h2>
+
+      <div class="benefits-grid">
+        <div class="benefit-card">
+          <div class="benefit-icon"><i class="fas fa-heart"></i></div>
+          <h4>Sparks A Love For Reading</h4>
+          <p>Children are captivated seeing their own name and face inside the book. It makes reading a comforting nightly ritual.</p>
+        </div>
+        <div class="benefit-card">
+          <div class="benefit-icon"><i class="fas fa-palette"></i></div>
+          <h4>Hand-Painted Art Style</h4>
+          <p>Warm pastel gouache, soft watercolor textures, and classical storybook framing make every spread look like fine art.</p>
+        </div>
+        <div class="benefit-card">
+          <div class="benefit-icon"><i class="fas fa-gift"></i></div>
+          <h4>Gift from Bua, Chachu & Grandparents</h4>
+          <p>Far away from your loved ones? Send a personalized keepsake storybook directly to the parent's inbox in minutes.</p>
+        </div>
+        <div class="benefit-card">
+          <div class="benefit-icon"><i class="fas fa-print"></i></div>
+          <h4>Print at Home or Read on iPad</h4>
+          <p>Delivered as a crisp 300 DPI PDF ready for printing on A4/Letter photo paper, or enjoyable on Kindle, iPad, and mobile.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section class="faq-section">
+    <div class="container">
+      <div class="section-title-area">
+        <span class="section-subtitle">Got Questions?</span>
+        <h2 class="section-title">Frequently Asked Questions</h2>
+      </div>
+
+      <div class="faq-accordion">
+        <div class="faq-item" onclick="toggleFaq(this)">
+          <div class="faq-question">
+            <span>How does the free teaser preview work?</span>
+            <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            You enter your child's details, select a theme and language, and optionally upload a photo. In just ~40 seconds, our AI paints your child's personalized front cover and writes an opening lullaby rhyme for you to inspect for free.
+          </div>
+        </div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+          <div class="faq-question">
+            <span>What languages are supported?</span>
+            <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            TwinkleTale supports 11 languages: English, Hindi, Bengali, Tamil, Telugu, Urdu, Spanish, French, German, Arabic, and Portuguese! All stories and poems are composed in the authentic script of the selected language.
+          </div>
+        </div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+          <div class="faq-question">
+            <span>What is the difference between Treasury (12 pages) and Grand Treasury (24 pages)?</span>
+            <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            The Treasury Edition (₹199) has 12 interior pages structured as 6 spreads (6 full-page left illustrations + 6 right verse pages). The Grand Treasury (₹299) features 24 interior pages (12 full-page left illustrations + 12 right verse pages) with an expanded bedtime story.
+          </div>
+        </div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+          <div class="faq-question">
+            <span>Can I print the storybook?</span>
+            <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            Yes! Your storybook is compiled with high-resolution vector fonts and 300 DPI illustrations formatted to 600x800pt portrait. You can easily print it at home or at any digital printing shop.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+            <i class="fas fa-moon" style="color:var(--gold); font-size:1.5rem;"></i>
+            <h3 style="margin:0;">TwinkleTale</h3>
+          </div>
+          <p style="color:#8891AA; max-width:380px;">
+            Handcrafting heirloom bedtime storybooks for children across India and around the world. Every child is the hero of their own story.
+          </p>
+        </div>
+
+        <div class="footer-links">
+          <h5>Quick Links</h5>
+          <ul>
+            <li><a href="#create">Create Storybook</a></li>
+            <li><a href="#previewShowcase">Quality Standards</a></li>
+            <li><a href="mailto:support@twinkletale.in">Contact Support</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links">
+          <h5>Policies</h5>
+          <ul>
+            <li><a href="#" onclick="alert('Privacy Policy: Photos uploaded are used exclusively for illustration synthesis and never shared.')">Privacy Policy</a></li>
+            <li><a href="#" onclick="alert('Terms: Instant digital delivery upon generation.')">Terms of Service</a></li>
+            <li><a href="#" onclick="alert('Refund Policy: 100% refund guarantee if generation fails.')">Refund Policy</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        &copy; <span id="yearSpan">2026</span> TwinkleTale Studios. All rights reserved. Made with love for little dreamers.
+      </div>
+    </div>
+  </footer>
+
+  <!-- ========================================================= -->
+  <!-- IN-PAGE SECURE CHECKOUT MODAL (TEST/LIVE REPLACEMENT)     -->
+  <!-- ========================================================= -->
+  <div id="checkoutModal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <i class="fas fa-shield-halved" style="color:var(--forest); font-size:1.3rem;"></i>
+          <h3>Order Confirmation</h3>
+        </div>
+        <button type="button" class="modal-close-btn" onclick="closeCheckoutModal()" aria-label="Close">&times;</button>
+      </div>
+
+      <div class="order-summary-box">
+        <div class="order-summary-row">
+          <span class="order-item-title" id="modalBookTitle">Aarav's Storybook</span>
+          <span class="order-item-price" id="modalPrice">₹199</span>
+        </div>
+        <div class="order-summary-meta" id="modalBookMeta">
+          Treasury Edition • 16 Total Pages (6 Spreads)
+        </div>
+        <div class="order-summary-meta" id="modalChildMeta">
+          Child: Aarav • Language: English
+        </div>
+        <hr style="border:none; border-top:1px solid var(--border-light); margin:12px 0;">
+        <div class="order-summary-row" style="font-size:0.88rem; color:var(--text-muted);">
+          <span>Digital Generation & Brevo Delivery</span>
+          <span style="color:var(--forest); font-weight:700;">FREE</span>
+        </div>
+        <div class="order-summary-row" style="font-weight:700; font-size:1.15rem; color:var(--navy); margin-top:8px;">
+          <span>Total Payable</span>
+          <span id="modalTotalPayable" style="color:var(--coral);">₹199</span>
+        </div>
+      </div>
+
+      <div class="test-mode-notice" id="modalTestModeBanner">
+        <div class="test-badge"><i class="fas fa-flask"></i> Sandbox Test Mode Active</div>
+        <p style="font-size:0.82rem; color:var(--text-muted); margin-top:6px;">
+          Simulate an instant authorized payment to test the entire book fulfillment pipeline without entering real card details.
+        </p>
+      </div>
+
+      <button type="button" class="btn-confirm-pay" id="modalPayBtn" onclick="confirmPaymentAndGenerate()">
+        <i class="fas fa-bolt"></i> Complete & Start Generating Storybook
+      </button>
+      <button type="button" class="btn-modal-cancel" onclick="closeCheckoutModal()">Cancel</button>
+
+      <div class="modal-trust-footer">
+        <i class="fas fa-lock"></i> 256-Bit SSL Encrypted • 100% Satisfaction Guarantee
+      </div>
+    </div>
+  </div>
+
+  <!-- Razorpay Checkout Script -->
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+  <!-- Frontend Logic -->
+  <script>
+    const API_BASE = 'https://storybook-backend-85eh.onrender.com';
+
+    let currentPhotoBase64 = '';
+    let currentPreviewId = null;
+    let selectedEdition = 'short';
+
+    document.getElementById('yearSpan').textContent = new Date().getFullYear();
+
+    // Dark Mode / Day Mode Toggle with Persistence
+    function initTheme() {
+      const saved = localStorage.getItem('twinkleTheme');
+      if (saved === 'dark') {
+        document.body.classList.add('dark-mode');
+        document.getElementById('themeIcon').className = 'fas fa-sun';
+      }
+    }
+    initTheme();
+
+    function toggleTheme() {
+      const isDark = document.body.classList.toggle('dark-mode');
+      const icon = document.getElementById('themeIcon');
+      if (isDark) {
+        icon.className = 'fas fa-sun';
+        localStorage.setItem('twinkleTheme', 'dark');
+      } else {
+        icon.className = 'fas fa-moon';
+        localStorage.setItem('twinkleTheme', 'light');
+      }
+    }
+
+    // 3-Way Gender Selection (Boy, Girl, Little Star)
+    function selectGender(gender) {
+      document.getElementById('childGender').value = gender;
+      document.getElementById('btnBoy').classList.toggle('selected', gender === 'boy');
+      document.getElementById('btnGirl').classList.toggle('selected', gender === 'girl');
+      document.getElementById('btnStar').classList.toggle('selected', gender === 'star');
+    }
+
+    // Theme Selection (12 themes)
+    function selectTheme(element, theme) {
+      document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('selected'));
+      element.classList.add('selected');
+      document.getElementById('selectedTheme').value = theme;
+    }
+
+    function setDedication(text) {
+      document.getElementById('dedicationText').value = text;
+    }
+
+    function previewUploadedPhoto(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          const max = 768;
+          const scale = Math.min(1, max / Math.max(img.width, img.height));
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.round(img.width * scale);
+          canvas.height = Math.round(img.height * scale);
+          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+          currentPhotoBase64 = canvas.toDataURL('image/jpeg', 0.85);
+
+          const circle = document.getElementById('photoCircle');
+          circle.style.backgroundImage = `url(${currentPhotoBase64})`;
+          circle.style.display = 'block';
+          document.getElementById('photoPlaceholderIcon').style.display = 'none';
+          document.getElementById('photoUploadPrompt').textContent = 'Photo attached! Click to change';
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    let pendingOrderData = null;
+
+    function selectEdition(edition) {
+      selectedEdition = edition;
+      // Form cards
+      const formShort = document.getElementById('formEditionShort');
+      const formLong = document.getElementById('formEditionLong');
+      if (formShort) formShort.classList.toggle('selected', edition === 'short');
+      if (formLong) formLong.classList.toggle('selected', edition === 'long');
+
+      // Preview cards
+      const prevShort = document.getElementById('editionShort');
+      const prevLong = document.getElementById('editionLong');
+      if (prevShort) prevShort.classList.toggle('selected', edition === 'short');
+      if (prevLong) prevLong.classList.toggle('selected', edition === 'long');
+    }
+
+    function selectEditionFromPricing(edition) {
+      selectEdition(edition);
+      const formElement = document.getElementById('create');
+      if (formElement) formElement.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function toggleFaq(item) {
+      item.classList.toggle('active');
+      const icon = item.querySelector('.faq-question i');
+      icon.classList.toggle('fa-chevron-down');
+      icon.classList.toggle('fa-chevron-up');
+    }
+
+    // =========================================================
+    // FLOW B: STEP 1 - CREATE TEASER PREVIEW (WITH LANGUAGE & GENDER)
+    // =========================================================
+    async function handleCreatePreview(e) {
+      e.preventDefault();
+      const childName = document.getElementById('childName').value.trim();
+      const childAge = document.getElementById('childAge').value.trim() || '5';
+      const gender = document.getElementById('childGender').value;
+      const language = document.getElementById('storyLanguage').value;
+      const theme = document.getElementById('selectedTheme').value;
+      const dedication = document.getElementById('dedicationText').value.trim();
+      const email = document.getElementById('parentEmail').value.trim();
+
+      if (!childName) { alert("Please enter your child's name!"); return; }
+      if (!email) { alert("Please enter your email to receive your preview!"); return; }
+
+      const previewBtn = document.getElementById('previewBtn');
+      previewBtn.disabled = true;
+      previewBtn.innerHTML = `<span><i class="fas fa-spinner fa-spin"></i> Painting ${childName}'s Cover (~40s)...</span>`;
+
+      try {
+        const response = await fetch(`${API_BASE}/api/create-preview`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            childName,
+            gender,
+            age: childAge,
+            theme,
+            language,
+            photoData: currentPhotoBase64,
+            dedication,
+            email
+          })
+        });
+
+        const data = await response.json();
+        previewBtn.disabled = false;
+        previewBtn.innerHTML = `<span>✨ Generate Free Book Preview (40s)</span> <i class="fas fa-arrow-right"></i>`;
+
+        if (data.success && data.previewId) {
+          currentPreviewId = data.previewId;
+          const bookTitle = data.bookTitle || `${childName}'s Bedtime Story`;
+          document.getElementById('previewBookTitle').textContent = bookTitle;
+          document.getElementById('previewChildNameBadge').textContent = childName;
+          document.getElementById('previewRhymeText').textContent = `"${data.openingRhyme}"`;
+
+          // Upgrade 3D Book Mockup in Preview Card (Zero Broken Images)
+          const mockup = document.getElementById('previewBookMockup');
+          const mockupName = document.getElementById('previewMockupChildName');
+          const mockupTitle = document.getElementById('previewMockupCoverTitle');
+          const medallionImg = document.getElementById('previewCoverImg');
+          const placeholderIcon = document.getElementById('previewMockupPlaceholderIcon');
+
+          if (mockupName) mockupName.textContent = `${childName}'s`;
+          if (mockupTitle) mockupTitle.textContent = bookTitle;
+
+          const bgSrc = data.coverBgDataUrl || data.coverBgUrl;
+          const vigSrc = data.vignetteDataUrl || data.vignetteUrl;
+
+          if (bgSrc && typeof bgSrc === 'string' && bgSrc.length > 20) {
+            mockup.style.backgroundImage = `url("${bgSrc}")`;
+          }
+          if (vigSrc && typeof vigSrc === 'string' && vigSrc.length > 20) {
+            medallionImg.src = vigSrc;
+            medallionImg.style.display = 'block';
+            if (placeholderIcon) placeholderIcon.style.display = 'none';
+          }
+
+          // Ensure chosen edition is reflected
+          selectEdition(selectedEdition);
+
+          const stage = document.getElementById('previewStage');
+          stage.style.display = 'block';
+          stage.scrollIntoView({ behavior: 'smooth' });
+        } else {
+          alert(`Could not create preview: ${data.error || 'Server error'}. Please try again.`);
+        }
+      } catch (err) {
+        previewBtn.disabled = false;
+        previewBtn.innerHTML = `<span>✨ Generate Free Book Preview (40s)</span> <i class="fas fa-arrow-right"></i>`;
+        alert(`Connection error: ${err.message}. Please check your network and try again.`);
+      }
+    }
+
+    // =========================================================
+    // IN-PAGE CHECKOUT MODAL HANDLERS
+    // =========================================================
+    function openCheckoutModal(orderData) {
+      const childName = document.getElementById('childName').value.trim() || 'Your Child';
+      const isLong = selectedEdition === 'long';
+      const priceStr = isLong ? '₹299' : '₹199';
+      const lang = document.getElementById('storyLanguage').value || 'English';
+
+      document.getElementById('modalBookTitle').textContent = `${childName}'s Bedtime Treasury`;
+      document.getElementById('modalPrice').textContent = priceStr;
+      document.getElementById('modalTotalPayable').textContent = priceStr;
+      document.getElementById('modalBookMeta').textContent = isLong
+        ? 'Grand Treasury • 28 Total Pages (12 Spreads)'
+        : 'Treasury Edition • 16 Total Pages (6 Spreads)';
+      document.getElementById('modalChildMeta').textContent = `Hero: ${childName} • Language: ${lang}`;
+
+      document.getElementById('checkoutModal').style.display = 'flex';
+    }
+
+    function closeCheckoutModal() {
+      document.getElementById('checkoutModal').style.display = 'none';
+    }
+
+    function confirmPaymentAndGenerate() {
+      closeCheckoutModal();
+      if (!pendingOrderData) return;
+      completeBookAfterPayment({
+        razorpay_order_id: pendingOrderData.orderId,
+        razorpay_payment_id: `pay_test_${Date.now()}`,
+        razorpay_signature: `sig_test_${Date.now()}`
+      });
+    }
+
+    // =========================================================
+    // FLOW B: STEP 2 - CHECKOUT (RAZORPAY)
+    // =========================================================
+    async function startRazorpayCheckout() {
+      if (!currentPreviewId) {
+        alert("Preview session expired. Please preview your book again.");
+        return;
+      }
+
+      const email = document.getElementById('parentEmail').value.trim();
+      const childName = document.getElementById('childName').value.trim();
+      const isLong = selectedEdition === 'long';
+      const amountPaise = isLong ? 29900 : 19900;
+
+      try {
+        const orderRes = await fetch(`${API_BASE}/api/create-order`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            previewId: currentPreviewId,
+            bookLength: isLong ? '24 pages' : '12 pages',
+            email
+          })
+        });
+        const orderData = await orderRes.json();
+
+        if (!orderData.success) {
+          alert(`Order error: ${orderData.error}`);
+          return;
+        }
+
+        if (orderData.isTestMode || orderData.keyId.includes('simulated') || orderData.keyId.includes('YOUR_')) {
+          pendingOrderData = orderData;
+          openCheckoutModal(orderData);
+          return;
+        }
+
+        const options = {
+          key: orderData.keyId,
+          amount: orderData.amount,
+          currency: orderData.currency || "INR",
+          name: "TwinkleTale",
+          description: `${childName}'s Personalized Keepsake Storybook`,
+          order_id: orderData.orderId,
+          prefill: { email, name: childName },
+          theme: { color: "#161B33" },
+          handler: function (response) {
+            completeBookAfterPayment(response);
+          }
+        };
+
+        const rzp = new Razorpay(options);
+        rzp.on('payment.failed', function (response) {
+          alert(`Payment failed: ${response.error.description}`);
+        });
+        rzp.open();
+
+      } catch (err) {
+        alert(`Checkout initiation failed: ${err.message}`);
+      }
+    }
+
+    // =========================================================
+    // FLOW B: STEP 3 - VERIFY PAYMENT & START FULFILLMENT
+    // =========================================================
+    async function completeBookAfterPayment(paymentResponse) {
+      document.getElementById('previewStage').style.display = 'none';
+      const prog = document.getElementById('progressStage');
+      prog.style.display = 'block';
+      prog.scrollIntoView({ behavior: 'smooth' });
+
+      const email = document.getElementById('parentEmail').value.trim();
+      const isLong = selectedEdition === 'long';
+
+      try {
+        const verifyRes = await fetch(`${API_BASE}/api/verify-and-complete-book`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            previewId: currentPreviewId,
+            razorpay_order_id: paymentResponse.razorpay_order_id,
+            razorpay_payment_id: paymentResponse.razorpay_payment_id,
+            razorpay_signature: paymentResponse.razorpay_signature,
+            bookLength: isLong ? '24 pages' : '12 pages',
+            email
+          })
+        });
+
+        const verifyData = await verifyRes.json();
+        if (verifyData.success && verifyData.jobId) {
+          pollJobStatus(verifyData.jobId);
+        } else {
+          document.getElementById('progressHeading').textContent = 'Order Verification Issue';
+          document.getElementById('progressStepText').textContent = verifyData.error || 'Please contact support.';
+        }
+      } catch (err) {
+        document.getElementById('progressHeading').textContent = 'Connection Error';
+        document.getElementById('progressStepText').textContent = err.message;
+      }
+    }
+
+    function pollJobStatus(jobId) {
+      const fill = document.getElementById('progressBarFill');
+      const stepText = document.getElementById('progressStepText');
+
+      const interval = setInterval(async () => {
+        try {
+          const res = await fetch(`${API_BASE}/api/job-status/${jobId}`);
+          const data = await res.json();
+
+          if (data.success) {
+            fill.style.width = `${Math.min(100, data.progress || 20)}%`;
+            stepText.textContent = data.step || 'Crafting storybook...';
+
+            if (data.status === 'completed' && data.pdfUrl) {
+              clearInterval(interval);
+              document.getElementById('progressSpinner').style.display = 'none';
+              document.getElementById('progressHeading').textContent = 'Storybook Complete!';
+              document.getElementById('progressSubheading').textContent = 'Your personalized keepsake is ready for bedtime reading.';
+              
+              const downloadLink = document.getElementById('downloadPdfLink');
+              downloadLink.href = data.pdfUrl;
+              document.getElementById('downloadBox').style.display = 'block';
+
+              if (data.emailed) {
+                document.getElementById('emailConfirmationText').innerHTML = 
+                  `A high-resolution print-ready PDF has also been sent to <strong>${document.getElementById('parentEmail').value}</strong>.`;
+              }
+            } else if (data.status === 'failed') {
+              clearInterval(interval);
+              document.getElementById('progressHeading').textContent = 'Generation Error';
+              stepText.textContent = data.error || 'Something went wrong while painting the book.';
+            }
+          }
+        } catch (e) {
+          console.log('Polling notice:', e.message);
+        }
+      }, 3500);
+    }
+  </script>
+</body>
+</html>
