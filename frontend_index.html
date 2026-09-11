@@ -1396,9 +1396,11 @@
             <p style="color:var(--text-muted); font-size:0.92rem; margin-bottom:18px;">
               The classic bedtime storybook, perfect for toddlers and nightly snuggle-up reading (Ages 1–6).
             </p>
-            <div style="display:flex; align-items:baseline; gap:6px; margin-bottom:20px;">
+            <div style="display:flex; align-items:baseline; gap:8px; margin-bottom:20px; flex-wrap:wrap;">
               <span style="font-size:2.4rem; font-weight:800; color:var(--coral);">₹199</span>
-              <span style="color:var(--text-muted); font-size:0.9rem;">/ one-time digital keepsake</span>
+              <span style="font-size:1.3rem; text-decoration:line-through; color:var(--text-muted); font-weight:500;">₹499</span>
+              <span style="background:rgba(217, 83, 79, 0.12); color:var(--coral); font-weight:700; font-size:0.82rem; padding:3px 8px; border-radius:12px;">60% OFF</span>
+              <div style="width:100%; color:var(--text-muted); font-size:0.85rem; margin-top:2px;">one-time digital keepsake</div>
             </div>
 
             <ul class="spread-features" style="margin-bottom:25px;">
@@ -1423,9 +1425,11 @@
             <p style="color:var(--text-muted); font-size:0.92rem; margin-bottom:18px;">
               A 2x longer journey with 12 rich story chapters and breathtaking scenes for growing minds (Ages 4–10).
             </p>
-            <div style="display:flex; align-items:baseline; gap:6px; margin-bottom:20px;">
+            <div style="display:flex; align-items:baseline; gap:8px; margin-bottom:20px; flex-wrap:wrap;">
               <span style="font-size:2.4rem; font-weight:800; color:var(--coral);">₹299</span>
-              <span style="color:var(--text-muted); font-size:0.9rem;">/ one-time digital keepsake</span>
+              <span style="font-size:1.3rem; text-decoration:line-through; color:var(--text-muted); font-weight:500;">₹999</span>
+              <span style="background:rgba(217, 83, 79, 0.12); color:var(--coral); font-weight:700; font-size:0.82rem; padding:3px 8px; border-radius:12px;">70% OFF</span>
+              <div style="width:100%; color:var(--text-muted); font-size:0.85rem; margin-top:2px;">one-time digital keepsake</div>
             </div>
 
             <ul class="spread-features" style="margin-bottom:25px;">
@@ -1619,13 +1623,13 @@
                 <span class="edition-badge">Standard</span>
                 <div class="edition-title">Treasury Edition</div>
                 <div class="edition-pages">12 Story Pages (16 Total) • 6 Illustrated Spreads</div>
-                <div class="edition-price">₹199</div>
+                <div class="edition-price">₹199 <span style="font-size:0.8rem; text-decoration:line-through; color:var(--text-muted); font-weight:normal;">₹499</span> <span style="font-size:0.75rem; color:var(--forest); font-weight:700;">(60% OFF)</span></div>
               </div>
               <div class="edition-card" id="formEditionLong" onclick="selectEdition('long')">
                 <span class="edition-badge" style="background:var(--gold); color:var(--navy);">Deluxe</span>
                 <div class="edition-title">Grand Treasury</div>
                 <div class="edition-pages">24 Story Pages (28 Total) • 12 Illustrated Spreads</div>
-                <div class="edition-price">₹299</div>
+                <div class="edition-price">₹299 <span style="font-size:0.8rem; text-decoration:line-through; color:var(--text-muted); font-weight:normal;">₹999</span> <span style="font-size:0.75rem; color:var(--forest); font-weight:700;">(70% OFF)</span></div>
               </div>
             </div>
           </div>
@@ -1675,7 +1679,7 @@
             <div class="preview-edition-summary" id="previewEditionSummary">
               <div class="edition-summary-header">
                 <span class="edition-summary-badge" id="previewEditionBadge"><i class="fas fa-book"></i> Treasury Edition</span>
-                <span class="edition-summary-price" id="previewEditionPrice">₹199</span>
+                <span class="edition-summary-price" id="previewEditionPrice">₹199 <span style="font-size:0.9rem; text-decoration:line-through; color:var(--text-muted); font-weight:normal;">₹499</span> <span style="font-size:0.82rem; color:var(--forest); font-weight:700;">60% OFF</span></span>
               </div>
               <div class="edition-summary-desc" id="previewEditionPages">
                 12 Story Pages (16 Total Pages) • 6 Illustrated Spreads • Print-Ready PDF
@@ -1792,7 +1796,7 @@
             <i class="fas fa-chevron-down"></i>
           </div>
           <div class="faq-answer">
-            The Treasury Edition (₹199) has 12 interior pages structured as 6 spreads (6 full-page left illustrations + 6 right verse pages). The Grand Treasury (₹299) features 24 interior pages (12 full-page left illustrations + 12 right verse pages) with an expanded bedtime story.
+            The Treasury Edition (₹199, original ₹499 • 60% OFF) has 12 interior pages structured as 6 spreads (6 full-page left illustrations + 6 right verse pages). The Grand Treasury (₹299, original ₹999 • 70% OFF) features 24 interior pages (12 full-page left illustrations + 12 right verse pages) with an expanded bedtime story.
           </div>
         </div>
 
@@ -1873,7 +1877,11 @@
           Child: Aarav • Language: English
         </div>
         <hr style="border:none; border-top:1px solid var(--border-light); margin:12px 0;">
-        <div class="order-summary-row" style="font-size:0.88rem; color:var(--text-muted);">
+        <div class="order-summary-row" style="font-size:0.88rem; color:var(--forest); font-weight:600;">
+          <span>Special Launch Discount</span>
+          <span id="modalDiscountTag">-60% (Saved ₹300)</span>
+        </div>
+        <div class="order-summary-row" style="font-size:0.88rem; color:var(--text-muted); margin-top:4px;">
           <span>Digital Generation & Brevo Delivery</span>
           <span style="color:var(--forest); font-weight:700;">FREE</span>
         </div>
@@ -2001,7 +2009,11 @@
       const btnPrice = document.getElementById('unlockBtnPrice');
 
       if (badge) badge.innerHTML = isLong ? '<i class="fas fa-crown"></i> Grand Treasury Edition' : '<i class="fas fa-book"></i> Treasury Edition';
-      if (price) price.textContent = isLong ? '₹299' : '₹199';
+      if (price) {
+        price.innerHTML = isLong
+          ? '₹299 <span style="font-size:0.9rem; text-decoration:line-through; color:var(--text-muted); font-weight:normal;">₹999</span> <span style="font-size:0.82rem; color:var(--forest); font-weight:700;">70% OFF</span>'
+          : '₹199 <span style="font-size:0.9rem; text-decoration:line-through; color:var(--text-muted); font-weight:normal;">₹499</span> <span style="font-size:0.82rem; color:var(--forest); font-weight:700;">60% OFF</span>';
+      }
       if (pages) pages.textContent = isLong
         ? '24 Story Pages (28 Total Physical Pages) • 12 Illustrated Spreads • Print-Ready PDF'
         : '12 Story Pages (16 Total Physical Pages) • 6 Illustrated Spreads • Print-Ready PDF';
@@ -2111,7 +2123,13 @@
       const lang = document.getElementById('storyLanguage').value || 'English';
 
       document.getElementById('modalBookTitle').textContent = `${childName}'s Bedtime Treasury`;
-      document.getElementById('modalPrice').textContent = priceStr;
+      document.getElementById('modalPrice').innerHTML = isLong
+        ? '₹299 <span style="font-size:0.85rem; text-decoration:line-through; color:var(--text-muted); font-weight:normal;">₹999</span>'
+        : '₹199 <span style="font-size:0.85rem; text-decoration:line-through; color:var(--text-muted); font-weight:normal;">₹499</span>';
+      const discountTag = document.getElementById('modalDiscountTag');
+      if (discountTag) {
+        discountTag.textContent = isLong ? '-70% (Saved ₹700)' : '-60% (Saved ₹300)';
+      }
       document.getElementById('modalTotalPayable').textContent = priceStr;
       document.getElementById('modalBookMeta').textContent = isLong
         ? 'Grand Treasury • 28 Total Physical Pages (12 Spreads)'

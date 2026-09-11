@@ -437,25 +437,107 @@ async function generateCoverPainting(charAnchor, base, pal, photoData, bespokePr
     return await generateImage(prompt, photoData);
 }
 
+const QUALITY_SUFFIX = ' Composition: full-bleed page art, subject on rule-of-thirds, eye-level camera for child subjects, strong silhouette readability. Micro-detail: crisp fabric weave, individual hair strands, tiny specular highlights in eyes. Print finish: gallery-grade print quality, clean anti-aliased edges, no banding, no compression artifacts, no oversharpening.';
+let bookUpscalesCount = 0;
+
+// UPSCALE CHAIN (CLARITY-UPSCALER -> REAL-ESRGAN -> NATIVE FALLBACK)
+async function upscaleImageWithFallback(url) {
+    const cleanUrl = extractUrl(url);
+    if (!cleanUrl) return url;
+
+    // a) philz1337x/clarity-upscaler with 1 retry (2 attempts total)
+    try {
+        const out = await withRetry('clarity upscaler', async () => {
+            return await replicate.run("philz1337x/clarity-upscaler", {
+                input: {
+                    image: cleanUrl,
+                    creativity: 0.3,
+                    resemblance: 0.85,
+                    scale: 4,
+                    output_format: 'jpg'
+                }
+            });
+        }, 2, 3000);
+        const upscaledUrl = extractUrl(out);
+        if (upscaledUrl) {
+            console.log("⬆️ 4K upscale via philz1337x/clarity-upscaler");
+            bookUpscalesCount++;
+            await sleep(PACING);
+            return upscaledUrl;
+        }
+    } catch (errA) {
+        console.log("    (clarity upscaler notice, falling back to real-esrgan):", errA.message);
+    }
+
+    // b) nightmareai/real-esrgan
+    try {
+        const out = await replicate.run("nightmareai/real-esrgan", {
+            input: {
+                image: cleanUrl,
+                scale: 4
+            }
+        });
+        const upscaledUrl = extractUrl(out);
+        if (upscaledUrl) {
+            console.log("⬆️ 4K upscale via nightmareai/real-esrgan");
+            bookUpscalesCount++;
+            await sleep(PACING);
+            return upscaledUrl;
+        }
+    } catch (errB) {
+        console.log("    (real-esrgan notice, falling back to native):", errB.message);
+    }
+
+    // c) original url (graceful degradation)
+    console.warn("⚠️ upscale fallback to native");
+    return cleanUrl;
+}
+
 async function generateImage(prompt, photoData) {
+    const finalPrompt = prompt + QUALITY_SUFFIX;
+    let rawUrl = '';
+
     if (photoData) {
         try {
             const out = await replicate.run("black-forest-labs/flux-kontext-pro", {
                 input: {
                     input_image: photoData,
-                    prompt: prompt,
+                    prompt: finalPrompt,
                     aspect_ratio: "3:4",
                     output_format: "png",
                     safety_tolerance: 2
                 }
             });
-            return extractUrl(out);
-        } catch (e) { console.log("    (face model notice, falling back to flux-1.1-pro):", e.message); }
+            rawUrl = extractUrl(out);
+        } catch (e) {
+            console.log("    (face model notice, falling back to non-photo model):", e.message);
+        }
     }
-    const out = await replicate.run("black-forest-labs/flux-1.1-pro", {
-        input: { prompt: prompt, aspect_ratio: "3:4", output_format: "png" }
-    });
-    return extractUrl(out);
+
+    if (!rawUrl) {
+        const model = process.env.IMAGE_GEN_MODEL;
+        if (model === 'google/nano-banana-pro') {
+            const out = await replicate.run("google/nano-banana-pro", {
+                input: { prompt: finalPrompt, resolution: '4K', aspect_ratio: '3:4' }
+            });
+            rawUrl = extractUrl(out);
+        } else if (model === 'black-forest-labs/flux-2-pro') {
+            const out = await replicate.run("black-forest-labs/flux-2-pro", {
+                input: { prompt: finalPrompt, aspect_ratio: "3:4", output_format: "png" }
+            });
+            rawUrl = extractUrl(out);
+        } else {
+            const out = await replicate.run("black-forest-labs/flux-1.1-pro", {
+                input: { prompt: finalPrompt, aspect_ratio: "3:4", output_format: "png" }
+            });
+            rawUrl = extractUrl(out);
+        }
+    }
+
+    if (process.env.UPSCALE_IMAGES !== 'false' && rawUrl) {
+        rawUrl = await upscaleImageWithFallback(rawUrl);
+    }
+    return rawUrl;
 }
 
 async function fetchImageBuffer(url) {
@@ -464,9 +546,19 @@ async function fetchImageBuffer(url) {
     return Buffer.from(res.data);
 }
 
-async function embedImageBuffer(pdfDoc, buf) {
-    try { return await pdfDoc.embedPng(buf); }
-    catch (e) { return await pdfDoc.embedJpg(buf); }
+async function embedImageBuffer(pdfDoc, buf, label = 'image') {
+    let img;
+    try { img = await pdfDoc.embedPng(buf); }
+    catch (e) { img = await pdfDoc.embedJpg(buf); }
+
+    if (img && img.width) {
+        const dpi = Math.round(img.width / 8.333);
+        console.log(`  🖼️ [${label}] Embedded resolution: ${img.width}x${img.height}px | Effective print DPI: ~${dpi}`);
+        if (process.env.UPSCALE_IMAGES !== 'false' && dpi < 300) {
+            console.warn(`  ⚠️ [${label}] DPI warning: Effective DPI is ${dpi} (< 300 target).`);
+        }
+    }
+    return img;
 }
 
 // ====================================================================
@@ -747,6 +839,7 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
 
         const scenes = getSceneCount(bookLength);
         console.log(`📖 Async Assembly Job ${jobId} | ${childName} | scenes=${scenes} | Lang=${language}`);
+        const startUpscales = bookUpscalesCount;
 
         const pdfDoc = await PDFDocument.create();
         pdfDoc.setTitle(`${childName}'s ${title}`);
@@ -763,7 +856,7 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         update(20, 'Painting decorative chapter borders...');
         const framePrompt = STYLE + `decorative rectangular border frame for a children's book page, repeating hand-painted motifs of ${pal.motifs} woven with ribbons and leaves around all four edges, wide plain warm cream empty center occupying seventy percent of the page, soft pastel palette, gentle textures`;
         const frameImgBuffer = await withRetry('frame image', async () => fetchImageBuffer(await generateImage(framePrompt, null)));
-        const frameImg = await embedImageBuffer(pdfDoc, frameImgBuffer);
+        const frameImg = await embedImageBuffer(pdfDoc, frameImgBuffer, 'decorative frame');
         await sleep(PACING);
 
         // ================= PAGE 1: FRONT COVER (FULL-BLEED STORYBOOK PAINTING) =================
@@ -780,7 +873,7 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
             const coverUrl = await withRetry('cover painting', async () => generateCoverPainting(charAnchor, base, pal, photoData, session.coverImagePrompt));
             coverImgBuffer = await fetchImageBuffer(coverUrl);
         }
-        const coverImg = await embedImageBuffer(pdfDoc, coverImgBuffer);
+        const coverImg = await embedImageBuffer(pdfDoc, coverImgBuffer, 'cover');
 
         const cover = pdfDoc.addPage([PAGE_W, PAGE_H]);
         cover.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.cover });
@@ -889,7 +982,7 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
             }
             const scenePrompt = STYLE + rawPrompt;
             const sceneImgBuf = await withRetry(`scene ${i + 1} image`, async () => fetchImageBuffer(await generateImage(scenePrompt, photoData)));
-            const sceneImg = await embedImageBuffer(pdfDoc, sceneImgBuf);
+            const sceneImg = await embedImageBuffer(pdfDoc, sceneImgBuf, `scene ${i + 1}`);
 
             // LEFT PAGE: Full-bleed Scene Illustration
             const imgPage = pdfDoc.addPage([PAGE_W, PAGE_H]);
@@ -1054,6 +1147,9 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
             job.pdfUrl = pdfUrl;
             job.emailed = emailed;
         }
+        const jobUpscales = bookUpscalesCount - startUpscales;
+        const estUpscaleCost = (jobUpscales * 0.04).toFixed(2);
+        console.log(`💰 Estimated upscale cost for Job ${jobId}: $${estUpscaleCost} (${jobUpscales} upscales used x ~$0.04)`);
         console.log(`🎉 Job ${jobId} Completed! Pages=${pdfDoc.getPageCount()} | PDF: ${pdfUrl}`);
     } catch (err) {
         console.error(`❌ Job ${jobId} Failed:`, err.message);
