@@ -845,8 +845,8 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
 
         // Personalized Parent Dedication Block
         const forLabel = `Especially for ${childName}`;
-        const forFont = chooseFont(forLabel, bookFont, serifB);
-        drawCentered(dedPage, forLabel, ry - 40, 16, forFont, pal.cover);
+        const dedForFont = chooseFont(forLabel, bookFont, serifB);
+        drawCentered(dedPage, forLabel, ry - 40, 16, dedForFont, pal.cover);
 
         const dedMsg = (dedication && dedication.trim())
             ? dedication.trim()
@@ -943,8 +943,8 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
 
         // Bedtime Blessing Block
         const forText = `Sleep With The Stars, ${childName}`;
-        const forFont = chooseFont(forText, bookFont, serifB);
-        drawCentered(endPage, forText, 525, 20, forFont, pal.accent);
+        const blessTitleFont = chooseFont(forText, bookFont, serifB);
+        drawCentered(endPage, forText, 525, 20, blessTitleFont, pal.accent);
 
         const closingBlessing = `May your dreams tonight take you on wondrous journeys across starlit skies and enchanted lands. Rest your eyes, little adventurer, knowing you are deeply loved, hugely cherished, and capable of wonderful things.`;
         const blessFont = chooseFont(closingBlessing, bookFont, serifI);

@@ -6,10 +6,21 @@ const fs = require('fs');
 const path = require('path');
 const assert = require('assert');
 
+const { execSync } = require('child_process');
+
 console.log('================================================================');
 console.log('🚀 RUNNING 5 COMPREHENSIVE BACKTESTS FOR TWINKLETALE ENGINE');
 console.log('   Strict 16-Page / 28-Page Guardrails, Paired Spreads & Painterly Realism');
 console.log('================================================================\n');
+
+// Guardrail: Verify server.js syntax and integrity
+try {
+    execSync('node --check server.js', { stdio: 'pipe' });
+    console.log('✅ PRE-CHECK: server.js syntax and compilation verified clean.\n');
+} catch (err) {
+    console.error('❌ FATAL: server.js syntax error detected:', err.message);
+    process.exit(1);
+}
 
 const fontsFolder = path.join(__dirname, 'fonts');
 const PAGE_W = 600, PAGE_H = 800;
