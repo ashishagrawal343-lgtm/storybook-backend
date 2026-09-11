@@ -1,4 +1,5 @@
 require('dotenv').config();
+global.regeneratorRuntime = require('regenerator-runtime');
 const dns = require('dns');
 dns.setDefaultResultOrder('ipv4first');
 const express = require('express');
@@ -6,6 +7,7 @@ const cors = require('cors');
 const axios = require('axios');
 const Replicate = require('replicate');
 const { PDFDocument, rgb, degrees } = require('pdf-lib');
+const fontkit = require('@pdf-lib/fontkit');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -61,6 +63,9 @@ if (process.env.BREVO_API_KEY && process.env.SENDER_EMAIL) {
 const booksFolder = path.join(__dirname, 'books');
 if (!fs.existsSync(booksFolder)) fs.mkdirSync(booksFolder);
 
+const fontsFolder = path.join(__dirname, 'fonts');
+if (!fs.existsSync(fontsFolder)) fs.mkdirSync(fontsFolder);
+
 const PAGE_W = 600, PAGE_H = 800;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const STYLE = 'Award-winning children\'s picture book illustration, hand-painted gouache and soft watercolor texture, warm pastel palette, gentle storybook lighting, dreamy whimsical atmosphere, high detail, cohesive series style, no text, no words, no letters, no watermark: ';
@@ -70,7 +75,7 @@ const PACING = 10000;
 const previewSessions = new Map(); // previewId -> cached story + images
 const activeJobs = new Map();       // jobId -> progress & status
 
-// Clear old preview sessions after 2 hours
+// Clear old sessions after 2 hours
 setInterval(() => {
     const now = Date.now();
     for (const [id, item] of previewSessions.entries()) {
@@ -109,29 +114,44 @@ const hits = new Map();
 function rateLimiter(req, res, next) {
     const ip = req.ip; const now = Date.now();
     const arr = (hits.get(ip) || []).filter(t => now - t < 60000);
-    if (arr.length >= 8) return res.status(429).json({ success: false, error: 'Too many requests. Please wait a minute and try again.' });
+    if (arr.length >= 10) return res.status(429).json({ success: false, error: 'Too many requests. Please wait a minute and try again.' });
     arr.push(now); hits.set(ip, arr);
     next();
 }
 
+// 12 DIVERSE THEMES
 function themeKit(base) {
-    const b = base.toLowerCase();
+    const b = String(base || '').toLowerCase();
     if (b.includes('space')) return { cover: rgb(0.05, 0.10, 0.32), accent: rgb(0.96, 0.78, 0.26), textBg: rgb(0.985, 0.965, 0.92), ink: rgb(0.20, 0.20, 0.30), flatWord: 'solid flat deep indigo navy', motifs: 'tiny stars, crescent moons, little silver rockets and planets' };
     if (b.includes('animal') || b.includes('forest')) return { cover: rgb(0.10, 0.30, 0.24), accent: rgb(0.95, 0.80, 0.45), textBg: rgb(0.985, 0.965, 0.92), ink: rgb(0.20, 0.24, 0.20), flatWord: 'solid flat deep forest green', motifs: 'friendly forest animals, oak leaves, acorns and wildflowers' };
-    if (b.includes('princess') || b.includes('fairy')) return { cover: rgb(0.55, 0.16, 0.35), accent: rgb(0.99, 0.85, 0.60), textBg: rgb(0.99, 0.96, 0.94), ink: rgb(0.32, 0.17, 0.24), flatWord: 'solid flat deep rose plum', motifs: 'roses, tiny golden crowns and silk ribbons' };
+    if (b.includes('princess') || b.includes('castle') || b.includes('kingdom')) return { cover: rgb(0.55, 0.16, 0.35), accent: rgb(0.99, 0.85, 0.60), textBg: rgb(0.99, 0.96, 0.94), ink: rgb(0.32, 0.17, 0.24), flatWord: 'solid flat deep rose plum', motifs: 'roses, tiny golden crowns, castle spires and silk ribbons' };
     if (b.includes('super')) return { cover: rgb(0.45, 0.08, 0.12), accent: rgb(0.98, 0.75, 0.20), textBg: rgb(0.985, 0.96, 0.92), ink: rgb(0.30, 0.16, 0.14), flatWord: 'solid flat deep crimson', motifs: 'bright stars, hero shields and lightning bolts' };
     if (b.includes('dinosaur')) return { cover: rgb(0.18, 0.28, 0.15), accent: rgb(0.94, 0.76, 0.30), textBg: rgb(0.985, 0.965, 0.92), ink: rgb(0.22, 0.24, 0.18), flatWord: 'solid flat deep moss green', motifs: 'prehistoric ferns, gentle friendly baby dinosaurs and amber leaves' };
+    if (b.includes('ocean') || b.includes('dolphin') || b.includes('mermaid')) return { cover: rgb(0.06, 0.22, 0.38), accent: rgb(0.60, 0.88, 0.95), textBg: rgb(0.96, 0.98, 0.99), ink: rgb(0.12, 0.24, 0.34), flatWord: 'solid flat deep sapphire ocean blue', motifs: 'playful dolphins, seashells, starfish and coral reef bubbles' };
+    if (b.includes('fairy') || b.includes('magic')) return { cover: rgb(0.38, 0.15, 0.42), accent: rgb(0.95, 0.82, 0.55), textBg: rgb(0.99, 0.96, 0.98), ink: rgb(0.28, 0.16, 0.30), flatWord: 'solid flat deep enchanted violet', motifs: 'glowing fireflies, tiny pixie wings, blossom lanterns and sparkles' };
+    if (b.includes('train') || b.includes('vehicle')) return { cover: rgb(0.15, 0.24, 0.35), accent: rgb(0.96, 0.72, 0.22), textBg: rgb(0.985, 0.965, 0.92), ink: rgb(0.20, 0.22, 0.28), flatWord: 'solid flat deep slate navy', motifs: 'steam engines, little train tracks, station bells and signals' };
+    if (b.includes('lullaby') || b.includes('bedtime') || b.includes('cloud')) return { cover: rgb(0.10, 0.14, 0.32), accent: rgb(0.98, 0.85, 0.48), textBg: rgb(0.985, 0.97, 0.94), ink: rgb(0.20, 0.22, 0.32), flatWord: 'solid flat midnight twilight blue', motifs: 'sleeping moons, soft woolly lambs, fluffy pillows and night stars' };
+    if (b.includes('circus') || b.includes('carnival')) return { cover: rgb(0.42, 0.12, 0.18), accent: rgb(0.98, 0.82, 0.32), textBg: rgb(0.99, 0.97, 0.92), ink: rgb(0.30, 0.16, 0.18), flatWord: 'solid flat festive berry crimson', motifs: 'carousel horses, colorful balloons, circus tents and ribbons' };
+    if (b.includes('unicorn') || b.includes('rainbow')) return { cover: rgb(0.48, 0.18, 0.38), accent: rgb(0.99, 0.85, 0.65), textBg: rgb(0.99, 0.96, 0.98), ink: rgb(0.32, 0.18, 0.26), flatWord: 'solid flat magical plum berry', motifs: 'golden unicorn horns, pastel rainbows, starry clouds and magic gems' };
+    if (b.includes('safari') || b.includes('jungle')) return { cover: rgb(0.22, 0.28, 0.14), accent: rgb(0.95, 0.78, 0.30), textBg: rgb(0.98, 0.97, 0.93), ink: rgb(0.22, 0.24, 0.16), flatWord: 'solid flat deep safari khaki green', motifs: 'baby elephants, jungle palms, golden sunbeams and tropical birds' };
     return { cover: rgb(0.05, 0.10, 0.32), accent: rgb(0.96, 0.78, 0.26), textBg: rgb(0.985, 0.965, 0.92), ink: rgb(0.20, 0.20, 0.30), flatWord: 'solid flat deep indigo navy', motifs: 'flowers, leaves, ribbons and golden bells' };
 }
 
 function themeTitle(base) {
-    const b = base.toLowerCase();
-    if (b.includes('space')) return 'Treasury of Space Adventures';
-    if (b.includes('animal') || b.includes('forest')) return 'Treasury of Animal Friends';
-    if (b.includes('princess') || b.includes('fairy')) return 'Treasury of Princess Tales';
-    if (b.includes('super')) return 'Treasury of Superhero Adventures';
-    if (b.includes('dinosaur')) return 'Treasury of Dinosaur Tales';
-    return 'Treasury of Wonderful Adventures';
+    const b = String(base || '').toLowerCase();
+    if (b.includes('space')) return 'Treasury of Space & Stars';
+    if (b.includes('animal') || b.includes('forest')) return 'Treasury of Forest & Animals';
+    if (b.includes('princess') || b.includes('castle') || b.includes('kingdom')) return 'Treasury of Kingdom & Castles';
+    if (b.includes('super')) return 'Treasury of Superhero Stories';
+    if (b.includes('dinosaur')) return 'Treasury of Dinosaur Wonders';
+    if (b.includes('ocean') || b.includes('dolphin') || b.includes('mermaid')) return 'Treasury of Ocean & Dolphins';
+    if (b.includes('fairy') || b.includes('magic')) return 'Treasury of Fairies & Magic Garden';
+    if (b.includes('train') || b.includes('vehicle')) return 'Treasury of Trains & Tracks';
+    if (b.includes('lullaby') || b.includes('bedtime') || b.includes('cloud')) return 'Treasury of Bedtime Lullabies';
+    if (b.includes('circus') || b.includes('carnival')) return 'Treasury of Circus & Carnivals';
+    if (b.includes('unicorn') || b.includes('rainbow')) return 'Treasury of Unicorns & Rainbows';
+    if (b.includes('safari') || b.includes('jungle')) return 'Treasury of Jungle Safari';
+    return 'Treasury of Wonderful Stories';
 }
 
 function getSceneCount(bookLength) {
@@ -139,6 +159,67 @@ function getSceneCount(bookLength) {
     if (s.includes('24') || s.includes('long')) return 12; // 12 scenes = 24 interior pages (12 left images + 12 right texts)
     if (s.includes('16')) return 8;                       // 8 scenes = 16 interior pages
     return 6;                                             // 6 scenes = 12 interior pages (Short Book standard)
+}
+
+function getCharacterDetails(childName, gender, age) {
+    const g = String(gender || '').toLowerCase().trim();
+    let genderClean = 'boy';
+    let pronoun = 'his';
+    let subjectPronoun = 'he';
+    let childType = 'boy';
+
+    if (g === 'girl') {
+        genderClean = 'girl';
+        pronoun = 'her';
+        subjectPronoun = 'she';
+        childType = 'girl';
+    } else if (g === 'neutral' || g === 'star' || g === 'star child' || g === 'little star') {
+        genderClean = 'little star';
+        pronoun = 'their';
+        subjectPronoun = 'they';
+        childType = 'little star';
+    }
+
+    const childAge = parseInt(age, 10) || 5;
+    const charAnchor = (genderClean === 'little star')
+        ? `a cute and cheerful ${childAge}-year-old child named ${childName}`
+        : `a cute ${childAge}-year-old ${genderClean} named ${childName}`;
+
+    return { genderClean, childAge, pronoun, subjectPronoun, charAnchor };
+}
+
+// MULTILINGUAL FONT EMBEDDING
+async function getFontForLanguage(pdfDoc, lang) {
+    pdfDoc.registerFontkit(fontkit);
+    const l = String(lang || 'English').toLowerCase();
+
+    try {
+        if (l.includes('hindi')) {
+            const p = path.join(fontsFolder, 'NotoSansDevanagari-Regular.ttf');
+            if (fs.existsSync(p)) return await pdfDoc.embedFont(fs.readFileSync(p));
+        }
+        if (l.includes('bengali') || l.includes('bangla')) {
+            const p = path.join(fontsFolder, 'NotoSansBengali-Regular.ttf');
+            if (fs.existsSync(p)) return await pdfDoc.embedFont(fs.readFileSync(p));
+        }
+        if (l.includes('tamil')) {
+            const p = path.join(fontsFolder, 'NotoSansTamil-Regular.ttf');
+            if (fs.existsSync(p)) return await pdfDoc.embedFont(fs.readFileSync(p));
+        }
+        if (l.includes('telugu')) {
+            const p = path.join(fontsFolder, 'NotoSansTelugu-Regular.ttf');
+            if (fs.existsSync(p)) return await pdfDoc.embedFont(fs.readFileSync(p));
+        }
+        if (l.includes('arabic') || l.includes('urdu')) {
+            const p = path.join(fontsFolder, 'NotoSansArabic-Regular.ttf');
+            if (fs.existsSync(p)) return await pdfDoc.embedFont(fs.readFileSync(p));
+        }
+    } catch (e) {
+        console.log(`⚠️ Font embed fallback for ${lang}:`, e.message);
+    }
+
+    // Default Latin serif font
+    return await pdfDoc.embedFont('Times-Roman');
 }
 
 function coverFit(img, pw, ph) {
@@ -153,30 +234,46 @@ function wrapText(text, font, size, maxWidth) {
     const lines = []; let cur = '';
     for (const w of words) {
         const test = cur ? cur + ' ' + w : w;
-        if (font.widthOfTextAtSize(test, size) <= maxWidth) cur = test;
-        else { if (cur) lines.push(cur); cur = w; }
+        try {
+            if (font.widthOfTextAtSize(test, size) <= maxWidth) cur = test;
+            else { if (cur) lines.push(cur); cur = w; }
+        } catch (e) {
+            // In case of any glyph measurement edge case
+            if (cur) lines.push(cur); cur = w;
+        }
     }
     if (cur) lines.push(cur);
-    return lines;
+    return lines.length ? lines : [String(text)];
 }
 
 function drawCentered(page, text, y, size, font, color, opacity) {
-    const w = font.widthOfTextAtSize(text, size);
-    page.drawText(text, { x: (PAGE_W - w) / 2, y, size, font, color, opacity: opacity === undefined ? 1 : opacity });
+    try {
+        const w = font.widthOfTextAtSize(text, size);
+        page.drawText(text, { x: (PAGE_W - w) / 2, y, size, font, color, opacity: opacity === undefined ? 1 : opacity });
+    } catch (e) {
+        page.drawText(text, { x: 50, y, size, font, color, opacity: opacity === undefined ? 1 : opacity });
+    }
 }
 
 function drawFlowLine(page, text, y, size, font, color, wave) {
-    const widths = []; let total = 0;
-    for (const ch of text) { const w = font.widthOfTextAtSize(ch, size); widths.push(w); total += w + 0.8; }
-    let cur = (PAGE_W - total) / 2;
-    let i = 0;
-    for (const ch of text) {
-        const dy = Math.sin(i * 0.55) * wave;
-        const rot = Math.sin(i * 0.7) * 3;
-        page.drawText(ch, { x: cur + 2, y: y + dy - 2, size, font, color: rgb(0, 0, 0), opacity: 0.35, rotate: degrees(rot) });
-        page.drawText(ch, { x: cur, y: y + dy, size, font, color, rotate: degrees(rot) });
-        cur += widths[i] + 0.8;
-        i++;
+    try {
+        const widths = []; let total = 0;
+        for (const ch of text) {
+            const w = font.widthOfTextAtSize(ch, size);
+            widths.push(w); total += w + 0.8;
+        }
+        let cur = (PAGE_W - total) / 2;
+        let i = 0;
+        for (const ch of text) {
+            const dy = Math.sin(i * 0.55) * wave;
+            const rot = Math.sin(i * 0.7) * 3;
+            page.drawText(ch, { x: cur + 2, y: y + dy - 2, size, font, color: rgb(0, 0, 0), opacity: 0.35, rotate: degrees(rot) });
+            page.drawText(ch, { x: cur, y: y + dy, size, font, color, rotate: degrees(rot) });
+            cur += widths[i] + 0.8;
+            i++;
+        }
+    } catch (e) {
+        drawCentered(page, text, y, size, font, color);
     }
 }
 
@@ -215,41 +312,43 @@ async function embedImageBuffer(pdfDoc, buf) {
 }
 
 // ====================================================================
-// FLOW B: STEP 1 - CREATE FREE COVER TEASER PREVIEW
+// FLOW B: STEP 1 - CREATE FREE TEASER PREVIEW (WITH LANGUAGE & GENDER)
 // ====================================================================
 app.post('/api/create-preview', rateLimiter, async (req, res) => {
     const t0 = Date.now();
     try {
-        const { childName, gender, age, theme, photoData, dedication, email } = req.body;
+        const { childName, gender, age, theme, language, photoData, dedication, email } = req.body;
         if (!childName) return res.status(400).json({ success: false, error: 'Child name is required' });
 
-        const genderClean = (String(gender || '').toLowerCase().trim() === 'girl') ? 'girl' : 'boy';
-        const childAge = parseInt(age, 10) || 5;
-        const pronoun = (genderClean === 'girl') ? 'her' : 'his';
-        const subjectPronoun = (genderClean === 'girl') ? 'she' : 'he';
-        const charAnchor = `a cute ${childAge}-year-old ${genderClean} named ${childName}`;
+        const lang = String(language || 'English').trim();
+        const { genderClean, childAge, pronoun, subjectPronoun, charAnchor } = getCharacterDetails(childName, gender, age);
 
-        const base = String(theme || 'Adventure').split(' (')[0];
+        const base = String(theme || 'Story').split(' (')[0];
         const pal = themeKit(base);
         const title = themeTitle(base);
         assertZones();
 
-        console.log(`✨ Generating Preview | ${childName} (${genderClean}, ${childAge}) | ${base}`);
+        console.log(`✨ Preview | ${childName} (${genderClean}, ${childAge}) | ${base} | Lang=${lang}`);
 
-        // Step 1: DeepSeek story outline & opening teaser rhyme
+        // Step 1: DeepSeek story outline & opening teaser rhyme in selected language
+        const genderGuidance = (genderClean === 'little star')
+            ? `The child is non-binary / gender-neutral (Little Star). Use gender-inclusive wording, using they/them pronouns or referring warmly to ${childName}.`
+            : `The child protagonist is ${childName}, a ${childAge}-year-old ${genderClean} (${pronoun}/${subjectPronoun}).`;
+
         const storyResponse = await withRetry('preview story outline', () => axios.post('https://api.deepseek.com/v1/chat/completions', {
             model: 'deepseek-chat',
             messages: [
                 {
                     role: 'system',
                     content: `You are an award-winning children's storybook author for TwinkleTale. Output ONLY a valid JSON object with keys:
-"opening_rhyme": (4 lines of lyrical, warm read-aloud rhyme welcoming ${childName} into ${pronoun} bedtime adventure),
-"story_scenes": (an array of 12 objects, each with "scene_title", "page_text" [35-50 words], and "image_prompt" [one detailed sentence describing ${charAnchor} in this scene]).
-Strictly adhere to the child's gender: ${genderClean} (${pronoun}/${subjectPronoun}). No markdown, no commentary.`
+"opening_rhyme": (4 lines of lyrical, warm read-aloud rhyme welcoming ${childName} into their bedtime adventure in ${lang}),
+"story_scenes": (an array of 12 objects, each with "scene_title" [2-4 words in ${lang}], "page_text" [35-50 words in ${lang}], and "image_prompt" [one detailed sentence in English describing ${charAnchor} in this scene]).
+${genderGuidance}
+LANGUAGE REQUIREMENT: All child-facing text ("opening_rhyme", "scene_title", "page_text") MUST be written beautifully in ${lang} using its authentic script. No markdown, no commentary.`
                 },
                 {
                     role: 'user',
-                    content: `Create an enchanting ${theme} bedtime storybook for ${childName}, a ${childAge}-year-old ${genderClean}.`
+                    content: `Create an enchanting ${theme} bedtime storybook for ${childName} in ${lang}.`
                 }
             ]
         }, { headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}` } }), 2, 3000);
@@ -257,7 +356,7 @@ Strictly adhere to the child's gender: ${genderClean} (${pronoun}/${subjectProno
         let storyText = storyResponse.data.choices[0].message.content;
         storyText = storyText.replace(/```json/g, '').replace(/```/g, '').trim();
         const storyJson = JSON.parse(storyText);
-        const openingRhyme = storyJson.opening_rhyme || `Underneath the twinkling stars, where dreams begin to play,\nA special tale unfolds tonight, to softly guide your way.\nFor ${childName}, our little adventurer, so brave and kind and bright,\nA magical adventure starts before you sleep tonight.`;
+        const openingRhyme = storyJson.opening_rhyme || `Underneath the twinkling stars, where dreams begin to play,\nA special tale unfolds tonight, to softly guide your way.\nFor ${childName}, our little dreamer, so brave and kind and bright,\nA magical bedtime story starts before you sleep tonight.`;
         const scenesData = Array.isArray(storyJson.story_scenes) ? storyJson.story_scenes : [];
 
         // Step 2: Generate Cover Background + Child Vignette
@@ -271,54 +370,11 @@ Strictly adhere to the child's gender: ${genderClean} (${pronoun}/${subjectProno
         const vigUrl = await withRetry('child vignette', async () => generateImage(vigPrompt, photoData));
         const vigBuffer = await fetchImageBuffer(vigUrl);
 
-        // Step 3: Compose a 1-page Preview Cover PDF & store preview session
-        const previewDoc = await PDFDocument.create();
-        const serifB = await previewDoc.embedFont('Times-Bold');
-        const serifBI = await previewDoc.embedFont('Times-BoldItalic');
-        const bgImg = await embedImageBuffer(previewDoc, bgBuffer);
-        const vigImg = await embedImageBuffer(previewDoc, vigBuffer);
-
-        const cover = previewDoc.addPage([PAGE_W, PAGE_H]);
-        cover.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.cover });
-        cover.drawImage(bgImg, coverFit(bgImg, PAGE_W, PAGE_H));
-
-        const d = Z.medal.r * 2;
-        const fit = coverFit(vigImg, d, d);
-        const dx = (Z.medal.cx - Z.medal.r) + fit.x;
-        const dy2 = (Z.medal.cy - Z.medal.r) + fit.y;
-        cover.drawImage(vigImg, { x: dx, y: dy2, width: fit.width, height: fit.height });
-        cover.drawEllipse({ x: Z.medal.cx, y: Z.medal.cy, xScale: Z.medal.r + 5, yScale: Z.medal.r + 5, borderColor: pal.accent, borderWidth: 3.5 });
-        cover.drawEllipse({ x: Z.medal.cx, y: Z.medal.cy, xScale: Z.medal.r + 11, yScale: Z.medal.r + 11, borderColor: pal.accent, borderWidth: 1.5, borderOpacity: 0.7 });
-
-        drawFlowLine(cover, `${childName}'s`, 700, 44, serifBI, pal.accent, 2);
-        let tSize = 40;
-        let tLines = wrapText(title, serifB, tSize, 470);
-        if (tLines.length > 3) { tSize = 34; tLines = wrapText(title, serifB, tSize, 470); }
-        let ty = 292;
-        for (const line of tLines) {
-            drawFlowLine(cover, line, ty, tSize, serifB, rgb(0.99, 0.98, 0.94), 3);
-            ty -= 46;
-        }
-
-        const previewPdfBytes = await previewDoc.save();
-        const previewFileName = `preview_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.pdf`;
-        let previewPdfUrl = null;
-
-        if (supabase) {
-            try {
-                const up = await supabase.storage.from('storybooks').upload(previewFileName, previewPdfBytes, { contentType: 'application/pdf', upsert: false });
-                if (!up.error) previewPdfUrl = supabase.storage.from('storybooks').getPublicUrl(previewFileName).data.publicUrl;
-            } catch (e) { console.log('Supabase preview upload skipped:', e.message); }
-        }
-        if (!previewPdfUrl) {
-            fs.writeFileSync(path.join(booksFolder, previewFileName), previewPdfBytes);
-            pdfUrl = `${req.protocol}://${req.get('host')}/books/${previewFileName}`;
-        }
-
         const previewId = `prev_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
         previewSessions.set(previewId, {
             timestamp: Date.now(),
-            childName, gender: genderClean, age: childAge, theme, photoData, dedication, email,
+            childName, gender: genderClean, age: childAge, theme, language: lang,
+            photoData, dedication, email,
             charAnchor, pronoun, subjectPronoun, pal, title,
             bgBuffer, vigBuffer, bgUrl, vigUrl,
             scenesData, openingRhyme
@@ -332,9 +388,9 @@ Strictly adhere to the child's gender: ${genderClean} (${pronoun}/${subjectProno
             childName,
             gender: genderClean,
             age: childAge,
+            language: lang,
             bookTitle: title,
             openingRhyme,
-            previewPdfUrl,
             vignetteUrl: vigUrl,
             coverBgUrl: bgUrl
         });
@@ -414,7 +470,6 @@ app.post('/api/verify-and-complete-book', rateLimiter, async (req, res) => {
             return res.status(404).json({ success: false, error: 'Preview session expired or not found' });
         }
 
-        // Verify cryptographic signature if real Razorpay keys are active
         if (razorpay && process.env.RAZORPAY_KEY_SECRET) {
             const expectedSig = crypto
                 .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
@@ -429,7 +484,6 @@ app.post('/api/verify-and-complete-book', rateLimiter, async (req, res) => {
             console.log(`💳 Test Payment processed: ${razorpay_payment_id || 'test_payment'} for order ${razorpay_order_id}`);
         }
 
-        // Spawn async book generation job
         const jobId = `job_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
         activeJobs.set(jobId, {
             id: jobId,
@@ -470,8 +524,7 @@ app.get('/api/job-status/:jobId', (req, res) => {
 });
 
 // ====================================================================
-// ASYNC BACKGROUND FULFILLMENT WORKER
-// Strict Left-Image / Right-Content Spread Layout
+// ASYNC BACKGROUND FULFILLMENT WORKER (MULTILINGUAL + SPREAD LAYOUT)
 // ====================================================================
 async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, protocol, host) {
     const update = (progress, step) => {
@@ -481,13 +534,13 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
 
     try {
         const {
-            childName, gender, age, theme, photoData, dedication,
+            childName, gender, age, theme, language, photoData, dedication,
             charAnchor, pronoun, pal, title,
             bgBuffer, vigBuffer, scenesData
         } = session;
 
         const scenes = getSceneCount(bookLength);
-        console.log(`📖 Async Assembly for Job ${jobId} | ${childName} | scenes=${scenes}`);
+        console.log(`📖 Async Assembly Job ${jobId} | ${childName} | scenes=${scenes} | Lang=${language}`);
 
         const pdfDoc = await PDFDocument.create();
         pdfDoc.setTitle(`${childName}'s ${title}`);
@@ -495,10 +548,11 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         pdfDoc.setSubject(`A personalized keepsake bedtime storybook for ${childName}`);
         pdfDoc.setCreator('TwinkleTale Studios AI');
 
-        const serif = await pdfDoc.embedFont('Times-Roman');
+        // Embed language-aware typography
+        const bookFont = await getFontForLanguage(pdfDoc, language);
+        const serifBI = await pdfDoc.embedFont('Times-BoldItalic');
         const serifB = await pdfDoc.embedFont('Times-Bold');
         const serifI = await pdfDoc.embedFont('Times-Italic');
-        const serifBI = await pdfDoc.embedFont('Times-BoldItalic');
 
         update(20, 'Painting decorative chapter borders...');
         const framePrompt = STYLE + `decorative rectangular border frame for a children's book page, repeating hand-painted motifs of ${pal.motifs} woven with ribbons and leaves around all four edges, wide plain warm cream empty center occupying seventy percent of the page, soft pastel palette, gentle textures`;
@@ -525,11 +579,11 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
 
         drawFlowLine(cover, `${childName}'s`, 700, 44, serifBI, pal.accent, 2);
         let tSize = 40;
-        let tLines = wrapText(title, serifB, tSize, 470);
-        if (tLines.length > 3) { tSize = 34; tLines = wrapText(title, serifB, tSize, 470); }
+        let tLines = wrapText(title, bookFont || serifB, tSize, 470);
+        if (tLines.length > 3) { tSize = 34; tLines = wrapText(title, bookFont || serifB, tSize, 470); }
         let ty = 292;
         for (const line of tLines) {
-            drawFlowLine(cover, line, ty, tSize, serifB, rgb(0.99, 0.98, 0.94), 3);
+            drawFlowLine(cover, line, ty, tSize, bookFont || serifB, rgb(0.99, 0.98, 0.94), 3);
             ty -= 46;
         }
 
@@ -539,9 +593,9 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         drawFrameVectors(frontis, pal);
         drawCentered(frontis, 'TwinkleTale', 480, 22, serifBI, pal.accent);
         drawCentered(frontis, 'Personalized Keepsake Storybooks', 450, 13, serifI, rgb(0.95, 0.95, 0.95), 0.9);
-        drawCentered(frontis, '✨', 410, 20, serif, pal.accent);
-        drawCentered(frontis, `A Special Bedtime Treasury for ${childName}`, 370, 16, serifB, rgb(0.99, 0.98, 0.94));
-        drawCentered(frontis, `Designed with love • Year ${new Date().getFullYear()}`, 200, 11, serif, pal.accent, 0.8);
+        drawCentered(frontis, '✨', 410, 20, bookFont, pal.accent);
+        drawCentered(frontis, `A Special Bedtime Treasury for ${childName}`, 370, 16, bookFont || serifB, rgb(0.99, 0.98, 0.94));
+        drawCentered(frontis, `Language: ${language || 'English'} • Year ${new Date().getFullYear()}`, 200, 11, bookFont, pal.accent, 0.8);
 
         // ================= PAGE 3 (RIGHT): DEDICATION PAGE =================
         const ded = pdfDoc.addPage([PAGE_W, PAGE_H]);
@@ -549,14 +603,14 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         ded.drawImage(frameImg, coverFit(frameImg, PAGE_W, PAGE_H));
         ded.drawRectangle({ x: PAGE_W / 2 - 5, y: 596, width: 10, height: 10, color: pal.cover, rotate: degrees(45) });
         drawCentered(ded, `For ${childName},`, 520, 32, serifBI, pal.cover);
-        const dedText = (dedication && dedication.trim()) ? dedication.trim() : `may this little story remind you, every single night, just how hugely loved and cherished you are. Dream big little star!`;
-        const dedLines = wrapText(dedText, serifI, 18, 380);
+        const dedText = (dedication && dedication.trim()) ? dedication.trim() : `May this little story remind you, every single night, just how hugely loved and cherished you are. Dream big little star!`;
+        const dedLines = wrapText(dedText, bookFont || serifI, 18, 380);
         let dy = 450 - ((450 - 210) - dedLines.length * 32) / 2;
         for (const line of dedLines) {
-            drawCentered(ded, line, dy, 18, serifI, pal.ink);
+            drawCentered(ded, line, dy, 18, bookFont || serifI, pal.ink);
             dy -= 32;
         }
-        drawCentered(ded, `Printed just for you • ${new Date().getFullYear()}`, 130, 11, serif, pal.ink, 0.85);
+        drawCentered(ded, `Printed just for you • ${new Date().getFullYear()}`, 130, 11, bookFont, pal.ink, 0.85);
 
         // Validate or fallback scenes
         const effectiveScenes = (scenesData || []).slice(0, scenes);
@@ -564,7 +618,7 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
             const idx = effectiveScenes.length + 1;
             effectiveScenes.push({
                 scene_title: `Magical Wonder ${idx}`,
-                page_text: `Under the soft glow of twilight, ${childName} discovered a world full of kindness and starlight, smiling as ${pronoun} adventure continued with wonder and joy.`,
+                page_text: `Under the soft glow of twilight, ${childName} discovered a world full of kindness and starlight, smiling as their adventure continued with wonder and joy.`,
                 image_prompt: `whimsical storybook scene of ${charAnchor} exploring magical glowing landscapes full of wonder`
             });
         }
@@ -574,32 +628,32 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         for (let i = 0; i < scenes; i++) {
             const scene = effectiveScenes[i];
             const pct = Math.round(35 + (i / scenes) * 55);
-            update(pct, `Illustrating Scene ${i + 1} of ${scenes}: "${scene.scene_title}"...`);
+            update(pct, `Illustrating Spread ${i + 1} of ${scenes}: "${scene.scene_title}"...`);
             console.log(`  → Scene ${i + 1}/${scenes}: ${scene.scene_title}`);
 
-            const scenePrompt = STYLE + `${charAnchor} with ${pronoun} joyful smile in the scene: ${scene.image_prompt}`;
+            const scenePrompt = STYLE + `${charAnchor} with a joyful smile in the scene: ${scene.image_prompt}`;
             const sceneImgBuf = await withRetry(`scene ${i + 1} image`, async () => fetchImageBuffer(await generateImage(scenePrompt, photoData)));
             const sceneImg = await embedImageBuffer(pdfDoc, sceneImgBuf);
 
-            // LEFT PAGE: Full bleed Scene Illustration
+            // LEFT PAGE: Full-bleed Scene Illustration
             const imgPage = pdfDoc.addPage([PAGE_W, PAGE_H]);
             imgPage.drawImage(sceneImg, coverFit(sceneImg, PAGE_W, PAGE_H));
 
-            // RIGHT PAGE: Elegant Framed Verse Page
+            // RIGHT PAGE: Framed Verse Page
             const textPage = pdfDoc.addPage([PAGE_W, PAGE_H]);
             textPage.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.textBg });
             textPage.drawImage(frameImg, coverFit(frameImg, PAGE_W, PAGE_H));
 
-            drawCentered(textPage, scene.scene_title, 600, 26, serifB, pal.cover);
+            drawCentered(textPage, scene.scene_title, 600, 26, bookFont || serifB, pal.cover);
             textPage.drawRectangle({ x: PAGE_W / 2 - 4, y: 566, width: 8, height: 8, color: pal.cover, rotate: degrees(45) });
 
-            const verseLines = wrapText(scene.page_text, serif, 18, 400);
+            const verseLines = wrapText(scene.page_text, bookFont || serifB, 18, 400);
             let by = 520 - ((520 - 160) - verseLines.length * 32) / 2;
             for (const line of verseLines) {
-                drawCentered(textPage, line, by, 18, serif, pal.ink);
+                drawCentered(textPage, line, by, 18, bookFont, pal.ink);
                 by -= 32;
             }
-            drawCentered(textPage, `Spread ${spreadIndex}`, 112, 11, serif, pal.ink, 0.75);
+            drawCentered(textPage, `Spread ${spreadIndex}`, 112, 11, bookFont, pal.ink, 0.75);
             spreadIndex++;
 
             if (i < scenes - 1) {
@@ -615,11 +669,11 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         cert.drawImage(frameImg, coverFit(frameImg, PAGE_W, PAGE_H));
         drawCentered(cert, 'Official Keepsake Certificate', 580, 24, serifBI, pal.cover);
         cert.drawRectangle({ x: PAGE_W / 2 - 4, y: 546, width: 8, height: 8, color: pal.cover, rotate: degrees(45) });
-        drawCentered(cert, 'This bedtime treasury belongs to', 460, 18, serifI, pal.ink);
-        drawCentered(cert, childName, 390, 36, serifB, pal.cover);
-        drawCentered(cert, '⭐ ⭐ ⭐', 330, 16, serif, pal.accent);
-        drawCentered(cert, `Crafted uniquely in ${new Date().getFullYear()} • Handcrafted with love`, 260, 14, serifI, pal.ink);
-        drawCentered(cert, 'TwinkleTale Personalized Books', 140, 11, serif, pal.ink, 0.8);
+        drawCentered(cert, 'This bedtime treasury belongs to', 460, 18, bookFont || serifI, pal.ink);
+        drawCentered(cert, childName, 390, 36, bookFont || serifB, pal.cover);
+        drawCentered(cert, '⭐ ⭐ ⭐', 330, 16, bookFont, pal.accent);
+        drawCentered(cert, `Crafted uniquely in ${new Date().getFullYear()} • Handcrafted with love`, 260, 14, bookFont || serifI, pal.ink);
+        drawCentered(cert, 'TwinkleTale Personalized Books', 140, 11, bookFont, pal.ink, 0.8);
 
         // ================= BACK COVER =================
         update(95, 'Sealing book back cover...');
@@ -664,7 +718,7 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
                     subject: `✨ ${childName}'s Personalized Storybook is Ready! (TwinkleTale)`,
                     html: `<div style="font-family:Georgia,serif;padding:32px;background:#FAF7F2;border-radius:12px;max-width:600px;margin:0 auto;border:1px solid #EAE4D9">
                         <h2 style="color:#161B33;margin-top:0">✨ ${childName}'s ${title} is ready!</h2>
-                        <p style="font-size:16px;color:#333;line-height:1.6">Hello! We have finished crafting your personalized keepsake bedtime storybook for <strong>${childName}</strong>.</p>
+                        <p style="font-size:16px;color:#333;line-height:1.6">Hello! We have finished crafting your personalized keepsake bedtime storybook for <strong>${childName}</strong> in <strong>${language || 'English'}</strong>.</p>
                         <p style="text-align:center;margin:30px 0">
                             <a href="${pdfUrl}" target="_blank" style="background:#1B4938;color:#FAF7F2;padding:14px 28px;border-radius:8px;text-decoration:none;font-size:16px;font-weight:bold;display:inline-block">📥 Download Print-Ready Storybook (PDF)</a>
                         </p>
@@ -701,27 +755,28 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
 }
 
 // ====================================================================
-// DIRECT BOOK GENERATION (LEGACY / SMOKE TEST ENDPOINT)
+// DIRECT BOOK GENERATION (SMOKE TEST ENDPOINT)
 // ====================================================================
 app.post('/api/create-book', rateLimiter, async (req, res) => {
     const t0 = Date.now();
     try {
-        const { childName, gender, age, theme, photoData, bookLength, dedication, email } = req.body;
+        const { childName, gender, age, theme, language, photoData, bookLength, dedication, email } = req.body;
         if (!childName) return res.status(400).json({ success: false, error: 'Child name is required' });
 
-        const genderClean = (String(gender || '').toLowerCase().trim() === 'girl') ? 'girl' : 'boy';
-        const childAge = parseInt(age, 10) || 5;
-        const pronoun = (genderClean === 'girl') ? 'her' : 'his';
-        const subjectPronoun = (genderClean === 'girl') ? 'she' : 'he';
-        const charAnchor = `a cute ${childAge}-year-old ${genderClean} named ${childName}`;
+        const lang = String(language || 'English').trim();
+        const { genderClean, childAge, pronoun, subjectPronoun, charAnchor } = getCharacterDetails(childName, gender, age);
 
-        const base = String(theme || 'Adventure').split(' (')[0];
+        const base = String(theme || 'Story').split(' (')[0];
         const scenes = getSceneCount(bookLength);
         const pal = themeKit(base);
         const title = themeTitle(base);
         assertZones();
 
-        console.log(`📘 Direct Book v7 | ${childName} (${genderClean}, ${childAge}) | ${base} | scenes=${scenes}`);
+        console.log(`📘 Direct Book v8 | ${childName} (${genderClean}, ${childAge}) | ${base} | Lang=${lang} | scenes=${scenes}`);
+
+        const genderGuidance = (genderClean === 'little star')
+            ? `The child is non-binary / gender-neutral (Little Star). Use gender-inclusive wording with they/them or ${childName}.`
+            : `The child protagonist is ${childName}, a ${childAge}-year-old ${genderClean} (${pronoun}/${subjectPronoun}).`;
 
         const storyResponse = await withRetry('story', () => axios.post('https://api.deepseek.com/v1/chat/completions', {
             model: 'deepseek-chat',
@@ -729,12 +784,13 @@ app.post('/api/create-book', rateLimiter, async (req, res) => {
                 {
                     role: 'system',
                     content: `You are an award-winning children's storybook author for TwinkleTale. Output ONLY a valid JSON array of ${scenes} objects. No markdown, no extra text.
-The child protagonist is ${childName}, a ${childAge}-year-old ${genderClean}. Strictly maintain ${childName}'s gender (${genderClean}, pronouns ${subjectPronoun}/${pronoun}).
-Each object must have "scene_title" (2-4 words), "page_text" (35-50 words of warm read-aloud language for ages 2-8), and "image_prompt" (one sentence describing a single vivid scene featuring ${charAnchor}).`
+${genderGuidance}
+Each object must have "scene_title" (2-4 words in ${lang}), "page_text" (35-50 words in ${lang}), and "image_prompt" (one detailed sentence in English describing ${charAnchor}).
+Write all scene text in ${lang} using its authentic script.`
                 },
                 {
                     role: 'user',
-                    content: `Write a ${scenes}-scene story about ${childName} going on a ${theme} bedtime adventure.`
+                    content: `Write a ${scenes}-scene bedtime story for ${childName} in ${lang} about ${theme}.`
                 }
             ]
         }, { headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}` } }), 2, 3000);
@@ -745,12 +801,12 @@ Each object must have "scene_title" (2-4 words), "page_text" (35-50 words of war
         const pages = (Array.isArray(rawPages) ? rawPages : []).slice(0, scenes);
 
         const session = {
-            childName, gender: genderClean, age: childAge, theme, photoData, dedication,
+            childName, gender: genderClean, age: childAge, theme, language: lang,
+            photoData, dedication, email,
             charAnchor, pronoun, subjectPronoun, pal, title,
             bgBuffer: null, vigBuffer: null, scenesData: pages
         };
 
-        // Generate Cover background + vignette
         const bgPrompt = STYLE + `ornate storybook cover BACKGROUND only: elaborate golden-cream vine and leaf border with small vignettes of ${pal.motifs} confined strictly to the outer fifteen percent edges; two gentle painted flourish arches of tiny leaves and stars, one arching across the top center framing an empty name plaque area, and one arching across the lower middle framing an empty title plaque area; the rest of the inner field is ${pal.flatWord}, flat and empty except a few sparse tiny stars; absolutely no character, no person, no moon, no text, no letters anywhere; rich painterly detail`;
         session.bgBuffer = await fetchImageBuffer(await generateImage(bgPrompt, null));
         await sleep(PACING);
@@ -759,7 +815,6 @@ Each object must have "scene_title" (2-4 words), "page_text" (35-50 words of war
         session.vigBuffer = await fetchImageBuffer(await generateImage(vigPrompt, photoData));
         await sleep(PACING);
 
-        // Run full assembly synchronously for smoke test
         const testJobId = `direct_${Date.now()}`;
         activeJobs.set(testJobId, { id: testJobId, status: 'generating', progress: 50, step: 'Generating', pdfUrl: null, emailed: false });
         await assembleFullBookAsync(testJobId, session, bookLength, email, req.protocol, req.get('host'));
