@@ -48,8 +48,9 @@ const fontkit = require('@pdf-lib/fontkit');
 
 const app = express();
 app.set('trust proxy', true);
-app.use(express.json({ limit: '15mb' }));
 app.use(cors());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN });
 
@@ -448,7 +449,7 @@ async function upscaleImageWithFallback(url) {
     // a) philz1337x/clarity-upscaler with 1 retry (2 attempts total)
     try {
         const out = await withRetry('clarity upscaler', async () => {
-            return await replicate.run("philz1337x/clarity-upscaler", {
+            return await replicate.run("philz1337x/clarity-upscaler:dfad41707589d68ecdccd1dfa600d55a208f9310748e44bfe35b4a6291453d5e", {
                 input: {
                     image: cleanUrl,
                     creativity: 0.3,
@@ -615,8 +616,6 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme", "sce
         console.log("  → Generating full-bleed storybook cover painting with DeepSeek visual direction...");
         const coverUrlRaw = await withRetry('cover painting', async () => generateCoverPainting(charAnchor, base, pal, photoData, storyJson.cover_image_prompt));
         const coverBuffer = await fetchImageBuffer(coverUrlRaw);
-        const coverDataUrl = 'data:image/png;base64,' + coverBuffer.toString('base64');
-
         const previewId = `prev_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
 
         // Disk persistence for bulletproof preview-to-final book locking
@@ -626,6 +625,19 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme", "sce
             console.warn('⚠️ Could not cache preview cover to disk:', fsErr.message);
         }
 
+        let coverPublicUrl = `${req.protocol}://${req.get('host')}/books/preview_${previewId}_cover.png`;
+        if (supabase) {
+            try {
+                const coverFileName = `preview_${previewId}_cover.png`;
+                const up = await supabase.storage.from('storybooks').upload(coverFileName, coverBuffer, { contentType: 'image/png', upsert: true });
+                if (!up.error) {
+                    coverPublicUrl = supabase.storage.from('storybooks').getPublicUrl(coverFileName).data.publicUrl;
+                }
+            } catch (sErr) {
+                console.warn('⚠️ Supabase cover upload notice:', sErr.message);
+            }
+        }
+
         previewSessions.set(previewId, {
             previewId,
             timestamp: Date.now(),
@@ -633,14 +645,14 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme", "sce
             photoData, dedication, email,
             charAnchor, pronoun, subjectPronoun, pal,
             title: bookTitle, bookTitle,
-            coverBuffer, coverUrl: coverDataUrl,
+            coverBuffer, coverUrl: coverPublicUrl,
             // Backwards compatibility for legacy references
-            bgBuffer: coverBuffer, vigBuffer: coverBuffer, bgUrl: coverDataUrl, vigUrl: coverDataUrl,
+            bgBuffer: coverBuffer, vigBuffer: coverBuffer, bgUrl: coverPublicUrl, vigUrl: coverPublicUrl,
             scenesData, openingRhyme,
             coverImagePrompt: storyJson.cover_image_prompt
         });
 
-        console.log(`✅ Preview created in ${((Date.now() - t0) / 1000).toFixed(1)}s (id: ${previewId}, title: "${bookTitle}")`);
+        console.log(`✅ Preview created in ${((Date.now() - t0) / 1000).toFixed(1)}s (id: ${previewId}, title: "${bookTitle}", url: ${coverPublicUrl})`);
 
         res.json({
             success: true,
@@ -651,13 +663,13 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme", "sce
             language: lang,
             bookTitle,
             openingRhyme,
-            coverDataUrl,
-            coverUrl: coverDataUrl,
+            coverDataUrl: coverPublicUrl,
+            coverUrl: coverPublicUrl,
             // Backwards compatibility fields
-            vignetteDataUrl: coverDataUrl,
-            coverBgDataUrl: coverDataUrl,
-            vignetteUrl: coverDataUrl,
-            coverBgUrl: coverDataUrl
+            vignetteDataUrl: coverPublicUrl,
+            coverBgDataUrl: coverPublicUrl,
+            vignetteUrl: coverPublicUrl,
+            coverBgUrl: coverPublicUrl
         });
     } catch (err) {
         console.error("❌ Preview error:", err.message);
@@ -735,11 +747,21 @@ app.post('/api/verify-and-complete-book', rateLimiter, async (req, res) => {
         // Bulletproof session recovery (in case Render worker recycled between preview and payment)
         if (!session) {
             const diskCoverPath = path.join(booksFolder, `preview_${previewId}_cover.png`);
-            if (fs.existsSync(diskCoverPath) || (coverDataUrl && coverDataUrl.length > 50)) {
+            let coverBuf = null;
+            if (fs.existsSync(diskCoverPath)) {
+                coverBuf = fs.readFileSync(diskCoverPath);
+            } else if (coverDataUrl && typeof coverDataUrl === 'string' && coverDataUrl.startsWith('http')) {
+                try {
+                    coverBuf = await fetchImageBuffer(coverDataUrl);
+                } catch (fetchErr) {
+                    console.warn('⚠️ Could not fetch cover from URL:', fetchErr.message);
+                }
+            } else if (coverDataUrl && typeof coverDataUrl === 'string' && coverDataUrl.startsWith('data:')) {
+                coverBuf = Buffer.from(coverDataUrl.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+            }
+
+            if (coverBuf) {
                 console.log(`♻️ Recovering preview session from disk/client for ${previewId}...`);
-                const coverBuf = coverDataUrl
-                    ? Buffer.from(coverDataUrl.replace(/^data:image\/\w+;base64,/, ''), 'base64')
-                    : fs.readFileSync(diskCoverPath);
                 session = {
                     previewId,
                     childName: 'Child',
@@ -761,11 +783,21 @@ app.post('/api/verify-and-complete-book', rateLimiter, async (req, res) => {
             }
         }
 
-        // Lock the exact preview cover approved by the parent
-        if (coverDataUrl && typeof coverDataUrl === 'string' && coverDataUrl.length > 50) {
-            session.coverBuffer = Buffer.from(coverDataUrl.replace(/^data:image\/\w+;base64,/, ''), 'base64');
-            session.coverUrl = coverDataUrl;
-            console.log('🔒 Exact approved preview cover locked from client for final book!');
+        // Lock the exact preview cover approved by the parent if not already in session buffer
+        if (!session.coverBuffer) {
+            const diskCoverPath = path.join(booksFolder, `preview_${previewId}_cover.png`);
+            if (fs.existsSync(diskCoverPath)) {
+                session.coverBuffer = fs.readFileSync(diskCoverPath);
+            } else if (coverDataUrl && typeof coverDataUrl === 'string' && coverDataUrl.startsWith('http')) {
+                try {
+                    session.coverBuffer = await fetchImageBuffer(coverDataUrl);
+                } catch (e) {}
+            } else if (coverDataUrl && typeof coverDataUrl === 'string' && coverDataUrl.startsWith('data:')) {
+                session.coverBuffer = Buffer.from(coverDataUrl.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+            }
+        }
+        if (session.coverBuffer) {
+            console.log('🔒 Exact approved preview cover locked for final book!');
         }
 
         if (razorpay && process.env.RAZORPAY_KEY_SECRET) {

@@ -2033,6 +2033,24 @@
       icon.classList.toggle('fa-chevron-up');
     }
 
+    // Robust fetch helper with automated retries for Render cold-starts & transient glitches
+    async function fetchWithRetry(url, options = {}, maxRetries = 2, delayMs = 3500, onRetry = null) {
+      for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+        try {
+          const res = await fetch(url, options);
+          return res;
+        } catch (err) {
+          if (attempt <= maxRetries) {
+            console.warn(`Fetch notice (attempt ${attempt}/${maxRetries + 1}): ${err.message}. Retrying in ${delayMs}ms...`);
+            if (onRetry) onRetry(attempt, maxRetries);
+            await new Promise(r => setTimeout(r, delayMs));
+          } else {
+            throw err;
+          }
+        }
+      }
+    }
+
     // =========================================================
     // FLOW B: STEP 1 - CREATE TEASER PREVIEW (WITH LANGUAGE & GENDER)
     // =========================================================
@@ -2054,7 +2072,7 @@
       previewBtn.innerHTML = `<span><i class="fas fa-spinner fa-spin"></i> Painting ${childName}'s Cover (~40s)...</span>`;
 
       try {
-        const response = await fetch(`${API_BASE}/api/create-preview`, {
+        const response = await fetchWithRetry(`${API_BASE}/api/create-preview`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -2067,6 +2085,8 @@
             dedication,
             email
           })
+        }, 2, 3500, (attempt) => {
+          previewBtn.innerHTML = `<span><i class="fas fa-spinner fa-spin"></i> Connecting to book engine (attempt ${attempt + 1})...</span>`;
         });
 
         const data = await response.json();
@@ -2168,7 +2188,7 @@
       const amountPaise = isLong ? 29900 : 19900;
 
       try {
-        const orderRes = await fetch(`${API_BASE}/api/create-order`, {
+        const orderRes = await fetchWithRetry(`${API_BASE}/api/create-order`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -2176,7 +2196,7 @@
             bookLength: isLong ? '24 pages' : '12 pages',
             email
           })
-        });
+        }, 2, 3000);
         const orderData = await orderRes.json();
 
         if (!orderData.success) {
@@ -2227,8 +2247,14 @@
       const email = document.getElementById('parentEmail').value.trim();
       const isLong = selectedEdition === 'long';
 
+      let coverPayload = window.currentCoverDataUrl || '';
+      // Payload hygiene: do not re-upload multi-megabyte base64 strings when server already cached it
+      if (typeof coverPayload === 'string' && coverPayload.startsWith('data:') && coverPayload.length > 500000) {
+        coverPayload = '';
+      }
+
       try {
-        const verifyRes = await fetch(`${API_BASE}/api/verify-and-complete-book`, {
+        const verifyRes = await fetchWithRetry(`${API_BASE}/api/verify-and-complete-book`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -2238,8 +2264,10 @@
             razorpay_signature: paymentResponse.razorpay_signature,
             bookLength: isLong ? '24 pages' : '12 pages',
             email,
-            coverDataUrl: window.currentCoverDataUrl || ''
+            coverDataUrl: coverPayload
           })
+        }, 2, 3500, (attempt) => {
+          document.getElementById('progressStepText').textContent = `Waking up book engine (connecting attempt ${attempt + 1})...`;
         });
 
         const verifyData = await verifyRes.json();
