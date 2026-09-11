@@ -266,18 +266,18 @@
       transform: translateY(-2px);
     }
 
-    /* Wonderbly Spread Showcase */
+    /* Heirloom Spread Showcase */
     .showcase-banner {
       background: var(--bg-card);
       border-radius: var(--radius-lg);
-      padding: 30px;
+      padding: 35px;
       box-shadow: var(--shadow-lg);
       border: 1px solid var(--border-light);
       margin: 20px auto 60px;
-      max-width: 1000px;
+      max-width: 1040px;
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 30px;
+      gap: 36px;
       align-items: center;
       text-align: left;
     }
@@ -288,26 +288,35 @@
     }
     .book-mockup {
       width: 100%;
-      max-width: 360px;
+      max-width: 370px;
       aspect-ratio: 3/4;
-      background: #12172B;
-      border-radius: 12px;
-      box-shadow: -15px 20px 40px rgba(0, 0, 0, 0.35);
+      background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 55%, #30475e 100%);
+      border-radius: 14px;
+      box-shadow: -18px 24px 45px rgba(0, 0, 0, 0.42), inset 0 0 0 1px rgba(212, 175, 55, 0.4);
       position: relative;
       overflow: hidden;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: 24px;
+      padding: 26px 22px;
       color: #fff;
-      border-left: 10px solid #080B16;
+      border-left: 12px solid #080B16;
     }
-    .mockup-header { text-align: center; }
+    .book-mockup::before {
+      content: '';
+      position: absolute;
+      inset: 8px;
+      border: 1.5px solid rgba(212, 175, 55, 0.6);
+      border-radius: 8px;
+      pointer-events: none;
+    }
+    .mockup-header { text-align: center; position: relative; z-index: 2; }
     .mockup-name {
       font-family: 'Caveat', cursive;
-      font-size: 2.3rem;
+      font-size: 2.6rem;
       color: var(--gold-light);
       line-height: 1;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.7);
     }
     .mockup-title {
       font-family: 'Playfair Display', serif;
@@ -315,22 +324,69 @@
       font-weight: 700;
       margin-top: 4px;
       color: #fff;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+      line-height: 1.3;
     }
     .mockup-circle {
-      width: 135px;
-      height: 135px;
+      width: 155px;
+      height: 155px;
       border-radius: 50%;
       border: 4px solid var(--gold);
-      box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.4);
-      margin: 15px auto;
-      background: url('https://images.unsplash.com/photo-1503919545889-aef636e10ad4?w=500') center/cover no-repeat;
+      box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.35), 0 12px 30px rgba(0,0,0,0.55);
+      margin: 12px auto;
+      background: url('avatar_test.png') center/cover no-repeat, url('https://images.unsplash.com/photo-1563089145-599997674d42?w=800') center/cover no-repeat;
+      position: relative;
+      z-index: 2;
     }
     .mockup-footer {
       text-align: center;
-      font-size: 0.72rem;
+      font-size: 0.76rem;
       color: var(--gold-light);
-      letter-spacing: 1px;
+      letter-spacing: 1.5px;
       text-transform: uppercase;
+      font-weight: 600;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+      position: relative;
+      z-index: 2;
+    }
+
+    /* Preview Edition Summary (Clean Heirloom Summary Badge) */
+    .preview-edition-summary {
+      background: rgba(212, 175, 55, 0.09);
+      border: 1.5px solid var(--gold);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    body.dark-mode .preview-edition-summary {
+      background: rgba(212, 175, 55, 0.14);
+      border-color: rgba(212, 175, 55, 0.55);
+    }
+    .edition-summary-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .edition-summary-badge {
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--navy);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    body.dark-mode .edition-summary-badge { color: #fff; }
+    .edition-summary-price {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--coral);
+    }
+    .edition-summary-desc {
+      font-size: 0.88rem;
+      color: var(--text-muted);
     }
     .showcase-text h3 {
       font-size: 1.8rem;
@@ -1279,7 +1335,7 @@
         </a>
       </div>
 
-      <!-- Wonderbly Spread Showcase -->
+      <!-- Heirloom Spread Showcase -->
       <div class="showcase-banner" id="previewShowcase">
         <div class="book-mockup-wrapper">
           <div class="book-mockup">
@@ -1292,17 +1348,17 @@
           </div>
         </div>
         <div class="showcase-text">
-          <span class="section-subtitle">The Wonderbly Quality Standard</span>
+          <span class="section-subtitle">The Heirloom Keepsake Standard</span>
           <h3>Left-Image & Right-Verse Classic Spreads</h3>
           <p>
             Every storybook is designed like a classic hardcover picture book. 
-            On the left page: a breathtaking hand-painted watercolor illustration featuring your child. 
+            On the left page: a breathtaking 3D Pixar/Disney style illustration featuring your child as the storybook hero. 
             On the right page: an enchanting read-aloud verse in elegant typography.
           </p>
           <ul class="spread-features">
-            <li><i class="fas fa-check-circle"></i> <strong>Consistent Character Hero:</strong> Your child's likeness & gender preserved across every page.</li>
-            <li><i class="fas fa-check-circle"></i> <strong>Multilingual Magic:</strong> Available in English, Hindi, Bengali, Tamil, Telugu, Urdu, Spanish & more.</li>
-            <li><i class="fas fa-check-circle"></i> <strong>High-Res 300 DPI PDF:</strong> Crisp on tablets, phones, or printed out at home.</li>
+            <li><i class="fas fa-check-circle"></i> <strong>Consistent 3D Pixar Hero:</strong> Your child's likeness, expressive features & signature theme outfit preserved across every page.</li>
+            <li><i class="fas fa-check-circle"></i> <strong>Multilingual Magic:</strong> Authentic script typography in English, Hindi, Bengali, Tamil, Telugu, Urdu, Spanish & more.</li>
+            <li><i class="fas fa-check-circle"></i> <strong>High-Res 300 DPI PDF:</strong> Crisp on tablets, iPads, phones, or printed out into a bedside keepsake.</li>
           </ul>
         </div>
       </div>
@@ -1335,9 +1391,9 @@
             </div>
 
             <ul class="spread-features" style="margin-bottom:25px;">
-              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> <strong>12 Interior Story Pages</strong> (6 Full Spreads)</li>
-              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> <strong>16 Total Pages</strong> (Cover, Dedication, Certificate, Back)</li>
-              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> Personalized with child's name, face & gender</li>
+              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> <strong>12 Story Pages</strong> (6 Full Spreads)</li>
+              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> <strong>14 Total Physical Pages</strong> (Cover, 6 Spreads, Ending Keepsake)</li>
+              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> Personalized with child's 3D Pixar avatar & name</li>
               <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> Available in all 11 languages (Hindi, English, etc.)</li>
               <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> High-Res 300 DPI PDF download & delivery email</li>
             </ul>
@@ -1362,9 +1418,9 @@
             </div>
 
             <ul class="spread-features" style="margin-bottom:25px;">
-              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> <strong>24 Interior Story Pages</strong> (12 Full Spreads)</li>
-              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> <strong>28 Total Pages</strong> (Cover, Frontispiece, Certificate, Back)</li>
-              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> 12 unique hand-painted watercolor scene illustrations</li>
+              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> <strong>24 Story Pages</strong> (12 Full Spreads)</li>
+              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> <strong>26 Total Physical Pages</strong> (Cover, 12 Spreads, Ending Keepsake)</li>
+              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> 12 unique 3D Pixar scene illustrations & locked outfit</li>
               <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> Deeper bedtime storyline & character development</li>
               <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> All 11 languages with authentic script typography</li>
             </ul>
@@ -1388,28 +1444,6 @@
 
       <div class="customizer-card">
         <form id="storybookForm" onsubmit="handleCreatePreview(event)">
-          
-          <!-- Step 0: Choose Book Edition & Length Upfront -->
-          <div class="form-step-group">
-            <div class="step-header">
-              <span class="step-badge"><i class="fas fa-book"></i></span>
-              <span class="step-title">Select Book Edition & Length</span>
-            </div>
-            <div class="edition-selector">
-              <div class="edition-card selected" id="formEditionShort" onclick="selectEdition('short')">
-                <span class="edition-badge">Standard</span>
-                <div class="edition-title">Treasury Edition</div>
-                <div class="edition-pages">12 Interior Pages (16 Total) • 6 Spreads</div>
-                <div class="edition-price">₹199</div>
-              </div>
-              <div class="edition-card" id="formEditionLong" onclick="selectEdition('long')">
-                <span class="edition-badge" style="background:var(--gold); color:var(--navy);">Deluxe</span>
-                <div class="edition-title">Grand Treasury</div>
-                <div class="edition-pages">24 Interior Pages (28 Total) • 12 Spreads</div>
-                <div class="edition-price">₹299</div>
-              </div>
-            </div>
-          </div>
 
           <!-- Step 1: Child's Identity & Gender (Inclusive 3-Option Selector) -->
           <div class="form-step-group">
@@ -1470,7 +1504,7 @@
             </div>
           </div>
 
-          <!-- Step 2: 12 Diverse Themes (No "Adventure" constraint) -->
+          <!-- Step 2: 12 Diverse Themes -->
           <div class="form-step-group">
             <div class="step-header">
               <span class="step-badge">2</span>
@@ -1529,18 +1563,18 @@
             <input type="hidden" id="selectedTheme" value="Space & Stars">
           </div>
 
-          <!-- Step 3: Photo Upload (Optional Face-Lock) -->
+          <!-- Step 3: Photo Upload (Optional 3D Avatar Transformation) -->
           <div class="form-step-group">
             <div class="step-header">
               <span class="step-badge">3</span>
-              <span class="step-title">Child's Photo (Optional)</span>
+              <span class="step-title">Child's Photo (Optional 3D Avatar Transformation)</span>
             </div>
             <div class="photo-upload-box" onclick="document.getElementById('photoInput').click()">
               <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="previewUploadedPhoto(event)">
               <div class="photo-preview-circle" id="photoCircle"></div>
               <i class="fas fa-camera upload-icon" id="photoPlaceholderIcon"></i>
               <div class="upload-text" id="photoUploadPrompt">Click to upload a clear front-facing photo</div>
-              <div class="upload-subtext">Our AI will illustrate your child's face into the front cover medallion!</div>
+              <div class="upload-subtext">Our AI will transform your child into an adorable 3D Pixar/Disney storybook character!</div>
             </div>
           </div>
 
@@ -1551,7 +1585,7 @@
               <span class="step-title">Personal Dedication & Delivery</span>
             </div>
             
-            <label style="display:block; font-size:0.88rem; font-weight:600; margin-bottom:6px;">Personal Dedication (Printed on Page 3)</label>
+            <label style="display:block; font-size:0.88rem; font-weight:600; margin-bottom:6px;">Personal Dedication (Printed on Keepsake Ending Page)</label>
             <div class="dedication-pills">
               <span class="ded-pill" onclick="setDedication('May you always dream big and remember how hugely loved you are.')">✨ Dream big</span>
               <span class="ded-pill" onclick="setDedication('To our little sunshine, shine bright every single night.')">☀️ Shine bright</span>
@@ -1561,6 +1595,28 @@
 
             <label style="display:block; font-size:0.88rem; font-weight:600; margin-bottom:6px;">Parent's Email Address (For Digital Delivery)</label>
             <input type="email" id="parentEmail" class="input-field" placeholder="e.g. yourname@gmail.com" required>
+          </div>
+
+          <!-- Step 5: Select Book Edition & Length (Placed at the end of user choices) -->
+          <div class="form-step-group">
+            <div class="step-header">
+              <span class="step-badge">5</span>
+              <span class="step-title">Select Book Edition & Length</span>
+            </div>
+            <div class="edition-selector">
+              <div class="edition-card selected" id="formEditionShort" onclick="selectEdition('short')">
+                <span class="edition-badge">Standard</span>
+                <div class="edition-title">Treasury Edition</div>
+                <div class="edition-pages">12 Story Pages (14 Total) • 6 Illustrated Spreads</div>
+                <div class="edition-price">₹199</div>
+              </div>
+              <div class="edition-card" id="formEditionLong" onclick="selectEdition('long')">
+                <span class="edition-badge" style="background:var(--gold); color:var(--navy);">Deluxe</span>
+                <div class="edition-title">Grand Treasury</div>
+                <div class="edition-pages">24 Story Pages (26 Total) • 12 Illustrated Spreads</div>
+                <div class="edition-price">₹299</div>
+              </div>
+            </div>
           </div>
 
           <!-- Submit Button -->
@@ -1606,24 +1662,18 @@
               "Underneath the twinkling stars, where dreams begin to play..."
             </div>
 
-            <label style="display:block; font-weight:700; color:var(--navy); margin-bottom:10px;">Choose Book Edition:</label>
-            <div class="edition-selector">
-              <div class="edition-card selected" id="editionShort" onclick="selectEdition('short')">
-                <span class="edition-badge">Popular</span>
-                <div class="edition-title">Treasury Edition</div>
-                <div class="edition-pages">12 Interior Pages (16 Total) • 6 Spreads</div>
-                <div class="edition-price">₹199</div>
+            <div class="preview-edition-summary" id="previewEditionSummary">
+              <div class="edition-summary-header">
+                <span class="edition-summary-badge" id="previewEditionBadge"><i class="fas fa-book"></i> Treasury Edition</span>
+                <span class="edition-summary-price" id="previewEditionPrice">₹199</span>
               </div>
-              <div class="edition-card" id="editionLong" onclick="selectEdition('long')">
-                <span class="edition-badge" style="background:var(--gold); color:var(--navy);">Deluxe</span>
-                <div class="edition-title">Grand Treasury</div>
-                <div class="edition-pages">24 Interior Pages (28 Total) • 12 Spreads</div>
-                <div class="edition-price">₹299</div>
+              <div class="edition-summary-desc" id="previewEditionPages">
+                12 Story Pages (14 Total Pages) • 6 Illustrated Spreads • Print-Ready PDF
               </div>
             </div>
 
-            <button class="unlock-btn" onclick="startRazorpayCheckout()">
-              <i class="fas fa-lock-open"></i> Unlock & Download Full Storybook
+            <button class="unlock-btn" id="previewUnlockBtn" onclick="startRazorpayCheckout()">
+              <i class="fas fa-lock-open"></i> Unlock & Download Full Storybook (<span id="unlockBtnPrice">₹199</span>)
             </button>
             <p style="text-align:center; font-size:0.82rem; color:var(--text-muted); margin-top:10px;">
               <i class="fas fa-shield-check" style="color:var(--forest);"></i> Verified Razorpay Checkout • Instant PDF Download & Email
@@ -1926,17 +1976,26 @@
 
     function selectEdition(edition) {
       selectedEdition = edition;
-      // Form cards
+      const isLong = edition === 'long';
+
+      // Form selection cards
       const formShort = document.getElementById('formEditionShort');
       const formLong = document.getElementById('formEditionLong');
-      if (formShort) formShort.classList.toggle('selected', edition === 'short');
-      if (formLong) formLong.classList.toggle('selected', edition === 'long');
+      if (formShort) formShort.classList.toggle('selected', !isLong);
+      if (formLong) formLong.classList.toggle('selected', isLong);
 
-      // Preview cards
-      const prevShort = document.getElementById('editionShort');
-      const prevLong = document.getElementById('editionLong');
-      if (prevShort) prevShort.classList.toggle('selected', edition === 'short');
-      if (prevLong) prevLong.classList.toggle('selected', edition === 'long');
+      // Preview summary card updates
+      const badge = document.getElementById('previewEditionBadge');
+      const price = document.getElementById('previewEditionPrice');
+      const pages = document.getElementById('previewEditionPages');
+      const btnPrice = document.getElementById('unlockBtnPrice');
+
+      if (badge) badge.innerHTML = isLong ? '<i class="fas fa-crown"></i> Grand Treasury Edition' : '<i class="fas fa-book"></i> Treasury Edition';
+      if (price) price.textContent = isLong ? '₹299' : '₹199';
+      if (pages) pages.textContent = isLong
+        ? '24 Story Pages (26 Total Physical Pages) • 12 Illustrated Spreads • Print-Ready PDF'
+        : '12 Story Pages (14 Total Physical Pages) • 6 Illustrated Spreads • Print-Ready PDF';
+      if (btnPrice) btnPrice.textContent = isLong ? '₹299' : '₹199';
     }
 
     function selectEditionFromPricing(edition) {
@@ -2050,8 +2109,8 @@
       document.getElementById('modalPrice').textContent = priceStr;
       document.getElementById('modalTotalPayable').textContent = priceStr;
       document.getElementById('modalBookMeta').textContent = isLong
-        ? 'Grand Treasury • 28 Total Pages (12 Spreads)'
-        : 'Treasury Edition • 16 Total Pages (6 Spreads)';
+        ? 'Grand Treasury • 26 Total Physical Pages (12 Spreads)'
+        : 'Treasury Edition • 14 Total Physical Pages (6 Spreads)';
       document.getElementById('modalChildMeta').textContent = `Hero: ${childName} • Language: ${lang}`;
 
       document.getElementById('checkoutModal').style.display = 'flex';

@@ -192,31 +192,50 @@ function getSceneCount(bookLength) {
     return 6;                                             // 6 scenes = 12 interior pages (Treasury standard)
 }
 
-function getCharacterDetails(childName, gender, age) {
+function getCharacterDetails(childName, gender, age, theme) {
     const g = String(gender || '').toLowerCase().trim();
     let genderClean = 'boy';
     let pronoun = 'his';
     let subjectPronoun = 'he';
-    let childType = 'boy';
 
     if (g === 'girl') {
         genderClean = 'girl';
         pronoun = 'her';
         subjectPronoun = 'she';
-        childType = 'girl';
     } else if (g === 'neutral' || g === 'star' || g === 'star child' || g === 'little star') {
         genderClean = 'little star';
         pronoun = 'their';
         subjectPronoun = 'they';
-        childType = 'little star';
     }
 
     const childAge = parseInt(age, 10) || 5;
-    const charAnchor = (genderClean === 'little star')
-        ? `a cute and cheerful ${childAge}-year-old child named ${childName}`
-        : `a cute ${childAge}-year-old ${genderClean} named ${childName}`;
 
-    return { genderClean, childAge, pronoun, subjectPronoun, charAnchor };
+    // Theme-locked signature outfit to prevent wardrobe drift across pages
+    const t = String(theme || '').toLowerCase();
+    let outfit = 'wearing a soft pastel mint-cream cotton t-shirt with a tiny embroidered golden star and cozy navy shorts';
+    if (t.includes('ocean') || t.includes('dolphin') || t.includes('mermaid')) {
+        outfit = 'wearing a cozy sea-breeze cyan star t-shirt and rolled denim shorts';
+    } else if (t.includes('space') || t.includes('star')) {
+        outfit = 'wearing a cozy midnight-blue star-patterned onesie with golden starlight trim';
+    } else if (t.includes('animal') || t.includes('forest') || t.includes('safari') || t.includes('jungle')) {
+        outfit = 'wearing a soft sage-green adventure vest over a cream cotton tee and khaki shorts';
+    } else if (t.includes('princess') || t.includes('castle') || t.includes('kingdom') || t.includes('magic') || t.includes('fairy')) {
+        outfit = 'wearing an enchanted pastel lavender tunic with tiny golden star embroidery';
+    } else if (t.includes('super')) {
+        outfit = 'wearing a heroic soft crimson tunic with a gentle golden sun emblem and cozy joggers';
+    } else if (t.includes('dinosaur')) {
+        outfit = 'wearing a warm amber-ochre explorer hoodie with little leaf patches and rolled trousers';
+    } else if (t.includes('circus') || t.includes('carnival')) {
+        outfit = 'wearing a festive berry-red and gold-trimmed festive tunic with playful suspenders';
+    } else if (t.includes('lullaby') || t.includes('bedtime') || t.includes('cloud')) {
+        outfit = 'wearing warm fluffy cloud-white pajamas sprinkled with tiny golden stars';
+    }
+
+    const charAnchor = (genderClean === 'little star')
+        ? `adorable ${childAge}-year-old child named ${childName} with large expressive cartoon eyes, soft rosy cheeks, button nose, friendly joyful smile, 3D Pixar/Disney style, ${outfit}`
+        : `adorable ${childAge}-year-old ${genderClean} named ${childName} with large expressive cartoon eyes, soft rosy cheeks, button nose, friendly joyful smile, 3D Pixar/Disney style, ${outfit}`;
+
+    return { genderClean, childAge, pronoun, subjectPronoun, charAnchor, outfit };
 }
 
 // Helper to safely extract string URL from Replicate output
@@ -224,9 +243,25 @@ function extractUrl(out) {
     if (!out) return '';
     const item = Array.isArray(out) ? out[0] : out;
     if (typeof item === 'string') return item;
-    if (item && typeof item.url === 'function') return item.url();
+    if (item && typeof item.url === 'function') {
+        const u = item.url();
+        if (typeof u === 'string') return u;
+        if (u && u.href) return u.href;
+        return String(u || '');
+    }
     if (item && item.href) return item.href;
+    if (item && item.url && typeof item.url === 'string') return item.url;
     return String(item || '');
+}
+
+// MULTILINGUAL SCRIPT DETECTION & FONT ROUTING (PREVENTS TOFU [][][][] GLYPHS)
+function isNonLatin(text) {
+    return /[\u0600-\u06FF\u0900-\u0DFF\u0E00-\u0E7F]/.test(String(text || ''));
+}
+
+function chooseFont(text, bookFont, latinFont) {
+    if (isNonLatin(text) && bookFont) return bookFont;
+    return latinFont;
 }
 
 // MULTILINGUAL FONT EMBEDDING
@@ -297,7 +332,12 @@ function drawCentered(page, text, y, size, font, color, opacity) {
     }
 }
 
+// SAFE FLOW LINE: Never split non-Latin strings character-by-character to protect OpenType ligatures!
 function drawFlowLine(page, text, y, size, font, color, wave) {
+    if (isNonLatin(text)) {
+        // Whole-string drawing allows fontkit's OpenType shaper to connect ligatures correctly
+        return drawCentered(page, text, y, size, font, color);
+    }
     try {
         const widths = []; let total = 0;
         for (const ch of text) {
@@ -319,6 +359,33 @@ function drawFlowLine(page, text, y, size, font, color, wave) {
     }
 }
 
+// VECTOR DRAWING HELPERS (ELIMINATES EMOJI [][][][] TOFU BLOCKS)
+function drawVectorDiamond(page, cx, cy, size, color) {
+    page.drawRectangle({
+        x: cx - size / 2,
+        y: cy - size / 2,
+        width: size,
+        height: size,
+        color,
+        rotate: degrees(45)
+    });
+}
+
+function drawVectorStar(page, cx, cy, spikes = 5, outerR = 10, innerR = 4.5, color) {
+    const points = [];
+    let angle = -Math.PI / 2;
+    const step = Math.PI / spikes;
+    for (let i = 0; i < spikes * 2; i++) {
+        const r = (i % 2 === 0) ? outerR : innerR;
+        const x = Math.round((Math.cos(angle) * r) * 100) / 100;
+        const y = Math.round((-Math.sin(angle) * r) * 100) / 100;
+        points.push((i === 0 ? 'M' : 'L') + ' ' + x + ' ' + y);
+        angle += step;
+    }
+    const svgPath = points.join(' ') + ' Z';
+    page.drawSvgPath(svgPath, { x: cx, y: cy, color });
+}
+
 function drawFrameVectors(page, pal) {
     page.drawRectangle({ x: 12, y: 12, width: PAGE_W - 24, height: PAGE_H - 24, borderColor: pal.accent, borderWidth: 2, borderOpacity: 0.9 });
     page.drawRectangle({ x: 20, y: 20, width: PAGE_W - 40, height: PAGE_H - 40, borderColor: pal.accent, borderWidth: 1, borderOpacity: 0.6 });
@@ -326,6 +393,34 @@ function drawFrameVectors(page, pal) {
     for (const [cx, cy] of corners) {
         page.drawRectangle({ x: cx - 5, y: cy - 5, width: 10, height: 10, color: pal.accent, rotate: degrees(45) });
     }
+}
+
+// 3D PIXAR AVATAR GENERATION (VERIFIED VIA FLUX-KONTEXT-PRO)
+async function generateAvatar(photoData, charAnchor) {
+    if (photoData) {
+        try {
+            console.log("  → Transforming reference photo into 3D Pixar/Disney character avatar via flux-kontext-pro...");
+            const avatarPrompt = `Turn the person in this photo into an adorable 3D Pixar/Disney animated storybook character avatar, big expressive cartoon eyes, cheerful rosy cheeks, cute round child face, soft studio lighting, high quality 3D animation render, no realistic human skin`;
+            const out = await replicate.run("black-forest-labs/flux-kontext-pro", {
+                input: {
+                    input_image: photoData,
+                    prompt: avatarPrompt,
+                    output_format: "png"
+                }
+            });
+            const u = extractUrl(out);
+            if (u) return u;
+        } catch (e) {
+            console.log("    ⚠️ Avatar transformation fallback notice:", e.message);
+        }
+    }
+
+    console.log("  → Painting 3D Pixar character portrait via flux-1.1-pro...");
+    const prompt = STYLE + `portrait of ${charAnchor} as an adorable 3D Pixar/Disney animated storybook hero, soft warm studio lighting, cheerful expression, 3D character render, neutral clean background`;
+    const out = await replicate.run("black-forest-labs/flux-1.1-pro", {
+        input: { prompt: prompt, aspect_ratio: "1:1", output_format: "png" }
+    });
+    return extractUrl(out);
 }
 
 async function generateImage(prompt, photoData) {
@@ -364,16 +459,15 @@ app.post('/api/create-preview', rateLimiter, async (req, res) => {
         if (!childName) return res.status(400).json({ success: false, error: 'Child name is required' });
 
         const lang = String(language || 'English').trim();
-        const { genderClean, childAge, pronoun, subjectPronoun, charAnchor } = getCharacterDetails(childName, gender, age);
+        const { genderClean, childAge, pronoun, subjectPronoun, charAnchor } = getCharacterDetails(childName, gender, age, theme);
 
         const base = String(theme || 'Story').split(' (')[0];
         const pal = themeKit(base);
-        const title = themeTitle(base);
         assertZones();
 
         console.log(`✨ Preview | ${childName} (${genderClean}, ${childAge}) | ${base} | Lang=${lang}`);
 
-        // Step 1: DeepSeek story outline & opening rhyme in target language
+        // Step 1: DeepSeek story outline, unique title & opening rhyme in target language
         const genderGuidance = (genderClean === 'little star')
             ? `The child is non-binary / gender-neutral (Little Star). Use gentle, gender-inclusive wording, using they/them pronouns or referring warmly to ${childName}.`
             : `The child protagonist is ${childName}, a ${childAge}-year-old ${genderClean} (${pronoun}/${subjectPronoun}).`;
@@ -384,10 +478,11 @@ app.post('/api/create-preview', rateLimiter, async (req, res) => {
                 {
                     role: 'system',
                     content: `You are an award-winning children's storybook author for TwinkleTale. Output ONLY a valid JSON object with keys:
+"book_title": (a unique, poetic, charming 3-5 word storybook title in ${lang} specifically tailored to ${childName}'s bedtime adventure in ${theme}, e.g. "${childName} और जादुई डॉल्फ़िन" or "${childName} and the Starlight Voyage"),
 "opening_rhyme": (4 lines of lyrical, warm read-aloud rhyme welcoming ${childName} into their bedtime adventure in ${lang}),
 "story_scenes": (an array of 12 objects, each with "scene_title" [2-4 words in ${lang}], "page_text" [35-50 words in ${lang}], and "image_prompt" [one detailed sentence in English describing ${charAnchor} in this scene]).
 ${genderGuidance}
-LANGUAGE REQUIREMENT: All child-facing text ("opening_rhyme", "scene_title", "page_text") MUST be written beautifully in ${lang} using its authentic script. No markdown, no commentary.`
+LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme", "scene_title", "page_text") MUST be written beautifully in ${lang} using its authentic script. No markdown, no commentary.`
                 },
                 {
                     role: 'user',
@@ -399,18 +494,18 @@ LANGUAGE REQUIREMENT: All child-facing text ("opening_rhyme", "scene_title", "pa
         let storyText = storyResponse.data.choices[0].message.content;
         storyText = storyText.replace(/```json/g, '').replace(/```/g, '').trim();
         const storyJson = JSON.parse(storyText);
+        const bookTitle = (storyJson.book_title && storyJson.book_title.trim()) || `${childName}'s ${themeTitle(base)}`;
         const openingRhyme = storyJson.opening_rhyme || `Underneath the twinkling stars, where dreams begin to play,\nA special tale unfolds tonight, to softly guide your way.\nFor ${childName}, our little dreamer, so brave and kind and bright,\nA magical bedtime story starts before you sleep tonight.`;
         const scenesData = Array.isArray(storyJson.story_scenes) ? storyJson.story_scenes : [];
 
-        // Step 2: Generate Cover Background + Child Vignette
+        // Step 2: Generate Cover Background + 3D Pixar Child Vignette
         console.log("  → Painting preview cover background...");
-        const bgPrompt = STYLE + `ornate storybook cover BACKGROUND only: elaborate golden-cream vine and leaf border with small vignettes of ${pal.motifs} confined strictly to the outer fifteen percent edges; two gentle painted flourish arches of tiny leaves and stars, one arching across the top center framing an empty name plaque area, and one arching across the lower middle framing an empty title plaque area; the rest of the inner field is ${pal.flatWord}, flat and empty except a few sparse tiny stars; absolutely no character, no person, no moon, no text, no letters anywhere; rich painterly detail`;
+        const bgPrompt = STYLE + `ornate storybook cover BACKGROUND only: elaborate golden-cream vine and leaf border with small vignettes of ${pal.motifs} confined strictly to the outer fifteen percent edges; two gentle painted flourish arches of tiny leaves and stars framing an empty name plaque area at top and empty title plaque area below; the rest of the inner field is ${pal.flatWord}, flat and empty except a few sparse tiny golden stars; absolutely no character, no person, no moon, no text, no letters anywhere; rich painterly detail`;
         const bgUrlRaw = await withRetry('cover background', async () => generateImage(bgPrompt, null));
         const bgBuffer = await fetchImageBuffer(bgUrlRaw);
 
-        console.log("  → Painting preview child medallion vignette...");
-        const vigPrompt = STYLE + `circular painted vignette portrait of ${photoData ? 'the exact same child from the reference photo' : charAnchor} as the storybook hero, head and shoulders, joyful expression, soft golden rim light, a few tiny ${pal.motifs} sparkles around the head, surrounded by ${pal.flatWord} background filling all four corners, vignette edges softly fading into that flat background`;
-        const vigUrlRaw = await withRetry('child vignette', async () => generateImage(vigPrompt, photoData));
+        console.log("  → Painting preview 3D Pixar child medallion avatar...");
+        const vigUrlRaw = await withRetry('child avatar', async () => generateAvatar(photoData, charAnchor));
         const vigBuffer = await fetchImageBuffer(vigUrlRaw);
 
         // Convert buffers to permanent base64 data-URIs to prevent broken images
@@ -422,12 +517,13 @@ LANGUAGE REQUIREMENT: All child-facing text ("opening_rhyme", "scene_title", "pa
             timestamp: Date.now(),
             childName, gender: genderClean, age: childAge, theme, language: lang,
             photoData, dedication, email,
-            charAnchor, pronoun, subjectPronoun, pal, title,
+            charAnchor, pronoun, subjectPronoun, pal,
+            title: bookTitle, bookTitle,
             bgBuffer, vigBuffer, bgUrl: bgDataUrl, vigUrl: vigDataUrl,
             scenesData, openingRhyme
         });
 
-        console.log(`✅ Preview created in ${((Date.now() - t0) / 1000).toFixed(1)}s (id: ${previewId})`);
+        console.log(`✅ Preview created in ${((Date.now() - t0) / 1000).toFixed(1)}s (id: ${previewId}, title: "${bookTitle}")`);
 
         res.json({
             success: true,
@@ -436,7 +532,7 @@ LANGUAGE REQUIREMENT: All child-facing text ("opening_rhyme", "scene_title", "pa
             gender: genderClean,
             age: childAge,
             language: lang,
-            bookTitle: title,
+            bookTitle,
             openingRhyme,
             vignetteDataUrl: vigDataUrl,
             coverBgDataUrl: bgDataUrl,
@@ -624,40 +720,25 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         cover.drawEllipse({ x: Z.medal.cx, y: Z.medal.cy, xScale: Z.medal.r + 5, yScale: Z.medal.r + 5, borderColor: pal.accent, borderWidth: 3.5 });
         cover.drawEllipse({ x: Z.medal.cx, y: Z.medal.cy, xScale: Z.medal.r + 11, yScale: Z.medal.r + 11, borderColor: pal.accent, borderWidth: 1.5, borderOpacity: 0.7 });
 
-        drawFlowLine(cover, `${childName}'s`, 700, 44, serifBI, pal.accent, 2);
-        let tSize = 40;
-        let tLines = wrapText(title, bookFont || serifB, tSize, 470);
-        if (tLines.length > 3) { tSize = 34; tLines = wrapText(title, bookFont || serifB, tSize, 470); }
-        let ty = 292;
+        // Front Cover Typography (Name Plaque & Poetic Title)
+        const topLabel = isNonLatin(childName) ? `${childName}` : `${childName}'s`;
+        const topFont = chooseFont(topLabel, bookFont, serifBI);
+        drawFlowLine(cover, topLabel, 705, 42, topFont, pal.accent, 2);
+
+        const bookTitle = session.bookTitle || title || `${childName}'s Adventure`;
+        const titleFont = chooseFont(bookTitle, bookFont, serifB);
+        let tSize = 38;
+        let tLines = wrapText(bookTitle, titleFont, tSize, 470);
+        if (tLines.length > 3) { tSize = 32; tLines = wrapText(bookTitle, titleFont, tSize, 470); }
+        let ty = 295;
         for (const line of tLines) {
-            drawFlowLine(cover, line, ty, tSize, bookFont || serifB, rgb(0.99, 0.98, 0.94), 3);
-            ty -= 46;
+            drawFlowLine(cover, line, ty, tSize, titleFont, rgb(0.99, 0.98, 0.94), 2.5);
+            ty -= 44;
         }
 
-        // ================= PAGE 2 (LEFT): FRONTISPIECE / WELCOME =================
-        const frontis = pdfDoc.addPage([PAGE_W, PAGE_H]);
-        frontis.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.cover });
-        drawFrameVectors(frontis, pal);
-        drawCentered(frontis, 'TwinkleTale', 480, 22, serifBI, pal.accent);
-        drawCentered(frontis, 'Personalized Keepsake Storybooks', 450, 13, serifI, rgb(0.95, 0.95, 0.95), 0.9);
-        drawCentered(frontis, '✨', 410, 20, bookFont, pal.accent);
-        drawCentered(frontis, `A Special Bedtime Treasury for ${childName}`, 370, 16, bookFont || serifB, rgb(0.99, 0.98, 0.94));
-        drawCentered(frontis, `Language: ${language || 'English'} • Year ${new Date().getFullYear()}`, 200, 11, bookFont, pal.accent, 0.8);
-
-        // ================= PAGE 3 (RIGHT): DEDICATION PAGE =================
-        const ded = pdfDoc.addPage([PAGE_W, PAGE_H]);
-        ded.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.textBg });
-        ded.drawImage(frameImg, coverFit(frameImg, PAGE_W, PAGE_H));
-        ded.drawRectangle({ x: PAGE_W / 2 - 5, y: 596, width: 10, height: 10, color: pal.cover, rotate: degrees(45) });
-        drawCentered(ded, `For ${childName},`, 520, 32, serifBI, pal.cover);
-        const dedText = (dedication && dedication.trim()) ? dedication.trim() : `May this little story remind you, every single night, just how hugely loved and cherished you are. Dream big little star!`;
-        const dedLines = wrapText(dedText, bookFont || serifI, 18, 380);
-        let dy = 450 - ((450 - 210) - dedLines.length * 32) / 2;
-        for (const line of dedLines) {
-            drawCentered(ded, line, dy, 18, bookFont || serifI, pal.ink);
-            dy -= 32;
-        }
-        drawCentered(ded, `Printed just for you • ${new Date().getFullYear()}`, 130, 11, bookFont, pal.ink, 0.85);
+        drawCentered(cover, 'TwinkleTale Keepsake Treasury', 118, 12, serifI, pal.accent, 0.85);
+        drawVectorStar(cover, PAGE_W / 2 - 110, 118, 5, 5, 2.2, pal.accent);
+        drawVectorStar(cover, PAGE_W / 2 + 110, 118, 5, 5, 2.2, pal.accent);
 
         // Validate or fallback scenes
         const effectiveScenes = (scenesData || []).slice(0, scenes);
@@ -691,16 +772,22 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
             textPage.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.textBg });
             textPage.drawImage(frameImg, coverFit(frameImg, PAGE_W, PAGE_H));
 
-            drawCentered(textPage, scene.scene_title, 600, 26, bookFont || serifB, pal.cover);
-            textPage.drawRectangle({ x: PAGE_W / 2 - 4, y: 566, width: 8, height: 8, color: pal.cover, rotate: degrees(45) });
+            // Scene Title (Multilingual font routing)
+            const sceneTitleFont = chooseFont(scene.scene_title, bookFont, serifB);
+            drawCentered(textPage, scene.scene_title, 600, 26, sceneTitleFont, pal.cover);
+            drawVectorDiamond(textPage, PAGE_W / 2, 566, 8, pal.cover);
 
-            const verseLines = wrapText(scene.page_text, bookFont || serifB, 18, 400);
+            // Verse Text (Multilingual font routing)
+            const verseFont = chooseFont(scene.page_text, bookFont, serif);
+            const verseLines = wrapText(scene.page_text, verseFont, 18, 400);
             let by = 520 - ((520 - 160) - verseLines.length * 32) / 2;
             for (const line of verseLines) {
-                drawCentered(textPage, line, by, 18, bookFont, pal.ink);
+                drawCentered(textPage, line, by, 18, verseFont, pal.ink);
                 by -= 32;
             }
-            drawCentered(textPage, `Spread ${spreadIndex}`, 112, 11, bookFont, pal.ink, 0.75);
+
+            // Spread Number (ALWAYS rendered with serif to prevent fontkit tofu blocks)
+            drawCentered(textPage, `— ${spreadIndex} —`, 112, 12, serif, pal.ink, 0.75);
             spreadIndex++;
 
             if (i < scenes - 1) {
@@ -709,28 +796,59 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
             }
         }
 
-        // ================= KEEPSAKE CERTIFICATE PAGE =================
-        update(92, 'Generating keepsake certificate...');
-        const cert = pdfDoc.addPage([PAGE_W, PAGE_H]);
-        cert.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.textBg });
-        cert.drawImage(frameImg, coverFit(frameImg, PAGE_W, PAGE_H));
-        drawCentered(cert, 'Official Keepsake Certificate', 580, 24, serifBI, pal.cover);
-        cert.drawRectangle({ x: PAGE_W / 2 - 4, y: 546, width: 8, height: 8, color: pal.cover, rotate: degrees(45) });
-        drawCentered(cert, 'This bedtime treasury belongs to', 460, 18, bookFont || serifI, pal.ink);
-        drawCentered(cert, childName, 390, 36, bookFont || serifB, pal.cover);
-        drawCentered(cert, '⭐ ⭐ ⭐', 330, 16, bookFont, pal.accent);
-        drawCentered(cert, `Crafted uniquely in ${new Date().getFullYear()} • Handcrafted with love`, 260, 14, bookFont || serifI, pal.ink);
-        drawCentered(cert, 'TwinkleTale Personalized Books', 140, 11, bookFont, pal.ink, 0.8);
+        // ================= FINAL PAGE: ENDING KEEPSAKE PAGE =================
+        update(95, 'Sealing book keepsake ending page...');
+        const endPage = pdfDoc.addPage([PAGE_W, PAGE_H]);
+        endPage.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.cover });
+        drawFrameVectors(endPage, pal);
 
-        // ================= BACK COVER =================
-        update(95, 'Sealing book back cover...');
-        const back = pdfDoc.addPage([PAGE_W, PAGE_H]);
-        back.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.cover });
-        drawFrameVectors(back, pal);
-        drawCentered(back, 'TwinkleTale', 450, 32, serifBI, pal.accent);
-        drawCentered(back, 'Every child is the hero of their own bedtime story.', 405, 14, serifI, rgb(0.98, 0.98, 0.98));
-        drawCentered(back, `Created especially for ${childName}`, 340, 22, serifB, pal.accent);
-        drawCentered(back, `A one-of-a-kind keepsake • ${new Date().getFullYear()}`, 140, 11, serif, pal.accent);
+        // Golden seal star at the top center
+        drawVectorStar(endPage, PAGE_W / 2, 680, 5, 20, 9, pal.accent);
+
+        // Title
+        drawCentered(endPage, 'TwinkleTale', 630, 28, serifBI, pal.accent);
+        drawCentered(endPage, 'Personalized Keepsake Treasury', 604, 13, serifI, rgb(0.95, 0.95, 0.95), 0.9);
+
+        // Horizontal divider with small gold diamonds
+        endPage.drawLine({ start: { x: 120, y: 575 }, end: { x: PAGE_W - 120, y: 575 }, color: pal.accent, thickness: 1, opacity: 0.6 });
+        drawVectorDiamond(endPage, PAGE_W / 2, 575, 8, pal.accent);
+
+        // Dedication Block
+        const forText = `Crafted especially for ${childName}`;
+        const forFont = chooseFont(forText, bookFont, serifB);
+        drawCentered(endPage, forText, 525, 20, forFont, pal.accent);
+
+        const dedText = (dedication && dedication.trim())
+            ? dedication.trim()
+            : `May this bedtime story remind you, every single night, just how hugely loved and cherished you are. Dream big, little star!`;
+        const dedFont = chooseFont(dedText, bookFont, serifI);
+        const dedLines = wrapText(dedText, dedFont, 16, 420);
+        let dy = 470;
+        for (const line of dedLines) {
+            drawCentered(endPage, line, dy, 16, dedFont, rgb(0.98, 0.98, 0.98), 0.95);
+            dy -= 26;
+        }
+
+        // Closing bedtime wish
+        const closingWish = 'Every child is the hero of their own bedtime story.';
+        drawCentered(endPage, closingWish, Math.min(dy - 20, 310), 13, serifI, rgb(0.90, 0.90, 0.90), 0.85);
+
+        // Gold seal with vector stars
+        const sealY = 210;
+        endPage.drawCircle({ x: PAGE_W / 2, y: sealY, size: 45, borderColor: pal.accent, borderWidth: 2 });
+        endPage.drawCircle({ x: PAGE_W / 2, y: sealY, size: 41, borderColor: pal.accent, borderWidth: 1, borderOpacity: 0.7 });
+        drawVectorStar(endPage, PAGE_W / 2, sealY, 5, 14, 6, pal.accent);
+        drawCentered(endPage, 'OFFICIAL KEEPSAKE', sealY - 26, 8, serifB, pal.accent, 0.9);
+
+        // Footer
+        const yr = new Date().getFullYear();
+        drawCentered(endPage, `Handcrafted with love • ${yr} • All Rights Reserved`, 100, 10, serif, pal.accent, 0.75);
+
+        // ================= STRICT PAGE COUNT GUARDRAIL =================
+        const expectedPages = (scenes * 2) + 2;
+        if (pdfDoc.getPageCount() !== expectedPages) {
+            throw new Error(`PAGE COUNT GUARDRAIL VIOLATION: Expected exactly ${expectedPages} pages but generated ${pdfDoc.getPageCount()}`);
+        }
 
         // ================= SAVE & UPLOAD =================
         update(97, 'Saving print-ready PDF...');
@@ -811,7 +929,7 @@ app.post('/api/create-book', rateLimiter, async (req, res) => {
         if (!childName) return res.status(400).json({ success: false, error: 'Child name is required' });
 
         const lang = String(language || 'English').trim();
-        const { genderClean, childAge, pronoun, subjectPronoun, charAnchor } = getCharacterDetails(childName, gender, age);
+        const { genderClean, childAge, pronoun, subjectPronoun, charAnchor } = getCharacterDetails(childName, gender, age, theme);
 
         const base = String(theme || 'Story').split(' (')[0];
         const scenes = getSceneCount(bookLength);
@@ -847,18 +965,18 @@ Write all scene text in ${lang} using its authentic script.`
         const rawPages = JSON.parse(storyText);
         const pages = (Array.isArray(rawPages) ? rawPages : []).slice(0, scenes);
 
-        const bgPrompt = STYLE + `ornate storybook cover BACKGROUND only: elaborate golden-cream vine and leaf border with small vignettes of ${pal.motifs} confined strictly to the outer fifteen percent edges; two gentle painted flourish arches of tiny leaves and stars, one arching across the top center framing an empty name plaque area, and one arching across the lower middle framing an empty title plaque area; the rest of the inner field is ${pal.flatWord}, flat and empty except a few sparse tiny stars; absolutely no character, no person, no moon, no text, no letters anywhere; rich painterly detail`;
+        const bgPrompt = STYLE + `ornate storybook cover BACKGROUND only: elaborate golden-cream vine and leaf border with small vignettes of ${pal.motifs} confined strictly to the outer fifteen percent edges; two gentle painted flourish arches of tiny leaves and stars framing an empty name plaque area at top and empty title plaque area below; the rest of the inner field is ${pal.flatWord}, flat and empty except a few sparse tiny stars; absolutely no character, no person, no moon, no text, no letters anywhere; rich painterly detail`;
         const bgBuffer = await fetchImageBuffer(await generateImage(bgPrompt, null));
         await sleep(PACING);
 
-        const vigPrompt = STYLE + `circular painted vignette portrait of ${photoData ? 'the exact same child from the reference photo' : charAnchor} as the storybook hero, head and shoulders, joyful expression, soft golden rim light, a few tiny ${pal.motifs} sparkles around the head, surrounded by ${pal.flatWord} background filling all four corners, vignette edges softly fading into that flat background`;
-        const vigBuffer = await fetchImageBuffer(await generateImage(vigPrompt, photoData));
+        const vigBuffer = await fetchImageBuffer(await generateAvatar(photoData, charAnchor));
         await sleep(PACING);
 
         const session = {
             childName, gender: genderClean, age: childAge, theme, language: lang,
             photoData, dedication, email,
-            charAnchor, pronoun, subjectPronoun, pal, title,
+            charAnchor, pronoun, subjectPronoun, pal,
+            title, bookTitle: title,
             bgBuffer, vigBuffer, scenesData: pages
         };
 

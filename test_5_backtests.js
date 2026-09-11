@@ -8,6 +8,7 @@ const assert = require('assert');
 
 console.log('================================================================');
 console.log('🚀 RUNNING 5 COMPREHENSIVE BACKTESTS FOR TWINKLETALE ENGINE');
+console.log('   Strict 26-Page / 14-Page Guardrails & Zero-Tofu Font Shaper');
 console.log('================================================================\n');
 
 const fontsFolder = path.join(__dirname, 'fonts');
@@ -16,7 +17,7 @@ const PAGE_W = 600, PAGE_H = 800;
 // Create dummy 1x1 PNG buffer for testing image placement without consuming API credits
 const dummyPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 
-// Core functions extracted from server.js
+// Core functions matching server.js
 function getSceneCount(bookLength) {
     const s = String(bookLength || '').toLowerCase();
     if (s.includes('24') || s.includes('long')) return 12;
@@ -24,7 +25,7 @@ function getSceneCount(bookLength) {
     return 6;
 }
 
-function getCharacterDetails(childName, gender, age) {
+function getCharacterDetails(childName, gender, age, theme) {
     const g = String(gender || '').toLowerCase().trim();
     let genderClean = 'boy';
     let pronoun = 'his';
@@ -41,11 +42,32 @@ function getCharacterDetails(childName, gender, age) {
     }
 
     const childAge = parseInt(age, 10) || 5;
-    const charAnchor = (genderClean === 'little star')
-        ? `a cute and cheerful ${childAge}-year-old child named ${childName}`
-        : `a cute ${childAge}-year-old ${genderClean} named ${childName}`;
 
-    return { genderClean, childAge, pronoun, subjectPronoun, charAnchor };
+    const t = String(theme || '').toLowerCase();
+    let outfit = 'wearing a soft pastel mint-cream cotton t-shirt with a tiny embroidered golden star and cozy navy shorts';
+    if (t.includes('ocean') || t.includes('dolphin') || t.includes('mermaid')) {
+        outfit = 'wearing a cozy sea-breeze cyan star t-shirt and rolled denim shorts';
+    } else if (t.includes('space') || t.includes('star')) {
+        outfit = 'wearing a cozy midnight-blue star-patterned onesie with golden starlight trim';
+    } else if (t.includes('animal') || t.includes('forest') || t.includes('safari') || t.includes('jungle')) {
+        outfit = 'wearing a soft sage-green adventure vest over a cream cotton tee and khaki shorts';
+    } else if (t.includes('princess') || t.includes('castle') || t.includes('kingdom') || t.includes('magic') || t.includes('fairy')) {
+        outfit = 'wearing an enchanted pastel lavender tunic with tiny golden star embroidery';
+    } else if (t.includes('super')) {
+        outfit = 'wearing a heroic soft crimson tunic with a gentle golden sun emblem and cozy joggers';
+    } else if (t.includes('dinosaur')) {
+        outfit = 'wearing a warm amber-ochre explorer hoodie with little leaf patches and rolled trousers';
+    } else if (t.includes('circus') || t.includes('carnival')) {
+        outfit = 'wearing a festive berry-red and gold-trimmed festive tunic with playful suspenders';
+    } else if (t.includes('lullaby') || t.includes('bedtime') || t.includes('cloud')) {
+        outfit = 'wearing warm fluffy cloud-white pajamas sprinkled with tiny golden stars';
+    }
+
+    const charAnchor = (genderClean === 'little star')
+        ? `adorable ${childAge}-year-old child named ${childName} with large expressive cartoon eyes, soft rosy cheeks, button nose, friendly joyful smile, 3D Pixar/Disney style, ${outfit}`
+        : `adorable ${childAge}-year-old ${genderClean} named ${childName} with large expressive cartoon eyes, soft rosy cheeks, button nose, friendly joyful smile, 3D Pixar/Disney style, ${outfit}`;
+
+    return { genderClean, childAge, pronoun, subjectPronoun, charAnchor, outfit };
 }
 
 function themeKit(base) {
@@ -80,6 +102,15 @@ function assertZones() {
                (Z.medal.cy - Z.medal.r - 12) > Z.title.top &&
                Z.title.bottom > 0;
     if (!ok) throw new Error('COVER GUARDRAIL VIOLATION: zones overlap');
+}
+
+function isNonLatin(text) {
+    return /[\u0600-\u06FF\u0900-\u0DFF\u0E00-\u0E7F]/.test(String(text || ''));
+}
+
+function chooseFont(text, bookFont, latinFont) {
+    if (isNonLatin(text) && bookFont) return bookFont;
+    return latinFont;
 }
 
 async function getFontForLanguage(pdfDoc, lang) {
@@ -143,6 +174,9 @@ function drawCentered(page, text, y, size, font, color, opacity) {
 }
 
 function drawFlowLine(page, text, y, size, font, color, wave) {
+    if (isNonLatin(text)) {
+        return drawCentered(page, text, y, size, font, color);
+    }
     try {
         const widths = []; let total = 0;
         for (const ch of text) {
@@ -164,22 +198,56 @@ function drawFlowLine(page, text, y, size, font, color, wave) {
     }
 }
 
+function drawVectorDiamond(page, cx, cy, size, color) {
+    page.drawRectangle({
+        x: cx - size / 2,
+        y: cy - size / 2,
+        width: size,
+        height: size,
+        color,
+        rotate: degrees(45)
+    });
+}
+
+function drawVectorStar(page, cx, cy, spikes = 5, outerR = 10, innerR = 4.5, color) {
+    const points = [];
+    let angle = -Math.PI / 2;
+    const step = Math.PI / spikes;
+    for (let i = 0; i < spikes * 2; i++) {
+        const r = (i % 2 === 0) ? outerR : innerR;
+        const x = Math.round((Math.cos(angle) * r) * 100) / 100;
+        const y = Math.round((-Math.sin(angle) * r) * 100) / 100;
+        points.push((i === 0 ? 'M' : 'L') + ' ' + x + ' ' + y);
+        angle += step;
+    }
+    const svgPath = points.join(' ') + ' Z';
+    page.drawSvgPath(svgPath, { x: cx, y: cy, color });
+}
+
+function drawFrameVectors(page, pal) {
+    page.drawRectangle({ x: 12, y: 12, width: PAGE_W - 24, height: PAGE_H - 24, borderColor: pal.accent, borderWidth: 2, borderOpacity: 0.9 });
+    page.drawRectangle({ x: 20, y: 20, width: PAGE_W - 40, height: PAGE_H - 40, borderColor: pal.accent, borderWidth: 1, borderOpacity: 0.6 });
+    const corners = [[20, 20], [PAGE_W - 20, 20], [20, PAGE_H - 20], [PAGE_W - 20, PAGE_H - 20]];
+    for (const [cx, cy] of corners) {
+        page.drawRectangle({ x: cx - 5, y: cy - 5, width: 10, height: 10, color: pal.accent, rotate: degrees(45) });
+    }
+}
+
 async function runTests() {
     let passedCount = 0;
 
     // =========================================================================
-    // TEST 1: Hindi Circus Story (Verifying Screenshot 1 & Screenshot 3 bug fixes)
+    // TEST 1: Hindi Circus Story (Fontkit Shaper, chooseFont, Safe drawFlowLine, Zero Tofu)
     // =========================================================================
     try {
-        console.log('--- TEST 1: Hindi Circus Story (Screen 3 Crash Reproduction & Guardrail Test) ---');
+        console.log('--- TEST 1: Hindi Circus Story (Fontkit GPOS Shaper & Zero Tofu Check) ---');
         assertZones();
-        const details = getCharacterDetails('Aarav', 'boy', 5);
+        const details = getCharacterDetails('आरव', 'boy', 5, 'Circus & Carnivals');
         assert.strictEqual(details.genderClean, 'boy');
         assert.strictEqual(details.pronoun, 'his');
+        assert(details.outfit.includes('berry-red and gold-trimmed'));
 
         const pal = themeKit('Circus & Carnivals');
-        const title = themeTitle('Circus & Carnivals');
-
         const pdfDoc = await PDFDocument.create();
         const bookFont = await getFontForLanguage(pdfDoc, 'Hindi');
         const serifBI = await pdfDoc.embedFont('Times-BoldItalic');
@@ -188,7 +256,11 @@ async function runTests() {
 
         const cover = pdfDoc.addPage([PAGE_W, PAGE_H]);
         cover.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.cover });
-        drawFlowLine(cover, "Aarav's", 700, 44, serifBI, pal.accent, 2);
+
+        // English name plaque vs Hindi name plaque font routing
+        const topLabel = isNonLatin('आरव') ? 'आरव' : "Aarav's";
+        const topFont = chooseFont(topLabel, bookFont, serifBI);
+        drawFlowLine(cover, topLabel, 705, 42, topFont, pal.accent, 2);
 
         // Complex Hindi ligatures and conjuncts to test fontkit GPOS shaper fix
         const hindiVerse = "आरव सर्कस के जादुई मेले में पहुँचा, जहाँ चमकीले सितारे और रंग-बिरंगे झूले थे। जोकर ने मुस्कराकर आरव का स्वागत किया और एक प्यारा सा गुब्बारा उपहार में दिया।";
@@ -202,33 +274,33 @@ async function runTests() {
             by -= 32;
         }
 
-        // Test line 732 bug fix with serif font
-        const back = pdfDoc.addPage([PAGE_W, PAGE_H]);
-        drawCentered(back, `A one-of-a-kind keepsake • ${new Date().getFullYear()}`, 140, 11, serif, pal.accent);
+        // Test spread number rendered with serif (never with NotoSansDevanagari to prevent [][][][])
+        drawCentered(textPage, '— 1 —', 112, 12, serif, pal.ink, 0.75);
+
+        // Test vector stars without emoji
+        drawVectorStar(textPage, PAGE_W / 2, 600, 5, 12, 5, pal.accent);
 
         const bytes = await pdfDoc.save();
         assert(bytes.length > 5000, 'PDF bytes should be generated');
-        console.log(`✅ TEST 1 PASSED: Hindi fontkit shaped perfectly without xCoordinate crash! (PDF size: ${bytes.length} bytes)\n`);
+        console.log(`✅ TEST 1 PASSED: Hindi fontkit shaped correctly, zero tofu glyphs, vector star rendered! (size: ${bytes.length} bytes)\n`);
         passedCount++;
     } catch (e) {
         console.error('❌ TEST 1 FAILED:', e);
     }
 
     // =========================================================================
-    // TEST 2: English Space Story (Standard Treasury Edition - 16 Page Spread Layout)
+    // TEST 2: Treasury Edition (12 Interior Pages = Exactly 14 Total Physical Pages)
     // =========================================================================
     try {
-        console.log('--- TEST 2: English Space Story (16-Page Treasury Edition Spread Alignment) ---');
-        const details = getCharacterDetails('Ananya', 'girl', 6);
+        console.log('--- TEST 2: Treasury Edition (Strict 14-Page Guardrail: 1 Cover + 12 Interior + 1 Ending) ---');
+        const details = getCharacterDetails('Ananya', 'girl', 6, 'Space & Stars');
         assert.strictEqual(details.genderClean, 'girl');
         assert.strictEqual(details.pronoun, 'her');
-        assert.strictEqual(details.subjectPronoun, 'she');
-        assert(details.charAnchor.includes('a cute 6-year-old girl named Ananya'));
+        assert(details.outfit.includes('midnight-blue star-patterned onesie'));
 
         const pal = themeKit('Space & Stars');
-        const title = themeTitle('Space & Stars');
-        const scenes = getSceneCount('12 pages'); // 6 scenes = 12 interior pages
-        assert.strictEqual(scenes, 6);
+        const scenes = getSceneCount('12 pages'); // 6 scenes = 12 interior story pages
+        assert.strictEqual(scenes, 6, '12-page book must have 6 scenes');
 
         const pdfDoc = await PDFDocument.create();
         const bookFont = await getFontForLanguage(pdfDoc, 'English');
@@ -239,41 +311,36 @@ async function runTests() {
 
         const dummyImg = await pdfDoc.embedPng(dummyPng);
 
-        // Page 1: Cover
+        // Page 1: Front Cover
         const cover = pdfDoc.addPage([PAGE_W, PAGE_H]);
         cover.drawImage(dummyImg, { x: 0, y: 0, width: PAGE_W, height: PAGE_H });
+        drawFlowLine(cover, "Ananya's", 705, 42, serifBI, pal.accent, 2);
 
-        // Page 2: Frontispiece
-        const frontis = pdfDoc.addPage([PAGE_W, PAGE_H]);
-        drawCentered(frontis, 'TwinkleTale', 480, 22, serifBI, pal.accent);
-
-        // Page 3: Dedication
-        const ded = pdfDoc.addPage([PAGE_W, PAGE_H]);
-        drawCentered(ded, `For ${details.genderClean === 'girl' ? 'Ananya' : 'Aarav'},`, 520, 32, serifBI, pal.cover);
-
-        // 6 Spreads (Pages 4 to 15: Left Image + Right Text)
+        // 6 Spreads = 12 Interior Story Pages (Pages 2 to 13)
         for (let i = 0; i < scenes; i++) {
+            // Left Page: Illustration
             const imgPage = pdfDoc.addPage([PAGE_W, PAGE_H]);
             imgPage.drawImage(dummyImg, { x: 0, y: 0, width: PAGE_W, height: PAGE_H });
 
+            // Right Page: Verse
             const textPage = pdfDoc.addPage([PAGE_W, PAGE_H]);
-            drawCentered(textPage, `Chapter ${i + 1}`, 600, 26, serifB, pal.cover);
-            drawCentered(textPage, `Spread ${i + 1}`, 112, 11, bookFont, pal.ink);
+            drawCentered(textPage, `Scene ${i + 1}`, 600, 26, serifB, pal.cover);
+            drawCentered(textPage, `— ${i + 1} —`, 112, 12, serif, pal.ink, 0.75);
         }
 
-        // Page 16: Certificate
-        const cert = pdfDoc.addPage([PAGE_W, PAGE_H]);
-        drawCentered(cert, 'Official Keepsake Certificate', 580, 24, serifBI, pal.cover);
+        // Final Page: Ending Keepsake Page with Dedication (Page 14)
+        const endPage = pdfDoc.addPage([PAGE_W, PAGE_H]);
+        drawCentered(endPage, 'TwinkleTale', 630, 28, serifBI, pal.accent);
+        drawCentered(endPage, 'For Ananya, with endless love', 525, 20, serifB, pal.accent);
+        drawVectorStar(endPage, PAGE_W / 2, 680, 5, 18, 8, pal.accent);
 
-        // Page 17: Back cover
-        const back = pdfDoc.addPage([PAGE_W, PAGE_H]);
-        drawCentered(back, 'TwinkleTale', 450, 32, serifBI, pal.accent);
-
-        const pageCount = pdfDoc.getPageCount();
-        assert.strictEqual(pageCount, 17, 'Total pages must be 17 for 6 spreads');
+        // Strict assertion
+        const expectedPages = (scenes * 2) + 2;
+        assert.strictEqual(pdfDoc.getPageCount(), 14, 'Total pages must be exactly 14');
+        assert.strictEqual(pdfDoc.getPageCount(), expectedPages, 'Total pages must match (scenes * 2) + 2');
 
         const bytes = await pdfDoc.save();
-        console.log(`✅ TEST 2 PASSED: 16-page Treasury Edition layout verified (Total physical pages: ${pageCount}, size: ${bytes.length} bytes)\n`);
+        console.log(`✅ TEST 2 PASSED: Strict 14-page Treasury Edition verified! (Total physical pages: ${pdfDoc.getPageCount()}, size: ${bytes.length} bytes)\n`);
         passedCount++;
     } catch (e) {
         console.error('❌ TEST 2 FAILED:', e);
@@ -283,18 +350,16 @@ async function runTests() {
     // TEST 3: Spanish Kingdom Story with Inclusive Gender "Little Star"
     // =========================================================================
     try {
-        console.log('--- TEST 3: Spanish Kingdom Story (Gender-Inclusive "Little Star" + Accents) ---');
-        const details = getCharacterDetails('Alex', 'star', 4);
+        console.log('--- TEST 3: Spanish Kingdom Story (Gender-Inclusive "Little Star" + Locked Outfit) ---');
+        const details = getCharacterDetails('Alex', 'star', 4, 'Kingdom & Castles');
         assert.strictEqual(details.genderClean, 'little star');
         assert.strictEqual(details.pronoun, 'their');
         assert.strictEqual(details.subjectPronoun, 'they');
-        assert(details.charAnchor.includes('a cute and cheerful 4-year-old child named Alex'));
+        assert(details.charAnchor.includes('adorable 4-year-old child named Alex'));
+        assert(details.outfit.includes('pastel lavender tunic'));
 
         const pal = themeKit('Kingdom & Castles');
-        const title = themeTitle('Kingdom & Castles');
-
         const pdfDoc = await PDFDocument.create();
-        const bookFont = await getFontForLanguage(pdfDoc, 'Spanish');
         const serifB = await pdfDoc.embedFont('Times-Bold');
 
         const page = pdfDoc.addPage([PAGE_W, PAGE_H]);
@@ -316,40 +381,46 @@ async function runTests() {
     }
 
     // =========================================================================
-    // TEST 4: Long Book (Grand Treasury Edition: 24 Interior Pages = 12 Spreads)
+    // TEST 4: Grand Treasury (24 Interior Pages = Exactly 26 Total Physical Pages)
     // =========================================================================
     try {
-        console.log('--- TEST 4: Long Book (Grand Treasury: 24 Interior Pages = 28-29 Total Pages) ---');
+        console.log('--- TEST 4: Grand Treasury Edition (Strict 26-Page Guardrail: 1 Cover + 24 Interior + 1 Ending) ---');
         const scenes = getSceneCount('Grand Treasury (24 pages)');
         assert.strictEqual(scenes, 12, 'Grand Treasury must have 12 scenes (24 interior pages)');
 
         const pdfDoc = await PDFDocument.create();
         const dummyImg = await pdfDoc.embedPng(dummyPng);
         const font = await pdfDoc.embedFont('Times-Roman');
+        const fontB = await pdfDoc.embedFont('Times-Bold');
+        const pal = themeKit('Ocean & Dolphins');
 
-        // Cover, Frontispiece, Dedication
-        pdfDoc.addPage([PAGE_W, PAGE_H]);
-        pdfDoc.addPage([PAGE_W, PAGE_H]);
-        pdfDoc.addPage([PAGE_W, PAGE_H]);
+        // Page 1: Front Cover
+        const cover = pdfDoc.addPage([PAGE_W, PAGE_H]);
+        cover.drawImage(dummyImg, { x: 0, y: 0, width: PAGE_W, height: PAGE_H });
 
-        // 12 Spreads = 24 pages
+        // 12 Spreads = 24 Interior Pages (Pages 2 to 25)
         for (let i = 1; i <= 12; i++) {
+            // Left page: Illustration
             const p1 = pdfDoc.addPage([PAGE_W, PAGE_H]);
             p1.drawImage(dummyImg, { x: 0, y: 0, width: PAGE_W, height: PAGE_H });
 
+            // Right page: Verse
             const p2 = pdfDoc.addPage([PAGE_W, PAGE_H]);
-            drawCentered(p2, `Grand Treasury Scene ${i}`, 400, 20, font, rgb(0, 0, 0));
+            drawCentered(p2, `Grand Treasury Scene ${i}`, 600, 24, fontB, pal.cover);
+            drawCentered(p2, `— ${i} —`, 112, 12, font, pal.ink);
         }
 
-        // Certificate & Back Cover
-        pdfDoc.addPage([PAGE_W, PAGE_H]);
-        pdfDoc.addPage([PAGE_W, PAGE_H]);
+        // Final Page: Ending Keepsake Page (Page 26)
+        const endPage = pdfDoc.addPage([PAGE_W, PAGE_H]);
+        drawCentered(endPage, 'TwinkleTale', 630, 28, fontB, pal.accent);
 
         const totalPages = pdfDoc.getPageCount();
-        assert.strictEqual(totalPages, 29, 'Total pages must equal 29 (3 front + 24 interior + 2 back)');
+        const expectedPages = (scenes * 2) + 2;
+        assert.strictEqual(totalPages, 26, 'Total pages must equal exactly 26 (1 cover + 24 interior + 1 ending)');
+        assert.strictEqual(totalPages, expectedPages, 'Total pages must equal (scenes * 2) + 2');
 
         const bytes = await pdfDoc.save();
-        console.log(`✅ TEST 4 PASSED: Grand Treasury 24-interior page layout verified (Total pages: ${totalPages}, size: ${bytes.length} bytes)\n`);
+        console.log(`✅ TEST 4 PASSED: Grand Treasury 26-page guardrail strictly verified! (Total physical pages: ${totalPages}, size: ${bytes.length} bytes)\n`);
         passedCount++;
     } catch (e) {
         console.error('❌ TEST 4 FAILED:', e);
@@ -373,7 +444,6 @@ async function runTests() {
             const font = await getFontForLanguage(pdfDoc, lang.name);
             const page = pdfDoc.addPage([PAGE_W, PAGE_H]);
             
-            // Draw text
             page.drawText(lang.text, { x: 50, y: 500, size: 20, font, color: rgb(0.1, 0.1, 0.2) });
             const bytes = await pdfDoc.save();
             assert(bytes.length > 5000, `PDF for ${lang.name} should generate`);

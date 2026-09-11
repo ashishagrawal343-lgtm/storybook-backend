@@ -23,9 +23,9 @@ HOW THE APP WORKS (END-TO-END FLOW B: TEASER PREVIEW -> PAYMENT -> FULFILLMENT)
    - Backend caches session data under a unique previewId and returns the 
      personalized cover preview & opening rhyme.
 4) Frontend smoothly scrolls to the Preview Stage displaying a 3D book mockup:
-   Parent selects edition:
-   - Treasury Edition (12 Interior Pages = 6 Spreads / 16 Total Pages): Rs. 199
-   - Grand Treasury Edition (24 Interior Pages = 12 Spreads / 28 Total Pages): Rs. 299
+   Selected edition summary displayed (chosen upfront in customizer form):
+   - Treasury Edition (12 Story Pages = 6 Spreads / 14 Total Physical Pages): Rs. 199
+   - Grand Treasury Edition (24 Story Pages = 12 Spreads / 26 Total Physical Pages): Rs. 299
 5) Parent clicks "Unlock Full Book" -> Frontend calls POST /api/create-order.
    Razorpay checkout modal opens with UPI (GPay/PhonePe/Paytm), Cards, NetBanking.
    (Works in Test Mode immediately; switches to Live upon adding credentials).
@@ -33,13 +33,11 @@ HOW THE APP WORKS (END-TO-END FLOW B: TEASER PREVIEW -> PAYMENT -> FULFILLMENT)
    Backend verifies HMAC-SHA256 signature, spawns asynchronous generation job,
    and returns jobId. Frontend polls GET /api/job-status/:jobId with live progress bar.
 7) Backend compiles the locked Left-Image / Right-Verse Spread Layout:
-   - Page 1: Front Cover (Gold-ring medallion + child vignette + curved title)
-   - Page 2: Frontispiece / Welcome to TwinkleTale
-   - Page 3: Dedication Page ("For ChildName" + personal note)
-   - Pages 4 through (3 + 2 * scenes): Strict Left-Image / Right-Verse Spreads
-     (Even Page = Left Full-Bleed Illustration; Odd Page = Right Framed Verse Page)
-   - Penultimate Page: Keepsake Certificate ("This bedtime treasury belongs to ChildName")
-   - Final Page: Back Cover (Theme palette + gold frame vectors + TwinkleTale seal)
+   - Page 1: Front Cover (Gold-ring medallion + 3D Pixar child avatar + gold title)
+   - Pages 2 through (1 + 2 * scenes): Strict Left-Image / Right-Verse Spreads
+     (Even Page = Left Full-Bleed Illustration; Odd Page = Right Framed Verse Page with "— Spread N —")
+   - Final Page: Ending Keepsake Page (Theme palette + gold frame vectors + TwinkleTale seal + child dedication + bedtime wish)
+   - Hard Guardrail: (scenes * 2) + 2 physical pages asserted.
 8) PDF is uploaded to Supabase Storage (permanent public URL; local disk fallback).
    Brevo HTTPS API dispatches branded delivery email containing download link.
 9) Frontend reveals big green "Download Storybook (PDF)" button.
