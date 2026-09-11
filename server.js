@@ -1076,5 +1076,9 @@ app.get('/api/test-email', async (req, res) => {
 
 app.use('/books', express.static(path.join(__dirname, 'books')));
 
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 TwinkleTale Server running on port ${PORT}`));
