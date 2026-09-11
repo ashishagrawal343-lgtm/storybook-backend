@@ -46,6 +46,47 @@ try {
 
 const fontkit = require('@pdf-lib/fontkit');
 
+// ====================================================================
+// CRITICAL PATCH: pdf-lib CustomFontEmbedder pre-base vowel advance & full glyph cache fix
+// ====================================================================
+try {
+    const CustomFontEmbedder = require('pdf-lib/cjs/core/embedders/CustomFontEmbedder').default;
+    if (CustomFontEmbedder && CustomFontEmbedder.prototype) {
+        CustomFontEmbedder.prototype.computeWidths = function () {
+            var glyphs = this.glyphCache.access();
+            var widths = [];
+            var currSection = [];
+            for (var idx = 0, len = glyphs.length; idx < len; idx++) {
+                var currGlyph = glyphs[idx];
+                var prevGlyph = glyphs[idx - 1];
+                var currGlyphId = this.glyphId(currGlyph);
+                var prevGlyphId = this.glyphId(prevGlyph);
+                if (idx === 0) {
+                    widths.push(currGlyphId);
+                }
+                else if (currGlyphId - prevGlyphId !== 1) {
+                    widths.push(currSection);
+                    widths.push(currGlyphId);
+                    currSection = [];
+                }
+
+                let adv = (currGlyph && currGlyph.advanceWidth) || 0;
+                const name = (currGlyph && currGlyph.name) || '';
+                // Pre-base vowel signs (Hindi choti-i, Bengali, Telugu, etc.) must not advance before consonant
+                if (name.startsWith('ivowelsign') || name === 'dvmI' || name.startsWith('dvmI.')) {
+                    adv = 0;
+                }
+                currSection.push(adv * this.scale);
+            }
+            widths.push(currSection);
+            return widths;
+        };
+        console.log('✅ CustomFontEmbedder pre-base vowel advance patch applied successfully');
+    }
+} catch (embedErr) {
+    console.warn('⚠️ Could not apply CustomFontEmbedder patch:', embedErr.message);
+}
+
 const app = express();
 app.set('trust proxy', true);
 app.use(cors());
@@ -270,6 +311,39 @@ function chooseFont(text, bookFont, latinFont) {
     return latinFont;
 }
 
+// MULTILINGUAL SCRIPT TEXT SANITIZER (PREVENTS ACCIDENTAL GAPS & DETACHED VOWELS)
+function sanitizeIndicText(text) {
+    if (!text) return '';
+    return String(text)
+        .replace(/जादु\s+ई/g, 'जादुई')
+        .replace(/हु\s+ई/g, 'हुई')
+        .replace(/ग\s+ई/g, 'गई')
+        .replace(/आ\s+ई/g, 'आई')
+        .replace(/उन्हों\s+ने/g, 'उन्होंने')
+        .replace(/उन्\s+होंने/g, 'उन्होंने')
+        .replace(/प्\s+यारे/g, 'प्यारे')
+        .replace(/तुम्\s+हारी/g, 'तुम्हारी')
+        .replace(/तुम्\s+हारा/g, 'तुम्हारा')
+        .replace(/मुस्\s+कुरा/g, 'मुस्कुरा')
+        .replace(/श\s+क्ति/g, 'शक्ति')
+        .replace(/\s+([,।!?])/g, '$1')
+        .trim();
+}
+
+async function embedLanguageFont(pdfDoc, fontPath) {
+    const fontBytes = fs.readFileSync(fontPath);
+    const font = await pdfDoc.embedFont(fontBytes);
+    if (font && font.embedder && font.embedder.font && font.embedder.font.numGlyphs) {
+        const fkFont = font.embedder.font;
+        const allGlyphs = [];
+        for (let id = 0; id < fkFont.numGlyphs; id++) {
+            allGlyphs.push(fkFont.getGlyph(id));
+        }
+        font.embedder.glyphCache.value = allGlyphs;
+    }
+    return font;
+}
+
 // MULTILINGUAL FONT EMBEDDING
 async function getFontForLanguage(pdfDoc, lang) {
     pdfDoc.registerFontkit(fontkit);
@@ -278,23 +352,23 @@ async function getFontForLanguage(pdfDoc, lang) {
     try {
         if (l.includes('hindi')) {
             const p = path.join(fontsFolder, 'NotoSansDevanagari-Regular.ttf');
-            if (fs.existsSync(p)) return await pdfDoc.embedFont(fs.readFileSync(p));
+            if (fs.existsSync(p)) return await embedLanguageFont(pdfDoc, p);
         }
         if (l.includes('bengali') || l.includes('bangla')) {
             const p = path.join(fontsFolder, 'NotoSansBengali-Regular.ttf');
-            if (fs.existsSync(p)) return await pdfDoc.embedFont(fs.readFileSync(p));
+            if (fs.existsSync(p)) return await embedLanguageFont(pdfDoc, p);
         }
         if (l.includes('tamil')) {
             const p = path.join(fontsFolder, 'NotoSansTamil-Regular.ttf');
-            if (fs.existsSync(p)) return await pdfDoc.embedFont(fs.readFileSync(p));
+            if (fs.existsSync(p)) return await embedLanguageFont(pdfDoc, p);
         }
         if (l.includes('telugu')) {
             const p = path.join(fontsFolder, 'NotoSansTelugu-Regular.ttf');
-            if (fs.existsSync(p)) return await pdfDoc.embedFont(fs.readFileSync(p));
+            if (fs.existsSync(p)) return await embedLanguageFont(pdfDoc, p);
         }
         if (l.includes('arabic') || l.includes('urdu')) {
             const p = path.join(fontsFolder, 'NotoSansArabic-Regular.ttf');
-            if (fs.existsSync(p)) return await pdfDoc.embedFont(fs.readFileSync(p));
+            if (fs.existsSync(p)) return await embedLanguageFont(pdfDoc, p);
         }
     } catch (e) {
         console.log(`⚠️ Font embed notice for ${lang}:`, e.message);
@@ -311,7 +385,7 @@ function coverFit(img, pw, ph) {
 }
 
 function wrapText(text, font, size, maxWidth) {
-    const str = String(text || '').trim();
+    const str = sanitizeIndicText(String(text || '').trim());
     if (!str) return [];
     const words = str.split(/\s+/).filter(Boolean);
     const lines = []; let cur = '';
@@ -329,11 +403,12 @@ function wrapText(text, font, size, maxWidth) {
 }
 
 function drawCentered(page, text, y, size, font, color, opacity) {
+    const cleanText = sanitizeIndicText(text);
     try {
-        const w = font.widthOfTextAtSize(text, size);
-        page.drawText(text, { x: (PAGE_W - w) / 2, y, size, font, color, opacity: opacity === undefined ? 1 : opacity });
+        const w = font.widthOfTextAtSize(cleanText, size);
+        page.drawText(cleanText, { x: (PAGE_W - w) / 2, y, size, font, color, opacity: opacity === undefined ? 1 : opacity });
     } catch (e) {
-        try { page.drawText(text, { x: 50, y, size, font, color, opacity: opacity === undefined ? 1 : opacity }); }
+        try { page.drawText(cleanText, { x: 50, y, size, font, color, opacity: opacity === undefined ? 1 : opacity }); }
         catch (e2) { console.log('⚠️ drawCentered fallback notice:', e2.message); }
     }
 }
@@ -563,6 +638,60 @@ async function embedImageBuffer(pdfDoc, buf, label = 'image') {
 }
 
 // ====================================================================
+// STORY COMPLETION ENGINE: SARVAM AI (INDIC) + DEEPSEEK (GLOBAL & FALLBACK)
+// ====================================================================
+async function callStoryLLM(systemPrompt, userPrompt, lang) {
+    const isIndic = /hindi|bengali|bangla|tamil|telugu|urdu/i.test(String(lang || ''));
+    if (isIndic && process.env.SARVAM_API_KEY) {
+        try {
+            console.log(`🇮🇳 Calling Sarvam AI (sarvam-105b) for authentic ${lang} storytelling...`);
+            const sarvamRes = await axios.post('https://api.sarvam.ai/v1/chat/completions', {
+                model: 'sarvam-105b',
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: userPrompt }
+                ],
+                temperature: 0.3,
+                max_tokens: 4096,
+                reasoning_effort: null,
+                response_format: { type: 'json_object' }
+            }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'api-subscription-key': process.env.SARVAM_API_KEY,
+                    'Authorization': `Bearer ${process.env.SARVAM_API_KEY}`
+                },
+                timeout: 45000
+            });
+            const content = sarvamRes.data?.choices?.[0]?.message?.content;
+            if (content) {
+                console.log(`✅ Sarvam AI successfully generated story in ${lang}!`);
+                return content;
+            }
+        } catch (sarvamErr) {
+            console.warn(`⚠️ Sarvam AI notice (${sarvamErr.message}), falling back to DeepSeek...`);
+        }
+    }
+
+    // Default & Fallback: DeepSeek Chat
+    console.log(`🌐 Calling DeepSeek (deepseek-chat) for ${lang}...`);
+    const deepseekRes = await axios.post('https://api.deepseek.com/v1/chat/completions', {
+        model: 'deepseek-chat',
+        messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+        ]
+    }, {
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`
+        },
+        timeout: 45000
+    });
+    return deepseekRes.data?.choices?.[0]?.message?.content || '';
+}
+
+// ====================================================================
 // FLOW B: STEP 1 - CREATE FREE TEASER PREVIEW (WITH LANGUAGE & GENDER)
 // ====================================================================
 app.post('/api/create-preview', rateLimiter, async (req, res) => {
@@ -580,33 +709,22 @@ app.post('/api/create-preview', rateLimiter, async (req, res) => {
 
         console.log(`✨ Preview | ${childName} (${genderClean}, ${childAge}) | ${base} | Lang=${lang}`);
 
-        // Step 1: DeepSeek story outline, unique title, opening rhyme & 4K bespoke visual prompts
+        // Step 1: LLM story outline, unique title, opening rhyme & 4K bespoke visual prompts
         const genderGuidance = (genderClean === 'little star')
             ? `The child is non-binary / gender-neutral (Little Star). Use gentle, gender-inclusive wording, using they/them pronouns or referring warmly to ${childName}.`
             : `The child protagonist is ${childName}, a ${childAge}-year-old ${genderClean} (${pronoun}/${subjectPronoun}).`;
 
-        const storyResponse = await withRetry('preview story outline', () => axios.post('https://api.deepseek.com/v1/chat/completions', {
-            model: 'deepseek-chat',
-            messages: [
-                {
-                    role: 'system',
-                    content: `You are an award-winning children's storybook author and visual art director for TwinkleTale. Output ONLY a valid JSON object with keys:
+        const systemPrompt = `You are an award-winning children's storybook author and visual art director for TwinkleTale. Output ONLY a valid JSON object with keys:
 "book_title": (a unique, poetic, charming 3-5 word storybook title in ${lang} specifically tailored to ${childName}'s bedtime adventure in ${theme}, e.g. "${childName} और जादुई डॉल्फ़िन" or "${childName} and the Starlight Voyage"),
 "opening_rhyme": (4 lines of lyrical, warm read-aloud rhyme welcoming ${childName} into their bedtime adventure in ${lang}),
 "cover_image_prompt": (a detailed 70-90 word visual art prompt in English describing the front cover painting in rich stylized painterly realism: describe ${charAnchor} as the cheerful hero actively interacting with a breathtaking, magical ${theme} world with ${pal.motifs}; child has soulful sparkling eyes and a warm joyful expression; upper third of scene has a wide open, tranquil, completely empty blank pastel sky with soft floating clouds and gentle starlight, pure background art with NO text, NO words, NO letters, NO name, NO typography; cinematic volumetric golden hour lighting, gentle rim light, rich digital gouache and fine oils texture),
 "story_scenes": (an array of 12 objects, each with "scene_title" [2-4 words in ${lang}], "page_text" [35-50 words in ${lang}], and "image_prompt" [an active, evocative 70-90 word visual art prompt in English describing ${charAnchor} actively interacting with the world in this scene (e.g., reaching out with wonder, holding glowing starlight motes in palms, exploring beside friendly companion creatures, gazing through portals, discovering hidden treasures); soulful sparkling eyes, natural dimensional skin tones with gentle peachy warmth, cinematic lighting, rich depth of field, atmospheric magical embers, painterly storybook realism; NEVER include any child's name in image_prompt]).
 ${genderGuidance}
-LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme", "scene_title", "page_text") MUST be written beautifully in ${lang} using its authentic script. All visual prompts ("cover_image_prompt", "image_prompt") MUST be in English. No markdown, no commentary.`
-                },
-                {
-                    role: 'user',
-                    content: `Create an enchanting ${theme} bedtime storybook for ${childName} in ${lang}.`
-                }
-            ]
-        }, { headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}` } }), 2, 3000);
+LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme", "scene_title", "page_text") MUST be written beautifully in ${lang} using its authentic script. All visual prompts ("cover_image_prompt", "image_prompt") MUST be in English. No markdown, no commentary.`;
+        const userPrompt = `Create an enchanting ${theme} bedtime storybook for ${childName} in ${lang}.`;
 
-        let storyText = storyResponse.data.choices[0].message.content;
-        storyText = storyText.replace(/```json/g, '').replace(/```/g, '').trim();
+        const rawStoryText = await withRetry('preview story outline', () => callStoryLLM(systemPrompt, userPrompt, lang), 2, 3000);
+        let storyText = rawStoryText.replace(/```json/g, '').replace(/```/g, '').trim();
         const storyJson = JSON.parse(storyText);
         const bookTitle = (storyJson.book_title && storyJson.book_title.trim()) || `${childName}'s ${themeTitle(base)}`;
         const openingRhyme = storyJson.opening_rhyme || `Underneath the twinkling stars, where dreams begin to play,\nA special tale unfolds tonight, to softly guide your way.\nFor ${childName}, our little dreamer, so brave and kind and bright,\nA magical bedtime story starts before you sleep tonight.`;
@@ -1218,26 +1336,17 @@ app.post('/api/create-book', rateLimiter, async (req, res) => {
             ? `The child is non-binary / gender-neutral (Little Star). Use gender-inclusive wording with they/them or ${childName}.`
             : `The child protagonist is ${childName}, a ${childAge}-year-old ${genderClean} (${pronoun}/${subjectPronoun}).`;
 
-        const storyResponse = await withRetry('story', () => axios.post('https://api.deepseek.com/v1/chat/completions', {
-            model: 'deepseek-chat',
-            messages: [
-                {
-                    role: 'system',
-                    content: `You are an award-winning children's storybook author for TwinkleTale. Output ONLY a valid JSON array of ${scenes} objects. No markdown, no extra text.
+        const systemPrompt = `You are an award-winning children's storybook author for TwinkleTale. Output ONLY a valid JSON object with key "scenes": an array of ${scenes} objects. No markdown, no extra text.
 ${genderGuidance}
-Each object must have "scene_title" (2-4 words in ${lang}), "page_text" (35-50 words in ${lang}), and "image_prompt" (one detailed sentence in English describing ${charAnchor}).
-Write all scene text in ${lang} using its authentic script.`
-                },
-                {
-                    role: 'user',
-                    content: `Write a ${scenes}-scene bedtime story for ${childName} in ${lang} about ${theme}.`
-                }
-            ]
-        }, { headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}` } }), 2, 3000);
+Each object in "scenes" must have "scene_title" (2-4 words in ${lang}), "page_text" (35-50 words in ${lang}), and "image_prompt" (one detailed sentence in English describing ${charAnchor}).
+Write all scene text in ${lang} using its authentic script.`;
+        const userPrompt = `Write a ${scenes}-scene bedtime story for ${childName} in ${lang} about ${theme}.`;
 
-        let storyText = storyResponse.data.choices[0].message.content;
-        storyText = storyText.replace(/```json/g, '').replace(/```/g, '').trim();
-        const rawPages = JSON.parse(storyText);
+        const rawStoryText = await withRetry('story', () => callStoryLLM(systemPrompt, userPrompt, lang), 2, 3000);
+
+        let storyText = rawStoryText.replace(/```json/g, '').replace(/```/g, '').trim();
+        let parsed = JSON.parse(storyText);
+        let rawPages = Array.isArray(parsed) ? parsed : (parsed.scenes || parsed.story_scenes || []);
         const pages = (Array.isArray(rawPages) ? rawPages : []).slice(0, scenes);
 
         console.log("  → Painting full-bleed storybook cover...");
