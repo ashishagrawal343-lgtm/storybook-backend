@@ -100,7 +100,7 @@ if (!fs.existsSync(fontsFolder)) fs.mkdirSync(fontsFolder);
 
 const PAGE_W = 600, PAGE_H = 800;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-const STYLE = 'Award-winning children\'s picture book illustration, hand-painted gouache and soft watercolor texture, warm pastel palette, gentle storybook lighting, dreamy whimsical atmosphere, high detail, cohesive series style, no text, no words, no letters, no watermark: ';
+const STYLE = 'Award-winning whimsical children\'s picture book illustration, soft hand-painted watercolor and gouache texture, gentle Studio Ghibli warmth and charm, cozy storybook atmosphere, adorable expressive child character with rounded cute features, warm magical lighting, clean composition, soft pastel tones, dreamy bedtime feeling, no text, no words, no letters, no watermark, not 3D CGI, not realistic photo, not plastic: ';
 const PACING = 10000;
 
 // Preview session cache and Job status tracking
@@ -117,16 +117,17 @@ setInterval(() => {
     }
 }, 30 * 60 * 1000);
 
+// FULL-BLEED COVER PRINT-SAFE ZONES
 const Z = {
-    name:  { bottom: 690 },
-    medal: { cx: 300, cy: 450, r: 120 },
-    title: { top: 300, bottom: 150 }
+    topSky:       { top: 760, bottom: 560 }, // Open sky / water for title and name
+    focalHero:    { top: 560, bottom: 110 }, // Child hero exploring the scene
+    bottomBanner: { top: 110, bottom: 40 }   // Keepsake footer branding
 };
 
 function assertZones() {
-    const ok = Z.name.bottom > (Z.medal.cy + Z.medal.r + 12) &&
-               (Z.medal.cy - Z.medal.r - 12) > Z.title.top &&
-               Z.title.bottom > 0;
+    const ok = Z.topSky.bottom >= Z.focalHero.top &&
+               Z.focalHero.bottom >= Z.bottomBanner.top &&
+               Z.bottomBanner.bottom > 0;
     if (!ok) throw new Error('COVER GUARDRAIL VIOLATION: zones overlap');
 }
 
@@ -232,8 +233,8 @@ function getCharacterDetails(childName, gender, age, theme) {
     }
 
     const charAnchor = (genderClean === 'little star')
-        ? `adorable ${childAge}-year-old child named ${childName} with large expressive cartoon eyes, soft rosy cheeks, button nose, friendly joyful smile, 3D Pixar/Disney style, ${outfit}`
-        : `adorable ${childAge}-year-old ${genderClean} named ${childName} with large expressive cartoon eyes, soft rosy cheeks, button nose, friendly joyful smile, 3D Pixar/Disney style, ${outfit}`;
+        ? `adorable ${childAge}-year-old child named ${childName} with sweet round rosy cheeks, cheerful curved eyes, button nose, friendly joyful smile, cozy storybook watercolor illustration style with gentle Ghibli charm, ${outfit}`
+        : `adorable ${childAge}-year-old ${genderClean} named ${childName} with sweet round rosy cheeks, cheerful curved eyes, button nose, friendly joyful smile, cozy storybook watercolor illustration style with gentle Ghibli charm, ${outfit}`;
 
     return { genderClean, childAge, pronoun, subjectPronoun, charAnchor, outfit };
 }
@@ -395,12 +396,12 @@ function drawFrameVectors(page, pal) {
     }
 }
 
-// 3D PIXAR AVATAR GENERATION (VERIFIED VIA FLUX-KONTEXT-PRO)
+// WHIMSICAL STORYBOOK AVATAR (GHIBLI / WATERCOLOR PICTURE BOOK STYLE)
 async function generateAvatar(photoData, charAnchor) {
     if (photoData) {
         try {
-            console.log("  → Transforming reference photo into 3D Pixar/Disney character avatar via flux-kontext-pro...");
-            const avatarPrompt = `Turn the person in this photo into an adorable 3D Pixar/Disney animated storybook character avatar, big expressive cartoon eyes, cheerful rosy cheeks, cute round child face, soft studio lighting, high quality 3D animation render, no realistic human skin`;
+            console.log("  → Transforming reference photo into cozy watercolor storybook avatar via flux-kontext-pro...");
+            const avatarPrompt = `Transform the child in this photo into an adorable, charming storybook character in a soft hand-painted watercolor and gouache picture book style, gentle Studio Ghibli warmth. Round cute rosy cheeks, warm joyful curved eyes, sweet button nose, friendly happy smile. Capture the child's exact hairstyle, hair color, eye shape, and sweet expression faithfully, but rendered as a cozy hand-painted storybook illustration. Not 3D CGI, not realistic photo, not plastic, no text, no watermark`;
             const out = await replicate.run("black-forest-labs/flux-kontext-pro", {
                 input: {
                     input_image: photoData,
@@ -415,12 +416,19 @@ async function generateAvatar(photoData, charAnchor) {
         }
     }
 
-    console.log("  → Painting 3D Pixar character portrait via flux-1.1-pro...");
-    const prompt = STYLE + `portrait of ${charAnchor} as an adorable 3D Pixar/Disney animated storybook hero, soft warm studio lighting, cheerful expression, 3D character render, neutral clean background`;
+    console.log("  → Painting watercolor storybook portrait via flux-1.1-pro...");
+    const prompt = STYLE + `portrait of ${charAnchor} as an adorable storybook hero, soft warm studio lighting, cheerful expression, cozy watercolor picture book illustration, clean soft background`;
     const out = await replicate.run("black-forest-labs/flux-1.1-pro", {
         input: { prompt: prompt, aspect_ratio: "1:1", output_format: "png" }
     });
     return extractUrl(out);
+}
+
+// FULL-BLEED STORYBOOK COVER PAINTING (MATCHING THE AARAV & REFERENCE COVERS)
+async function generateCoverPainting(charAnchor, base, pal, photoData) {
+    console.log(`  → Painting full-bleed storybook cover for ${base} theme...`);
+    const coverPrompt = STYLE + `full-bleed children's book cover illustration of ${charAnchor} as the joyful adventure hero exploring a breathtaking, magical ${base} world with ${pal.motifs}; child is smiling warmly in the lower-center of the scene; wide open tranquil uncluttered ${pal.flatWord} sky in the upper third of the composition for title typography, warm magical golden hour lighting, rich painterly watercolor texture, gentle Ghibli warmth, masterpiece picture book cover, no text, no words, no letters, no watermark, no border, no frame`;
+    return await generateImage(coverPrompt, photoData);
 }
 
 async function generateImage(prompt, photoData) {
@@ -498,19 +506,11 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme", "sce
         const openingRhyme = storyJson.opening_rhyme || `Underneath the twinkling stars, where dreams begin to play,\nA special tale unfolds tonight, to softly guide your way.\nFor ${childName}, our little dreamer, so brave and kind and bright,\nA magical bedtime story starts before you sleep tonight.`;
         const scenesData = Array.isArray(storyJson.story_scenes) ? storyJson.story_scenes : [];
 
-        // Step 2: Generate Cover Background + 3D Pixar Child Vignette
-        console.log("  → Painting preview cover background...");
-        const bgPrompt = STYLE + `ornate storybook cover BACKGROUND only: elaborate golden-cream vine and leaf border with small vignettes of ${pal.motifs} confined strictly to the outer fifteen percent edges; two gentle painted flourish arches of tiny leaves and stars framing an empty name plaque area at top and empty title plaque area below; the rest of the inner field is ${pal.flatWord}, flat and empty except a few sparse tiny golden stars; absolutely no character, no person, no moon, no text, no letters anywhere; rich painterly detail`;
-        const bgUrlRaw = await withRetry('cover background', async () => generateImage(bgPrompt, null));
-        const bgBuffer = await fetchImageBuffer(bgUrlRaw);
-
-        console.log("  → Painting preview 3D Pixar child medallion avatar...");
-        const vigUrlRaw = await withRetry('child avatar', async () => generateAvatar(photoData, charAnchor));
-        const vigBuffer = await fetchImageBuffer(vigUrlRaw);
-
-        // Convert buffers to permanent base64 data-URIs to prevent broken images
-        const vigDataUrl = 'data:image/png;base64,' + vigBuffer.toString('base64');
-        const bgDataUrl = 'data:image/png;base64,' + bgBuffer.toString('base64');
+        // Step 2: Generate Full-Bleed Cover Painting
+        console.log("  → Generating full-bleed storybook cover painting...");
+        const coverUrlRaw = await withRetry('cover painting', async () => generateCoverPainting(charAnchor, base, pal, photoData));
+        const coverBuffer = await fetchImageBuffer(coverUrlRaw);
+        const coverDataUrl = 'data:image/png;base64,' + coverBuffer.toString('base64');
 
         const previewId = `prev_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
         previewSessions.set(previewId, {
@@ -519,7 +519,9 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme", "sce
             photoData, dedication, email,
             charAnchor, pronoun, subjectPronoun, pal,
             title: bookTitle, bookTitle,
-            bgBuffer, vigBuffer, bgUrl: bgDataUrl, vigUrl: vigDataUrl,
+            coverBuffer, coverUrl: coverDataUrl,
+            // Backwards compatibility for legacy references
+            bgBuffer: coverBuffer, vigBuffer: coverBuffer, bgUrl: coverDataUrl, vigUrl: coverDataUrl,
             scenesData, openingRhyme
         });
 
@@ -534,10 +536,13 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme", "sce
             language: lang,
             bookTitle,
             openingRhyme,
-            vignetteDataUrl: vigDataUrl,
-            coverBgDataUrl: bgDataUrl,
-            vignetteUrl: vigDataUrl,
-            coverBgUrl: bgDataUrl
+            coverDataUrl,
+            coverUrl: coverDataUrl,
+            // Backwards compatibility fields
+            vignetteDataUrl: coverDataUrl,
+            coverBgDataUrl: coverDataUrl,
+            vignetteUrl: coverDataUrl,
+            coverBgUrl: coverDataUrl
         });
     } catch (err) {
         console.error("❌ Preview error:", err.message);
@@ -703,42 +708,50 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         const frameImg = await embedImageBuffer(pdfDoc, frameImgBuffer);
         await sleep(PACING);
 
-        // ================= PAGE 1: FRONT COVER =================
-        update(30, 'Binding front cover...');
-        const bgImg = await embedImageBuffer(pdfDoc, bgBuffer);
-        const vigImg = await embedImageBuffer(pdfDoc, vigBuffer);
+        // ================= PAGE 1: FRONT COVER (FULL-BLEED STORYBOOK PAINTING) =================
+        update(30, 'Binding full-bleed front cover...');
+        let coverImgBuffer = session.coverBuffer || session.bgBuffer;
+        if (!coverImgBuffer) {
+            console.log("  → Cover buffer not cached in session, generating full-bleed cover painting...");
+            const coverUrl = await withRetry('cover painting', async () => generateCoverPainting(charAnchor, base, pal, photoData));
+            coverImgBuffer = await fetchImageBuffer(coverUrl);
+        }
+        const coverImg = await embedImageBuffer(pdfDoc, coverImgBuffer);
 
         const cover = pdfDoc.addPage([PAGE_W, PAGE_H]);
         cover.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.cover });
-        cover.drawImage(bgImg, coverFit(bgImg, PAGE_W, PAGE_H));
+        cover.drawImage(coverImg, coverFit(coverImg, PAGE_W, PAGE_H));
 
-        const d = Z.medal.r * 2;
-        const fit = coverFit(vigImg, d, d);
-        const dx = (Z.medal.cx - Z.medal.r) + fit.x;
-        const dy2 = (Z.medal.cy - Z.medal.r) + fit.y;
-        cover.drawImage(vigImg, { x: dx, y: dy2, width: fit.width, height: fit.height });
-        cover.drawEllipse({ x: Z.medal.cx, y: Z.medal.cy, xScale: Z.medal.r + 5, yScale: Z.medal.r + 5, borderColor: pal.accent, borderWidth: 3.5 });
-        cover.drawEllipse({ x: Z.medal.cx, y: Z.medal.cy, xScale: Z.medal.r + 11, yScale: Z.medal.r + 11, borderColor: pal.accent, borderWidth: 1.5, borderOpacity: 0.7 });
+        // Subtle soft vignette gradient overlay at top & bottom for maximum typography readability
+        cover.drawRectangle({
+            x: 0, y: 550, width: PAGE_W, height: 250,
+            color: rgb(0, 0, 0), opacity: 0.24
+        });
+        cover.drawRectangle({
+            x: 0, y: 0, width: PAGE_W, height: 95,
+            color: rgb(0, 0, 0), opacity: 0.35
+        });
 
-        // Front Cover Typography (Name Plaque & Poetic Title)
+        // Front Cover Typography (Name Plaque & Poetic Title in open top zone)
         const topLabel = isNonLatin(childName) ? `${childName}` : `${childName}'s`;
         const topFont = chooseFont(topLabel, bookFont, serifBI);
-        drawFlowLine(cover, topLabel, 705, 42, topFont, pal.accent, 2);
+        drawFlowLine(cover, topLabel, 715, 42, topFont, pal.accent, 2);
 
         const bookTitle = session.bookTitle || title || `${childName}'s Adventure`;
         const titleFont = chooseFont(bookTitle, bookFont, serifB);
-        let tSize = 38;
-        let tLines = wrapText(bookTitle, titleFont, tSize, 470);
-        if (tLines.length > 3) { tSize = 32; tLines = wrapText(bookTitle, titleFont, tSize, 470); }
-        let ty = 295;
+        let tSize = 36;
+        let tLines = wrapText(bookTitle, titleFont, tSize, 480);
+        if (tLines.length > 3) { tSize = 30; tLines = wrapText(bookTitle, titleFont, tSize, 480); }
+        let ty = 660;
         for (const line of tLines) {
             drawFlowLine(cover, line, ty, tSize, titleFont, rgb(0.99, 0.98, 0.94), 2.5);
-            ty -= 44;
+            ty -= 42;
         }
 
-        drawCentered(cover, 'TwinkleTale Keepsake Treasury', 118, 12, serifI, pal.accent, 0.85);
-        drawVectorStar(cover, PAGE_W / 2 - 110, 118, 5, 5, 2.2, pal.accent);
-        drawVectorStar(cover, PAGE_W / 2 + 110, 118, 5, 5, 2.2, pal.accent);
+        // Bottom Keepsake Banner (Safe print margin at y = 55)
+        drawCentered(cover, 'TwinkleTale Keepsake Treasury', 55, 12, serifI, pal.accent, 0.95);
+        drawVectorStar(cover, PAGE_W / 2 - 115, 55, 5, 5, 2.2, pal.accent);
+        drawVectorStar(cover, PAGE_W / 2 + 115, 55, 5, 5, 2.2, pal.accent);
 
         // Validate or fallback scenes
         const effectiveScenes = (scenesData || []).slice(0, scenes);
@@ -774,20 +787,20 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
 
             // Scene Title (Multilingual font routing)
             const sceneTitleFont = chooseFont(scene.scene_title, bookFont, serifB);
-            drawCentered(textPage, scene.scene_title, 600, 26, sceneTitleFont, pal.cover);
-            drawVectorDiamond(textPage, PAGE_W / 2, 566, 8, pal.cover);
+            drawCentered(textPage, scene.scene_title, 610, 26, sceneTitleFont, pal.cover);
+            drawVectorDiamond(textPage, PAGE_W / 2, 576, 8, pal.cover);
 
             // Verse Text (Multilingual font routing)
             const verseFont = chooseFont(scene.page_text, bookFont, serif);
             const verseLines = wrapText(scene.page_text, verseFont, 18, 400);
-            let by = 520 - ((520 - 160) - verseLines.length * 32) / 2;
+            let by = 520 - ((520 - 180) - verseLines.length * 32) / 2;
             for (const line of verseLines) {
                 drawCentered(textPage, line, by, 18, verseFont, pal.ink);
                 by -= 32;
             }
 
             // Spread Number (ALWAYS rendered with serif to prevent fontkit tofu blocks)
-            drawCentered(textPage, `— ${spreadIndex} —`, 112, 12, serif, pal.ink, 0.75);
+            drawCentered(textPage, `— ${spreadIndex} —`, 100, 12, serif, pal.ink, 0.75);
             spreadIndex++;
 
             if (i < scenes - 1) {
@@ -965,11 +978,8 @@ Write all scene text in ${lang} using its authentic script.`
         const rawPages = JSON.parse(storyText);
         const pages = (Array.isArray(rawPages) ? rawPages : []).slice(0, scenes);
 
-        const bgPrompt = STYLE + `ornate storybook cover BACKGROUND only: elaborate golden-cream vine and leaf border with small vignettes of ${pal.motifs} confined strictly to the outer fifteen percent edges; two gentle painted flourish arches of tiny leaves and stars framing an empty name plaque area at top and empty title plaque area below; the rest of the inner field is ${pal.flatWord}, flat and empty except a few sparse tiny stars; absolutely no character, no person, no moon, no text, no letters anywhere; rich painterly detail`;
-        const bgBuffer = await fetchImageBuffer(await generateImage(bgPrompt, null));
-        await sleep(PACING);
-
-        const vigBuffer = await fetchImageBuffer(await generateAvatar(photoData, charAnchor));
+        console.log("  → Painting full-bleed storybook cover...");
+        const coverBuffer = await fetchImageBuffer(await generateCoverPainting(charAnchor, base, pal, photoData));
         await sleep(PACING);
 
         const session = {
@@ -977,7 +987,8 @@ Write all scene text in ${lang} using its authentic script.`
             photoData, dedication, email,
             charAnchor, pronoun, subjectPronoun, pal,
             title, bookTitle: title,
-            bgBuffer, vigBuffer, scenesData: pages
+            coverBuffer, bgBuffer: coverBuffer, vigBuffer: coverBuffer,
+            scenesData: pages
         };
 
         const testJobId = `direct_${Date.now()}`;

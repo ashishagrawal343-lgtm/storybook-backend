@@ -64,8 +64,8 @@ function getCharacterDetails(childName, gender, age, theme) {
     }
 
     const charAnchor = (genderClean === 'little star')
-        ? `adorable ${childAge}-year-old child named ${childName} with large expressive cartoon eyes, soft rosy cheeks, button nose, friendly joyful smile, 3D Pixar/Disney style, ${outfit}`
-        : `adorable ${childAge}-year-old ${genderClean} named ${childName} with large expressive cartoon eyes, soft rosy cheeks, button nose, friendly joyful smile, 3D Pixar/Disney style, ${outfit}`;
+        ? `adorable ${childAge}-year-old child named ${childName} with sweet round rosy cheeks, cheerful curved eyes, button nose, friendly joyful smile, cozy storybook watercolor illustration style with gentle Ghibli charm, ${outfit}`
+        : `adorable ${childAge}-year-old ${genderClean} named ${childName} with sweet round rosy cheeks, cheerful curved eyes, button nose, friendly joyful smile, cozy storybook watercolor illustration style with gentle Ghibli charm, ${outfit}`;
 
     return { genderClean, childAge, pronoun, subjectPronoun, charAnchor, outfit };
 }
@@ -91,16 +91,17 @@ function themeTitle(base) {
     return 'Treasury of Wonderful Stories';
 }
 
+// FULL-BLEED COVER PRINT-SAFE ZONES
 const Z = {
-    name:  { bottom: 690 },
-    medal: { cx: 300, cy: 450, r: 120 },
-    title: { top: 300, bottom: 150 }
+    topSky:       { top: 760, bottom: 560 },
+    focalHero:    { top: 560, bottom: 110 },
+    bottomBanner: { top: 110, bottom: 40 }
 };
 
 function assertZones() {
-    const ok = Z.name.bottom > (Z.medal.cy + Z.medal.r + 12) &&
-               (Z.medal.cy - Z.medal.r - 12) > Z.title.top &&
-               Z.title.bottom > 0;
+    const ok = Z.topSky.bottom >= Z.focalHero.top &&
+               Z.focalHero.bottom >= Z.bottomBanner.top &&
+               Z.bottomBanner.bottom > 0;
     if (!ok) throw new Error('COVER GUARDRAIL VIOLATION: zones overlap');
 }
 
@@ -143,6 +144,13 @@ async function getFontForLanguage(pdfDoc, lang) {
     }
 
     return await pdfDoc.embedFont('Times-Roman');
+}
+
+function coverFit(img, pw, ph) {
+    const ir = img.width / img.height, pr = pw / ph;
+    let w, h;
+    if (ir > pr) { h = ph; w = ph * ir; } else { w = pw; h = pw / ir; }
+    return { x: (pw - w) / 2, y: (ph - h) / 2, width: w, height: h };
 }
 
 function wrapText(text, font, size, maxWidth) {
@@ -237,15 +245,16 @@ async function runTests() {
     let passedCount = 0;
 
     // =========================================================================
-    // TEST 1: Hindi Circus Story (Fontkit Shaper, chooseFont, Safe drawFlowLine, Zero Tofu)
+    // TEST 1: Hindi Circus Story (Full-Bleed Cover, Fontkit GPOS Shaper & Print-Safe Margins)
     // =========================================================================
     try {
-        console.log('--- TEST 1: Hindi Circus Story (Fontkit GPOS Shaper & Zero Tofu Check) ---');
+        console.log('--- TEST 1: Hindi Circus Story (Full-Bleed Cover & Fontkit GPOS Shaper) ---');
         assertZones();
         const details = getCharacterDetails('आरव', 'boy', 5, 'Circus & Carnivals');
         assert.strictEqual(details.genderClean, 'boy');
         assert.strictEqual(details.pronoun, 'his');
         assert(details.outfit.includes('berry-red and gold-trimmed'));
+        assert(details.charAnchor.includes('watercolor illustration style'));
 
         const pal = themeKit('Circus & Carnivals');
         const pdfDoc = await PDFDocument.create();
@@ -253,36 +262,54 @@ async function runTests() {
         const serifBI = await pdfDoc.embedFont('Times-BoldItalic');
         const serifB = await pdfDoc.embedFont('Times-Bold');
         const serif = await pdfDoc.embedFont('Times-Roman');
+        const dummyImg = await pdfDoc.embedPng(dummyPng);
 
+        // Page 1: Full-Bleed Front Cover
         const cover = pdfDoc.addPage([PAGE_W, PAGE_H]);
         cover.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.cover });
+        cover.drawImage(dummyImg, coverFit(dummyImg, PAGE_W, PAGE_H));
 
-        // English name plaque vs Hindi name plaque font routing
+        // Scrim overlays
+        cover.drawRectangle({ x: 0, y: 550, width: PAGE_W, height: 250, color: rgb(0, 0, 0), opacity: 0.24 });
+        cover.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: 95, color: rgb(0, 0, 0), opacity: 0.35 });
+
+        // English name plaque vs Hindi name plaque font routing in top zone (safe print margin)
         const topLabel = isNonLatin('आरव') ? 'आरव' : "Aarav's";
         const topFont = chooseFont(topLabel, bookFont, serifBI);
-        drawFlowLine(cover, topLabel, 705, 42, topFont, pal.accent, 2);
+        drawFlowLine(cover, topLabel, 715, 42, topFont, pal.accent, 2);
 
-        // Complex Hindi ligatures and conjuncts to test fontkit GPOS shaper fix
+        // Title in top zone
+        const bookTitle = "आरव और जादुई सर्कस";
+        const titleFont = chooseFont(bookTitle, bookFont, serifB);
+        drawFlowLine(cover, bookTitle, 660, 36, titleFont, rgb(0.99, 0.98, 0.94), 2.5);
+
+        // Bottom banner (safe margin at y = 55)
+        drawCentered(cover, 'TwinkleTale Keepsake Treasury', 55, 12, serif, pal.accent, 0.95);
+        drawVectorStar(cover, PAGE_W / 2 - 115, 55, 5, 5, 2.2, pal.accent);
+        drawVectorStar(cover, PAGE_W / 2 + 115, 55, 5, 5, 2.2, pal.accent);
+
+        // Complex Hindi ligatures and conjuncts on interior verse page
         const hindiVerse = "आरव सर्कस के जादुई मेले में पहुँचा, जहाँ चमकीले सितारे और रंग-बिरंगे झूले थे। जोकर ने मुस्कराकर आरव का स्वागत किया और एक प्यारा सा गुब्बारा उपहार में दिया।";
         const lines = wrapText(hindiVerse, bookFont, 18, 400);
         assert(lines.length > 1, 'Hindi text must wrap into multiple lines');
 
         const textPage = pdfDoc.addPage([PAGE_W, PAGE_H]);
-        let by = 500;
+        drawCentered(textPage, "जादुई मेला", 610, 26, bookFont, pal.cover);
+        drawVectorDiamond(textPage, PAGE_W / 2, 576, 8, pal.cover);
+
+        let by = 520 - ((520 - 180) - lines.length * 32) / 2;
         for (const line of lines) {
             drawCentered(textPage, line, by, 18, bookFont, pal.ink);
             by -= 32;
         }
+        assert(by >= 130, 'Verse lines must respect safe print margin');
 
-        // Test spread number rendered with serif (never with NotoSansDevanagari to prevent [][][][])
-        drawCentered(textPage, '— 1 —', 112, 12, serif, pal.ink, 0.75);
-
-        // Test vector stars without emoji
-        drawVectorStar(textPage, PAGE_W / 2, 600, 5, 12, 5, pal.accent);
+        // Test spread number rendered with serif at safe y = 100 pt
+        drawCentered(textPage, '— 1 —', 100, 12, serif, pal.ink, 0.75);
 
         const bytes = await pdfDoc.save();
         assert(bytes.length > 5000, 'PDF bytes should be generated');
-        console.log(`✅ TEST 1 PASSED: Hindi fontkit shaped correctly, zero tofu glyphs, vector star rendered! (size: ${bytes.length} bytes)\n`);
+        console.log(`✅ TEST 1 PASSED: Full-bleed cover, Hindi fontkit shaping, zero tofu, safe margins verified! (size: ${bytes.length} bytes)\n`);
         passedCount++;
     } catch (e) {
         console.error('❌ TEST 1 FAILED:', e);
@@ -311,21 +338,27 @@ async function runTests() {
 
         const dummyImg = await pdfDoc.embedPng(dummyPng);
 
-        // Page 1: Front Cover
+        // Page 1: Full-Bleed Front Cover
         const cover = pdfDoc.addPage([PAGE_W, PAGE_H]);
-        cover.drawImage(dummyImg, { x: 0, y: 0, width: PAGE_W, height: PAGE_H });
-        drawFlowLine(cover, "Ananya's", 705, 42, serifBI, pal.accent, 2);
+        cover.drawImage(dummyImg, coverFit(dummyImg, PAGE_W, PAGE_H));
+        cover.drawRectangle({ x: 0, y: 550, width: PAGE_W, height: 250, color: rgb(0, 0, 0), opacity: 0.24 });
+        cover.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: 95, color: rgb(0, 0, 0), opacity: 0.35 });
+        drawFlowLine(cover, "Ananya's", 715, 42, serifBI, pal.accent, 2);
+        drawFlowLine(cover, "Treasury of Space & Stars", 660, 36, serifB, rgb(0.99, 0.98, 0.94), 2.5);
+        drawCentered(cover, 'TwinkleTale Keepsake Treasury', 55, 12, serifI, pal.accent, 0.95);
 
         // 6 Spreads = 12 Interior Story Pages (Pages 2 to 13)
         for (let i = 0; i < scenes; i++) {
-            // Left Page: Illustration
+            // Left Page: Full-bleed Illustration
             const imgPage = pdfDoc.addPage([PAGE_W, PAGE_H]);
-            imgPage.drawImage(dummyImg, { x: 0, y: 0, width: PAGE_W, height: PAGE_H });
+            imgPage.drawImage(dummyImg, coverFit(dummyImg, PAGE_W, PAGE_H));
 
-            // Right Page: Verse
+            // Right Page: Framed Verse Page
             const textPage = pdfDoc.addPage([PAGE_W, PAGE_H]);
-            drawCentered(textPage, `Scene ${i + 1}`, 600, 26, serifB, pal.cover);
-            drawCentered(textPage, `— ${i + 1} —`, 112, 12, serif, pal.ink, 0.75);
+            drawCentered(textPage, `Scene ${i + 1}`, 610, 26, serifB, pal.cover);
+            drawVectorDiamond(textPage, PAGE_W / 2, 576, 8, pal.cover);
+            drawCentered(textPage, `A magical starlight adventure with wonder and joy on spread ${i + 1}.`, 400, 18, serif, pal.ink);
+            drawCentered(textPage, `— ${i + 1} —`, 100, 12, serif, pal.ink, 0.75);
         }
 
         // Final Page: Ending Keepsake Page with Dedication (Page 14)
@@ -394,20 +427,24 @@ async function runTests() {
         const fontB = await pdfDoc.embedFont('Times-Bold');
         const pal = themeKit('Ocean & Dolphins');
 
-        // Page 1: Front Cover
+        // Page 1: Full-Bleed Front Cover
         const cover = pdfDoc.addPage([PAGE_W, PAGE_H]);
-        cover.drawImage(dummyImg, { x: 0, y: 0, width: PAGE_W, height: PAGE_H });
+        cover.drawImage(dummyImg, coverFit(dummyImg, PAGE_W, PAGE_H));
+        cover.drawRectangle({ x: 0, y: 550, width: PAGE_W, height: 250, color: rgb(0, 0, 0), opacity: 0.24 });
+        cover.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: 95, color: rgb(0, 0, 0), opacity: 0.35 });
 
         // 12 Spreads = 24 Interior Pages (Pages 2 to 25)
         for (let i = 1; i <= 12; i++) {
-            // Left page: Illustration
+            // Left page: Full-bleed Illustration
             const p1 = pdfDoc.addPage([PAGE_W, PAGE_H]);
-            p1.drawImage(dummyImg, { x: 0, y: 0, width: PAGE_W, height: PAGE_H });
+            p1.drawImage(dummyImg, coverFit(dummyImg, PAGE_W, PAGE_H));
 
-            // Right page: Verse
+            // Right page: Framed Verse Page
             const p2 = pdfDoc.addPage([PAGE_W, PAGE_H]);
-            drawCentered(p2, `Grand Treasury Scene ${i}`, 600, 24, fontB, pal.cover);
-            drawCentered(p2, `— ${i} —`, 112, 12, font, pal.ink);
+            drawCentered(p2, `Grand Treasury Scene ${i}`, 610, 24, fontB, pal.cover);
+            drawVectorDiamond(p2, PAGE_W / 2, 576, 8, pal.cover);
+            drawCentered(p2, `A magical ocean adventure with wonder on spread ${i}.`, 400, 18, font, pal.ink);
+            drawCentered(p2, `— ${i} —`, 100, 12, font, pal.ink);
         }
 
         // Final Page: Ending Keepsake Page (Page 26)
