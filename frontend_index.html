@@ -2079,6 +2079,7 @@
 
           const coverSrc = data.coverDataUrl || data.coverUrl || data.coverBgDataUrl || data.vignetteDataUrl;
           if (coverSrc && typeof coverSrc === 'string' && coverSrc.length > 20) {
+            window.currentCoverDataUrl = coverSrc;
             coverImg.src = coverSrc;
             coverImg.style.display = 'block';
             mockup.style.backgroundImage = 'none';
@@ -2218,7 +2219,8 @@
             razorpay_payment_id: paymentResponse.razorpay_payment_id,
             razorpay_signature: paymentResponse.razorpay_signature,
             bookLength: isLong ? '24 pages' : '12 pages',
-            email
+            email,
+            coverDataUrl: window.currentCoverDataUrl || ''
           })
         });
 

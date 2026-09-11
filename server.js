@@ -232,11 +232,15 @@ function getCharacterDetails(childName, gender, age, theme) {
         outfit = 'wearing warm fluffy cloud-white pajamas sprinkled with tiny golden stars';
     }
 
-    const charAnchor = (genderClean === 'little star')
+    const charAnchorText = (genderClean === 'little star')
         ? `adorable ${childAge}-year-old child named ${childName} with sweet round rosy cheeks, cheerful curved eyes, button nose, friendly joyful smile, cozy storybook watercolor illustration style with gentle Ghibli charm, ${outfit}`
         : `adorable ${childAge}-year-old ${genderClean} named ${childName} with sweet round rosy cheeks, cheerful curved eyes, button nose, friendly joyful smile, cozy storybook watercolor illustration style with gentle Ghibli charm, ${outfit}`;
 
-    return { genderClean, childAge, pronoun, subjectPronoun, charAnchor, outfit };
+    const charAnchorVisual = (genderClean === 'little star')
+        ? `adorable ${childAge}-year-old child with sweet round rosy cheeks, cheerful curved eyes, button nose, friendly joyful smile, cozy storybook watercolor illustration style with gentle Ghibli charm, ${outfit}`
+        : `adorable ${childAge}-year-old ${genderClean} with sweet round rosy cheeks, cheerful curved eyes, button nose, friendly joyful smile, cozy storybook watercolor illustration style with gentle Ghibli charm, ${outfit}`;
+
+    return { genderClean, childAge, pronoun, subjectPronoun, charAnchor: charAnchorVisual, charAnchorVisual, charAnchorText, outfit };
 }
 
 // Helper to safely extract string URL from Replicate output
@@ -425,20 +429,28 @@ async function generateAvatar(photoData, charAnchor) {
 }
 
 // FULL-BLEED STORYBOOK COVER PAINTING (MATCHING THE AARAV & REFERENCE COVERS)
-async function generateCoverPainting(charAnchor, base, pal, photoData) {
+async function generateCoverPainting(charAnchor, base, pal, photoData, bespokePrompt) {
     console.log(`  → Painting full-bleed storybook cover for ${base} theme...`);
-    const coverPrompt = STYLE + `full-bleed children's book cover illustration of ${charAnchor} as the joyful adventure hero exploring a breathtaking, magical ${base} world with ${pal.motifs}; child is smiling warmly in the lower-center of the scene; wide open tranquil uncluttered ${pal.flatWord} sky in the upper third of the composition for title typography, warm magical golden hour lighting, rich painterly watercolor texture, gentle Ghibli warmth, masterpiece picture book cover, no text, no words, no letters, no watermark, no border, no frame`;
-    return await generateImage(coverPrompt, photoData);
+    const prompt = bespokePrompt
+        ? (STYLE + bespokePrompt)
+        : (STYLE + `full-bleed children's book cover illustration of ${charAnchor} as the joyful adventure hero exploring a breathtaking, magical ${base} world with ${pal.motifs}; child is smiling warmly in the lower-center of the scene; wide open tranquil uncluttered empty ${pal.flatWord} sky in the upper third of the composition, pure background art, warm magical golden hour lighting, rich painterly watercolor texture, gentle Ghibli warmth, masterpiece picture book cover, no text, no words, no letters, no title, no typography, no watermark, no border, no frame`);
+    return await generateImage(prompt, photoData);
 }
 
 async function generateImage(prompt, photoData) {
     if (photoData) {
         try {
             const out = await replicate.run("black-forest-labs/flux-kontext-pro", {
-                input: { input_image: photoData, prompt: prompt, output_format: "png" }
+                input: {
+                    input_image: photoData,
+                    prompt: prompt,
+                    aspect_ratio: "3:4",
+                    output_format: "png",
+                    safety_tolerance: 2
+                }
             });
             return extractUrl(out);
-        } catch (e) { console.log("    (face model failed, falling back to flux-1.1-pro)"); }
+        } catch (e) { console.log("    (face model notice, falling back to flux-1.1-pro):", e.message); }
     }
     const out = await replicate.run("black-forest-labs/flux-1.1-pro", {
         input: { prompt: prompt, aspect_ratio: "3:4", output_format: "png" }
@@ -475,7 +487,7 @@ app.post('/api/create-preview', rateLimiter, async (req, res) => {
 
         console.log(`✨ Preview | ${childName} (${genderClean}, ${childAge}) | ${base} | Lang=${lang}`);
 
-        // Step 1: DeepSeek story outline, unique title & opening rhyme in target language
+        // Step 1: DeepSeek story outline, unique title, opening rhyme & 4K bespoke visual prompts
         const genderGuidance = (genderClean === 'little star')
             ? `The child is non-binary / gender-neutral (Little Star). Use gentle, gender-inclusive wording, using they/them pronouns or referring warmly to ${childName}.`
             : `The child protagonist is ${childName}, a ${childAge}-year-old ${genderClean} (${pronoun}/${subjectPronoun}).`;
@@ -485,12 +497,13 @@ app.post('/api/create-preview', rateLimiter, async (req, res) => {
             messages: [
                 {
                     role: 'system',
-                    content: `You are an award-winning children's storybook author for TwinkleTale. Output ONLY a valid JSON object with keys:
+                    content: `You are an award-winning children's storybook author and visual art director for TwinkleTale. Output ONLY a valid JSON object with keys:
 "book_title": (a unique, poetic, charming 3-5 word storybook title in ${lang} specifically tailored to ${childName}'s bedtime adventure in ${theme}, e.g. "${childName} और जादुई डॉल्फ़िन" or "${childName} and the Starlight Voyage"),
 "opening_rhyme": (4 lines of lyrical, warm read-aloud rhyme welcoming ${childName} into their bedtime adventure in ${lang}),
-"story_scenes": (an array of 12 objects, each with "scene_title" [2-4 words in ${lang}], "page_text" [35-50 words in ${lang}], and "image_prompt" [one detailed sentence in English describing ${charAnchor} in this scene]).
+"cover_image_prompt": (a detailed 70-90 word visual art prompt in English describing the front cover painting: describe ${charAnchor} exploring a breathtaking, magical ${theme} world with ${pal.motifs}; child is smiling warmly in the lower-center; upper third of scene has a wide open, tranquil, completely empty blank pastel sky with soft clouds and gentle starlight, pure background art with NO text, NO words, NO letters, NO name, NO typography; warm magical golden lighting, soft watercolor and gouache texture with gentle Studio Ghibli warmth),
+"story_scenes": (an array of 12 objects, each with "scene_title" [2-4 words in ${lang}], "page_text" [35-50 words in ${lang}], and "image_prompt" [a detailed 70-90 word visual art prompt in English describing ${charAnchor} in this specific scene with cute expressions, magical details, companion creatures, warm lighting, and cozy watercolor/Ghibli textures; NEVER include any child's name in image_prompt]).
 ${genderGuidance}
-LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme", "scene_title", "page_text") MUST be written beautifully in ${lang} using its authentic script. No markdown, no commentary.`
+LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme", "scene_title", "page_text") MUST be written beautifully in ${lang} using its authentic script. All visual prompts ("cover_image_prompt", "image_prompt") MUST be in English. No markdown, no commentary.`
                 },
                 {
                     role: 'user',
@@ -506,14 +519,23 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme", "sce
         const openingRhyme = storyJson.opening_rhyme || `Underneath the twinkling stars, where dreams begin to play,\nA special tale unfolds tonight, to softly guide your way.\nFor ${childName}, our little dreamer, so brave and kind and bright,\nA magical bedtime story starts before you sleep tonight.`;
         const scenesData = Array.isArray(storyJson.story_scenes) ? storyJson.story_scenes : [];
 
-        // Step 2: Generate Full-Bleed Cover Painting
-        console.log("  → Generating full-bleed storybook cover painting...");
-        const coverUrlRaw = await withRetry('cover painting', async () => generateCoverPainting(charAnchor, base, pal, photoData));
+        // Step 2: Generate Full-Bleed Cover Painting using DeepSeek bespoke art prompt
+        console.log("  → Generating full-bleed storybook cover painting with DeepSeek visual direction...");
+        const coverUrlRaw = await withRetry('cover painting', async () => generateCoverPainting(charAnchor, base, pal, photoData, storyJson.cover_image_prompt));
         const coverBuffer = await fetchImageBuffer(coverUrlRaw);
         const coverDataUrl = 'data:image/png;base64,' + coverBuffer.toString('base64');
 
         const previewId = `prev_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+
+        // Disk persistence for bulletproof preview-to-final book locking
+        try {
+            fs.writeFileSync(path.join(booksFolder, `preview_${previewId}_cover.png`), coverBuffer);
+        } catch (fsErr) {
+            console.warn('⚠️ Could not cache preview cover to disk:', fsErr.message);
+        }
+
         previewSessions.set(previewId, {
+            previewId,
             timestamp: Date.now(),
             childName, gender: genderClean, age: childAge, theme, language: lang,
             photoData, dedication, email,
@@ -522,7 +544,8 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme", "sce
             coverBuffer, coverUrl: coverDataUrl,
             // Backwards compatibility for legacy references
             bgBuffer: coverBuffer, vigBuffer: coverBuffer, bgUrl: coverDataUrl, vigUrl: coverDataUrl,
-            scenesData, openingRhyme
+            scenesData, openingRhyme,
+            coverImagePrompt: storyJson.cover_image_prompt
         });
 
         console.log(`✅ Preview created in ${((Date.now() - t0) / 1000).toFixed(1)}s (id: ${previewId}, title: "${bookTitle}")`);
@@ -611,12 +634,46 @@ app.post('/api/verify-and-complete-book', rateLimiter, async (req, res) => {
             razorpay_payment_id,
             razorpay_signature,
             bookLength,
-            email
+            email,
+            coverDataUrl
         } = req.body;
 
-        const session = previewSessions.get(previewId);
+        let session = previewSessions.get(previewId);
+
+        // Bulletproof session recovery (in case Render worker recycled between preview and payment)
         if (!session) {
-            return res.status(404).json({ success: false, error: 'Preview session expired or not found' });
+            const diskCoverPath = path.join(booksFolder, `preview_${previewId}_cover.png`);
+            if (fs.existsSync(diskCoverPath) || (coverDataUrl && coverDataUrl.length > 50)) {
+                console.log(`♻️ Recovering preview session from disk/client for ${previewId}...`);
+                const coverBuf = coverDataUrl
+                    ? Buffer.from(coverDataUrl.replace(/^data:image\/\w+;base64,/, ''), 'base64')
+                    : fs.readFileSync(diskCoverPath);
+                session = {
+                    previewId,
+                    childName: 'Child',
+                    gender: 'little star',
+                    age: 5,
+                    theme: 'Story',
+                    language: 'English',
+                    coverBuffer: coverBuf,
+                    coverUrl: coverDataUrl || '',
+                    email: email || '',
+                    charAnchor: 'adorable child with rosy cheeks and sweet smile in cozy storybook watercolor style',
+                    pal: themeKit('Story'),
+                    title: 'Treasury of Wonderful Stories',
+                    bookTitle: 'Treasury of Wonderful Stories',
+                    scenesData: []
+                };
+            } else {
+                return res.status(404).json({ success: false, error: 'Preview session expired or not found' });
+            }
+        }
+
+        // Lock the exact preview cover approved by the parent
+        if (coverDataUrl && typeof coverDataUrl === 'string' && coverDataUrl.length > 50) {
+            session.coverBuffer = Buffer.from(coverDataUrl.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+            session.coverUrl = coverDataUrl;
+            console.log('🔒 Exact approved preview cover locked from client for final book!');
         }
 
         if (razorpay && process.env.RAZORPAY_KEY_SECRET) {
@@ -686,6 +743,7 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
             charAnchor, pronoun, pal, title,
             bgBuffer, vigBuffer, scenesData
         } = session;
+        const base = String(theme || 'Story').split(' (')[0];
 
         const scenes = getSceneCount(bookLength);
         console.log(`📖 Async Assembly Job ${jobId} | ${childName} | scenes=${scenes} | Lang=${language}`);
@@ -710,10 +768,16 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
 
         // ================= PAGE 1: FRONT COVER (FULL-BLEED STORYBOOK PAINTING) =================
         update(30, 'Binding full-bleed front cover...');
-        let coverImgBuffer = session.coverBuffer || session.bgBuffer;
+        let coverImgBuffer = session.coverBuffer;
+        if (!coverImgBuffer && session.previewId) {
+            const diskCoverPath = path.join(booksFolder, `preview_${session.previewId}_cover.png`);
+            if (fs.existsSync(diskCoverPath)) {
+                coverImgBuffer = fs.readFileSync(diskCoverPath);
+            }
+        }
         if (!coverImgBuffer) {
             console.log("  → Cover buffer not cached in session, generating full-bleed cover painting...");
-            const coverUrl = await withRetry('cover painting', async () => generateCoverPainting(charAnchor, base, pal, photoData));
+            const coverUrl = await withRetry('cover painting', async () => generateCoverPainting(charAnchor, base, pal, photoData, session.coverImagePrompt));
             coverImgBuffer = await fetchImageBuffer(coverUrl);
         }
         const coverImg = await embedImageBuffer(pdfDoc, coverImgBuffer);
@@ -722,36 +786,26 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         cover.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.cover });
         cover.drawImage(coverImg, coverFit(coverImg, PAGE_W, PAGE_H));
 
-        // Subtle soft vignette gradient overlay at top & bottom for maximum typography readability
-        cover.drawRectangle({
-            x: 0, y: 550, width: PAGE_W, height: 250,
-            color: rgb(0, 0, 0), opacity: 0.24
-        });
-        cover.drawRectangle({
-            x: 0, y: 0, width: PAGE_W, height: 95,
-            color: rgb(0, 0, 0), opacity: 0.35
-        });
-
-        // Front Cover Typography (Name Plaque & Poetic Title in open top zone)
+        // Front Cover Typography (Clean vector drop shadows directly on sky - zero harsh dark boxes!)
         const topLabel = isNonLatin(childName) ? `${childName}` : `${childName}'s`;
         const topFont = chooseFont(topLabel, bookFont, serifBI);
-        drawFlowLine(cover, topLabel, 715, 42, topFont, pal.accent, 2);
+        drawFlowLine(cover, topLabel, 725, 42, topFont, pal.accent, 2);
 
         const bookTitle = session.bookTitle || title || `${childName}'s Adventure`;
         const titleFont = chooseFont(bookTitle, bookFont, serifB);
         let tSize = 36;
         let tLines = wrapText(bookTitle, titleFont, tSize, 480);
         if (tLines.length > 3) { tSize = 30; tLines = wrapText(bookTitle, titleFont, tSize, 480); }
-        let ty = 660;
+        let ty = 665;
         for (const line of tLines) {
             drawFlowLine(cover, line, ty, tSize, titleFont, rgb(0.99, 0.98, 0.94), 2.5);
             ty -= 42;
         }
 
-        // Bottom Keepsake Banner (Safe print margin at y = 55)
-        drawCentered(cover, 'TwinkleTale Keepsake Treasury', 55, 12, serifI, pal.accent, 0.95);
-        drawVectorStar(cover, PAGE_W / 2 - 115, 55, 5, 5, 2.2, pal.accent);
-        drawVectorStar(cover, PAGE_W / 2 + 115, 55, 5, 5, 2.2, pal.accent);
+        // Bottom Keepsake Banner (Safe print margin at y = 38 - clear of child hero)
+        drawCentered(cover, 'TwinkleTale Keepsake Treasury', 38, 11, serifI, pal.accent, 0.95);
+        drawVectorStar(cover, PAGE_W / 2 - 115, 38, 5, 5, 2.2, pal.accent);
+        drawVectorStar(cover, PAGE_W / 2 + 115, 38, 5, 5, 2.2, pal.accent);
 
         // Validate or fallback scenes
         const effectiveScenes = (scenesData || []).slice(0, scenes);
@@ -772,7 +826,13 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
             update(pct, `Illustrating Spread ${i + 1} of ${scenes}: "${scene.scene_title}"...`);
             console.log(`  → Scene ${i + 1}/${scenes}: ${scene.scene_title}`);
 
-            const scenePrompt = STYLE + `${charAnchor} with a joyful smile in the scene: ${scene.image_prompt}`;
+            // Use DeepSeek bespoke 4K visual prompt if provided, ensuring child's name is never passed to diffusion model
+            let rawPrompt = scene.image_prompt || `${charAnchor} with a joyful smile in the scene: ${scene.scene_title}`;
+            if (childName && childName.length > 1) {
+                const nameRegex = new RegExp(`\\b${childName}\\b`, 'gi');
+                rawPrompt = rawPrompt.replace(nameRegex, (gender === 'little star') ? 'the child' : `the little ${gender || 'hero'}`);
+            }
+            const scenePrompt = STYLE + rawPrompt;
             const sceneImgBuf = await withRetry(`scene ${i + 1} image`, async () => fetchImageBuffer(await generateImage(scenePrompt, photoData)));
             const sceneImg = await embedImageBuffer(pdfDoc, sceneImgBuf);
 
