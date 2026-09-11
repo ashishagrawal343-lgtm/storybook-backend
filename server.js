@@ -12,6 +12,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
 const Razorpay = require('razorpay');
+const { execSync } = require('child_process');
 
 // ====================================================================
 // CRITICAL PATCH: fontkit GPOS null anchor bug fix for Indic/Arabic fonts
@@ -474,6 +475,265 @@ function drawFrameVectors(page, pal) {
     for (const [cx, cy] of corners) {
         page.drawRectangle({ x: cx - 5, y: cy - 5, width: 10, height: 10, color: pal.accent, rotate: degrees(45) });
     }
+}
+
+// ====================================================================
+// HARFBUZZ / CHROMIUM HIGH-FIDELITY TYPOGRAPHY ENGINE (INDIC & COMPLEX SCRIPTS)
+// ====================================================================
+function rgbToHex(c) {
+    if (!c) return '#000000';
+    const r = Math.round(((c.red !== undefined ? c.red : c.r) ?? 0) * 255).toString(16).padStart(2, '0');
+    const g = Math.round(((c.green !== undefined ? c.green : c.g) ?? 0) * 255).toString(16).padStart(2, '0');
+    const b = Math.round(((c.blue !== undefined ? c.blue : c.b) ?? 0) * 255).toString(16).padStart(2, '0');
+    return `#${r}${g}${b}`;
+}
+
+function getBrowserExecutable() {
+    const chromeWin = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+    const edgeWin = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
+    if (fs.existsSync(chromeWin)) return chromeWin;
+    if (fs.existsSync(edgeWin)) return edgeWin;
+    const linuxPaths = ['/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser'];
+    for (const lp of linuxPaths) {
+        if (fs.existsSync(lp)) return lp;
+    }
+    return null;
+}
+
+function renderHtmlToBuffer(htmlContent, width, height, scale = 3) {
+    const browserPath = getBrowserExecutable();
+    if (!browserPath) return null;
+
+    const scratchDir = path.join(__dirname, 'scratch');
+    if (!fs.existsSync(scratchDir)) fs.mkdirSync(scratchDir, { recursive: true });
+    const tmpHtml = path.join(scratchDir, `tmp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.html`);
+    const tmpPng = path.join(scratchDir, `tmp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.png`);
+
+    try {
+        fs.writeFileSync(tmpHtml, htmlContent, 'utf8');
+        const cmd = `"${browserPath}" --headless --disable-gpu --default-background-color=00000000 --window-size=${width},${height} --force-device-scale-factor=${scale} --screenshot="${tmpPng}" "${tmpHtml}"`;
+        execSync(cmd, { stdio: 'pipe', timeout: 12000 });
+        if (fs.existsSync(tmpPng)) {
+            return fs.readFileSync(tmpPng);
+        }
+    } catch (e) {
+        console.warn('⚠️ HarfBuzz browser render notice:', e.message);
+    } finally {
+        try { if (fs.existsSync(tmpHtml)) fs.unlinkSync(tmpHtml); } catch (_) {}
+        try { if (fs.existsSync(tmpPng)) fs.unlinkSync(tmpPng); } catch (_) {}
+    }
+    return null;
+}
+
+function renderVersePagePng(title, bodyText, options = {}) {
+    const width = 480;
+    const height = 360;
+    const titleColor = options.titleColor || '#1e3799';
+    const accentColor = options.accentColor || '#c8963e';
+    const textColor = options.textColor || '#2d3436';
+
+    const cleanTitle = sanitizeIndicText(title);
+    const cleanBody = sanitizeIndicText(bodyText);
+
+    const htmlContent = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@500;600;700&family=Noto+Sans+Bengali:wght@500;600;700&family=Noto+Sans+Tamil:wght@500;600;700&family=Noto+Sans+Telugu:wght@500;600;700&family=Noto+Sans+Arabic:wght@500;600;700&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    width: ${width}px;
+    height: ${height}px;
+    background: transparent;
+    font-family: 'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Arabic', sans-serif;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+  .title {
+    font-size: 26px;
+    font-weight: 700;
+    color: ${titleColor};
+    line-height: 1.3;
+    margin-bottom: 12px;
+  }
+  .diamond {
+    width: 8px;
+    height: 8px;
+    background-color: ${accentColor};
+    transform: rotate(45deg);
+    margin: 0 auto 28px auto;
+  }
+  .body {
+    font-size: 18px;
+    line-height: 1.85;
+    font-weight: 500;
+    color: ${textColor};
+    max-width: 440px;
+    word-break: break-word;
+  }
+</style>
+</head>
+<body>
+  ${cleanTitle ? `<div class="title">${cleanTitle}</div><div class="diamond"></div>` : ''}
+  <div class="body">${cleanBody}</div>
+</body>
+</html>`;
+    return renderHtmlToBuffer(htmlContent, width, height, 3);
+}
+
+function renderCoverTitlePng(name, title, options = {}) {
+    const width = 540;
+    const height = 180;
+    const accentColor = options.accentColor || '#f9ca24';
+    const titleColor = options.titleColor || '#ffffff';
+
+    const cleanName = sanitizeIndicText(name);
+    const cleanTitle = sanitizeIndicText(title);
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@600;700;800&family=Noto+Sans+Bengali:wght@600;700;800&family=Noto+Sans+Tamil:wght@600;700;800&family=Noto+Sans+Telugu:wght@600;700;800&family=Noto+Sans+Arabic:wght@600;700;800&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    width: ${width}px;
+    height: ${height}px;
+    background: transparent;
+    font-family: 'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Arabic', sans-serif;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+  .name {
+    font-size: 38px;
+    font-weight: 700;
+    color: ${accentColor};
+    line-height: 1.2;
+    margin-bottom: 6px;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.65), 0 1px 2px rgba(0,0,0,0.9);
+  }
+  .title {
+    font-size: 32px;
+    font-weight: 800;
+    color: ${titleColor};
+    line-height: 1.25;
+    max-width: 500px;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.75), 0 1px 3px rgba(0,0,0,0.9);
+  }
+</style>
+</head>
+<body>
+  ${cleanName ? `<div class="name">${cleanName}</div>` : ''}
+  <div class="title">${cleanTitle}</div>
+</body>
+</html>`;
+    return renderHtmlToBuffer(html, width, height, 3);
+}
+
+function renderDedicationBlockPng(title, rhyme, forLabel, dedMsg, options = {}) {
+    const width = 500;
+    const height = 480;
+    const accent = options.accentColor || '#c8963e';
+    const ink = options.inkColor || '#1e272e';
+    const cover = options.coverColor || '#1e3799';
+
+    const cleanTitle = sanitizeIndicText(title);
+    const cleanRhyme = sanitizeIndicText(rhyme);
+    const cleanFor = sanitizeIndicText(forLabel);
+    const cleanMsg = sanitizeIndicText(dedMsg);
+
+    const rhymeLines = (cleanRhyme || '').split('\n').filter(Boolean).map(l => `<div>${l}</div>`).join('');
+    const dedLines = (cleanMsg || '').split('\n').filter(Boolean).map(l => `<div>${l}</div>`).join('');
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@500;600;700&family=Noto+Sans+Bengali:wght@500;600;700&family=Noto+Sans+Tamil:wght@500;600;700&family=Noto+Sans+Telugu:wght@500;600;700&family=Noto+Sans+Arabic:wght@500;600;700&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    width: ${width}px;
+    height: ${height}px;
+    background: transparent;
+    font-family: 'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Arabic', sans-serif;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    padding-top: 10px;
+  }
+  .header {
+    font-size: 11px;
+    letter-spacing: 2px;
+    font-weight: 700;
+    color: ${accent};
+    margin-bottom: 8px;
+  }
+  .diamond {
+    width: 6px;
+    height: 6px;
+    background-color: ${accent};
+    transform: rotate(45deg);
+    margin: 0 auto 16px auto;
+  }
+  .title {
+    font-size: 24px;
+    font-weight: 700;
+    color: ${cover};
+    line-height: 1.3;
+    margin-bottom: 20px;
+    max-width: 440px;
+  }
+  .rhyme {
+    font-size: 14px;
+    line-height: 1.85;
+    font-weight: 500;
+    color: ${ink};
+    margin-bottom: 24px;
+    font-style: italic;
+  }
+  .divider {
+    width: 260px;
+    height: 1px;
+    background-color: ${accent};
+    opacity: 0.5;
+    margin: 0 auto 24px auto;
+  }
+  .forLabel {
+    font-size: 16px;
+    font-weight: 700;
+    color: ${cover};
+    margin-bottom: 12px;
+  }
+  .dedMsg {
+    font-size: 13px;
+    line-height: 1.8;
+    color: ${ink};
+    max-width: 400px;
+  }
+</style>
+</head>
+<body>
+  <div class="header">TWINKLETALE KEEPSAKE TREASURY</div>
+  <div class="diamond"></div>
+  <div class="title">${cleanTitle}</div>
+  <div class="rhyme">${rhymeLines}</div>
+  <div class="divider"></div>
+  <div class="forLabel">${cleanFor}</div>
+  <div class="dedMsg">${dedLines}</div>
+</body>
+</html>`;
+    return renderHtmlToBuffer(html, width, height, 3);
 }
 
 // WHIMSICAL STORYBOOK AVATAR (GHIBLI / WATERCOLOR PICTURE BOOK STYLE)
@@ -1031,18 +1291,37 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
 
         // Front Cover Typography (Clean vector drop shadows directly on sky - zero harsh dark boxes!)
         const topLabel = isNonLatin(childName) ? `${childName}` : `${childName}'s`;
-        const topFont = chooseFont(topLabel, bookFont, serifBI);
-        drawFlowLine(cover, topLabel, 725, 42, topFont, pal.accent, 2);
-
         const bookTitle = session.bookTitle || title || `${childName}'s Adventure`;
-        const titleFont = chooseFont(bookTitle, bookFont, serifB);
-        let tSize = 36;
-        let tLines = wrapText(bookTitle, titleFont, tSize, 480);
-        if (tLines.length > 3) { tSize = 30; tLines = wrapText(bookTitle, titleFont, tSize, 480); }
-        let ty = 665;
-        for (const line of tLines) {
-            drawFlowLine(cover, line, ty, tSize, titleFont, rgb(0.99, 0.98, 0.94), 2.5);
-            ty -= 42;
+
+        let coverRendered = false;
+        if (isNonLatin(childName) || isNonLatin(bookTitle)) {
+            const coverTitleBuf = renderCoverTitlePng(topLabel, bookTitle, {
+                accentColor: rgbToHex(pal.accent),
+                titleColor: '#ffffff'
+            });
+            if (coverTitleBuf) {
+                const titleImg = await pdfDoc.embedPng(coverTitleBuf);
+                cover.drawImage(titleImg, {
+                    x: (PAGE_W - 540) / 2,
+                    y: 590,
+                    width: 540,
+                    height: 180
+                });
+                coverRendered = true;
+            }
+        }
+        if (!coverRendered) {
+            const topFont = chooseFont(topLabel, bookFont, serifBI);
+            drawFlowLine(cover, topLabel, 725, 42, topFont, pal.accent, 2);
+            const titleFont = chooseFont(bookTitle, bookFont, serifB);
+            let tSize = 36;
+            let tLines = wrapText(bookTitle, titleFont, tSize, 480);
+            if (tLines.length > 3) { tSize = 30; tLines = wrapText(bookTitle, titleFont, tSize, 480); }
+            let ty = 665;
+            for (const line of tLines) {
+                drawFlowLine(cover, line, ty, tSize, titleFont, rgb(0.99, 0.98, 0.94), 2.5);
+                ty -= 42;
+            }
         }
 
         // Bottom Keepsake Banner (Safe print margin at y = 38 - clear of child hero)
@@ -1056,50 +1335,70 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         dedPage.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.textBg });
         dedPage.drawImage(frameImg, coverFit(frameImg, PAGE_W, PAGE_H));
 
-        // Top Header
-        drawCentered(dedPage, 'TWINKLETALE KEEPSAKE TREASURY', 665, 10, serifB, pal.accent, 0.95);
-        drawVectorDiamond(dedPage, PAGE_W / 2, 648, 6, pal.accent);
-
-        // Book Title in Authentic Language
+        // Book Title & Dedication in Authentic Language
         const dedTitle = session.bookTitle || title || `${childName}'s Adventure`;
-        const dedTitleFont = chooseFont(dedTitle, bookFont, serifB);
-        let dtSize = 26;
-        let dtLines = wrapText(dedTitle, dedTitleFont, dtSize, 420);
-        if (dtLines.length > 2) { dtSize = 22; dtLines = wrapText(dedTitle, dedTitleFont, dtSize, 420); }
-        let dty = 612;
-        for (const line of dtLines) {
-            drawCentered(dedPage, line, dty, dtSize, dedTitleFont, pal.cover);
-            dty -= 34;
-        }
-
-        // Opening Rhyme
         const rhyme = session.openingRhyme || `Underneath the twinkling stars, where dreams begin to play,\nA special tale unfolds tonight, to softly guide your way.\nFor ${childName}, our little dreamer, so brave and kind and bright,\nA magical bedtime story starts before you sleep tonight.`;
-        const rhymeFont = chooseFont(rhyme, bookFont, serifI);
-        const rhymeLines = wrapText(rhyme, rhymeFont, 14, 400);
-        let ry = dty - 16;
-        for (const line of rhymeLines) {
-            drawCentered(dedPage, line, ry, 14, rhymeFont, pal.ink, 0.9);
-            ry -= 24;
-        }
-
-        // Golden divider
-        dedPage.drawLine({ start: { x: 140, y: ry - 12 }, end: { x: PAGE_W - 140, y: ry - 12 }, color: pal.accent, thickness: 1, opacity: 0.6 });
-        drawVectorStar(dedPage, PAGE_W / 2, ry - 12, 5, 8, 3.5, pal.accent);
-
-        // Personalized Parent Dedication Block
-        const forLabel = `Especially for ${childName}`;
-        const dedForFont = chooseFont(forLabel, bookFont, serifB);
-        drawCentered(dedPage, forLabel, ry - 40, 16, dedForFont, pal.cover);
-
+        const forLabel = isNonLatin(childName) ? `खास तौर पर ${childName} के लिए` : `Especially for ${childName}`;
         const dedMsg = (dedication && dedication.trim())
             ? dedication.trim()
             : `May this bedtime story remind you, every single night, just how hugely loved and cherished you are. Dream big, little star!`;
-        const dedMsgFont = chooseFont(dedMsg, bookFont, serifI);
-        const dedMsgLines = wrapText(dedMsg, dedMsgFont, 13, 390);
-        let my = ry - 68;
-        for (const line of dedMsgLines) {
-            drawCentered(dedPage, line, my, 13, dedMsgFont, pal.ink, 0.85);
-            my -= 22;
+
+        let dedRendered = false;
+        if (isNonLatin(dedTitle) || isNonLatin(rhyme) || isNonLatin(dedMsg) || isNonLatin(childName)) {
+            const dedBuf = renderDedicationBlockPng(dedTitle, rhyme, forLabel, dedMsg, {
+                accentColor: rgbToHex(pal.accent),
+                inkColor: rgbToHex(pal.ink),
+                coverColor: rgbToHex(pal.cover)
+            });
+            if (dedBuf) {
+                const dedImg = await pdfDoc.embedPng(dedBuf);
+                dedPage.drawImage(dedImg, {
+                    x: (PAGE_W - 500) / 2,
+                    y: 200,
+                    width: 500,
+                    height: 480
+                });
+                dedRendered = true;
+            }
+        }
+        if (!dedRendered) {
+            // Top Header
+            drawCentered(dedPage, 'TWINKLETALE KEEPSAKE TREASURY', 665, 10, serifB, pal.accent, 0.95);
+            drawVectorDiamond(dedPage, PAGE_W / 2, 648, 6, pal.accent);
+
+            const dedTitleFont = chooseFont(dedTitle, bookFont, serifB);
+            let dtSize = 26;
+            let dtLines = wrapText(dedTitle, dedTitleFont, dtSize, 420);
+            if (dtLines.length > 2) { dtSize = 22; dtLines = wrapText(dedTitle, dedTitleFont, dtSize, 420); }
+            let dty = 612;
+            for (const line of dtLines) {
+                drawCentered(dedPage, line, dty, dtSize, dedTitleFont, pal.cover);
+                dty -= 34;
+            }
+
+            const rhymeFont = chooseFont(rhyme, bookFont, serifI);
+            const rhymeLines = wrapText(rhyme, rhymeFont, 14, 400);
+            let ry = dty - 16;
+            for (const line of rhymeLines) {
+                drawCentered(dedPage, line, ry, 14, rhymeFont, pal.ink, 0.9);
+                ry -= 24;
+            }
+
+            // Golden divider
+            dedPage.drawLine({ start: { x: 140, y: ry - 12 }, end: { x: PAGE_W - 140, y: ry - 12 }, color: pal.accent, thickness: 1, opacity: 0.6 });
+            drawVectorStar(dedPage, PAGE_W / 2, ry - 12, 5, 8, 3.5, pal.accent);
+
+            // Personalized Parent Dedication Block
+            const dedForFont = chooseFont(forLabel, bookFont, serifB);
+            drawCentered(dedPage, forLabel, ry - 40, 16, dedForFont, pal.cover);
+
+            const dedMsgFont = chooseFont(dedMsg, bookFont, serifI);
+            const dedMsgLines = wrapText(dedMsg, dedMsgFont, 13, 390);
+            let my = ry - 68;
+            for (const line of dedMsgLines) {
+                drawCentered(dedPage, line, my, 13, dedMsgFont, pal.ink, 0.85);
+                my -= 22;
+            }
         }
 
         // Keepsake footer
@@ -1143,18 +1442,39 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
             textPage.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.textBg });
             textPage.drawImage(frameImg, coverFit(frameImg, PAGE_W, PAGE_H));
 
-            // Scene Title (Multilingual font routing)
-            const sceneTitleFont = chooseFont(scene.scene_title, bookFont, serifB);
-            drawCentered(textPage, scene.scene_title, 610, 26, sceneTitleFont, pal.cover);
-            drawVectorDiamond(textPage, PAGE_W / 2, 576, 8, pal.cover);
+            // Verse Page Content (HarfBuzz rendering for Indic & complex scripts, vector for Latin)
+            let verseRendered = false;
+            if (isNonLatin(scene.page_text) || isNonLatin(scene.scene_title)) {
+                const versePngBuf = renderVersePagePng(scene.scene_title, scene.page_text, {
+                    titleColor: rgbToHex(pal.cover),
+                    accentColor: rgbToHex(pal.accent),
+                    textColor: rgbToHex(pal.ink)
+                });
+                if (versePngBuf) {
+                    const versePngImg = await pdfDoc.embedPng(versePngBuf);
+                    textPage.drawImage(versePngImg, {
+                        x: (PAGE_W - 480) / 2,
+                        y: 290,
+                        width: 480,
+                        height: 360
+                    });
+                    verseRendered = true;
+                }
+            }
+            if (!verseRendered) {
+                // Scene Title (Multilingual font routing)
+                const sceneTitleFont = chooseFont(scene.scene_title, bookFont, serifB);
+                drawCentered(textPage, scene.scene_title, 610, 26, sceneTitleFont, pal.cover);
+                drawVectorDiamond(textPage, PAGE_W / 2, 576, 8, pal.cover);
 
-            // Verse Text (Multilingual font routing)
-            const verseFont = chooseFont(scene.page_text, bookFont, serif);
-            const verseLines = wrapText(scene.page_text, verseFont, 18, 400);
-            let by = 520 - ((520 - 180) - verseLines.length * 32) / 2;
-            for (const line of verseLines) {
-                drawCentered(textPage, line, by, 18, verseFont, pal.ink);
-                by -= 32;
+                // Verse Text (Multilingual font routing)
+                const verseFont = chooseFont(scene.page_text, bookFont, serif);
+                const verseLines = wrapText(scene.page_text, verseFont, 18, 400);
+                let by = 520 - ((520 - 180) - verseLines.length * 32) / 2;
+                for (const line of verseLines) {
+                    drawCentered(textPage, line, by, 18, verseFont, pal.ink);
+                    by -= 32;
+                }
             }
 
             // Spread Number (ALWAYS rendered with serif to prevent fontkit tofu blocks)
