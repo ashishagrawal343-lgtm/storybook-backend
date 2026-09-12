@@ -108,15 +108,15 @@ function themeTitle(base) {
 
 // FULL-BLEED COVER PRINT-SAFE ZONES
 const Z = {
-    topSky:       { top: 760, bottom: 560 },
-    focalHero:    { top: 560, bottom: 110 },
-    bottomBanner: { top: 110, bottom: 40 }
+    name:  { bottom: 690 },
+    medal: { cx: 300, cy: 450, r: 120 },
+    title: { top: 300, bottom: 150 }
 };
 
 function assertZones() {
-    const ok = Z.topSky.bottom >= Z.focalHero.top &&
-               Z.focalHero.bottom >= Z.bottomBanner.top &&
-               Z.bottomBanner.bottom > 0;
+    const ok = Z.name.bottom > (Z.medal.cy + Z.medal.r + 12) &&
+               (Z.medal.cy - Z.medal.r - 12) > Z.title.top &&
+               Z.title.bottom > 0;
     if (!ok) throw new Error('COVER GUARDRAIL VIOLATION: zones overlap');
 }
 
@@ -281,24 +281,29 @@ async function runTests() {
         const serif = await pdfDoc.embedFont('Times-Roman');
         const dummyImg = await pdfDoc.embedPng(dummyPng);
 
-        // Page 1: Full-Bleed Front Cover (Clean painting, zero dark grey rectangles)
+        // Page 1: Theme Border + Medallion Cover (Zero overlapping)
         const cover = pdfDoc.addPage([PAGE_W, PAGE_H]);
         cover.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.cover });
         cover.drawImage(dummyImg, coverFit(dummyImg, PAGE_W, PAGE_H));
 
-        // Name plaque & Title directly on sky with clean vector drop shadow
+        // Center Medallion with concentric gold rings
+        cover.drawEllipse({ x: Z.medal.cx, y: Z.medal.cy, xScale: Z.medal.r + 5, yScale: Z.medal.r + 5, borderColor: pal.accent, borderWidth: 3.5 });
+        cover.drawEllipse({ x: Z.medal.cx, y: Z.medal.cy, xScale: Z.medal.r + 11, yScale: Z.medal.r + 11, borderColor: pal.accent, borderWidth: 1.5, borderOpacity: 0.7 });
+
+        // Name plaque at top clearing (y = 715 pt, framed by top foliage arch)
         const topLabel = isNonLatin('आरव') ? 'आरव' : "Aarav's";
         const topFont = chooseFont(topLabel, bookFont, serifBI);
-        drawFlowLine(cover, topLabel, 725, 42, topFont, pal.accent, 2);
+        drawFlowLine(cover, topLabel, 715, 42, topFont, pal.accent, 2);
 
+        // Title in lower clearing below medallion (y = 285 pt) - ZERO OVERLAP
         const bookTitle = "आरव और जादुई सर्कस";
         const titleFont = chooseFont(bookTitle, bookFont, serifB);
-        drawFlowLine(cover, bookTitle, 665, 36, titleFont, rgb(0.99, 0.98, 0.94), 2.5);
+        drawFlowLine(cover, bookTitle, 285, 36, titleFont, rgb(0.99, 0.98, 0.94), 2.5);
 
-        // Bottom keepsake banner (Safe print margin at y = 38, clear of hero)
-        drawCentered(cover, 'TwinkleTale Keepsake Treasury', 38, 11, serif, pal.accent, 0.95);
-        drawVectorStar(cover, PAGE_W / 2 - 115, 38, 5, 5, 2.2, pal.accent);
-        drawVectorStar(cover, PAGE_W / 2 + 115, 38, 5, 5, 2.2, pal.accent);
+        // Bottom keepsake banner (Safe print margin at y = 45 pt)
+        drawCentered(cover, 'TwinkleTale Keepsake Treasury', 45, 11, serif, pal.accent, 0.95);
+        drawVectorStar(cover, PAGE_W / 2 - 115, 45, 5, 5, 2.2, pal.accent);
+        drawVectorStar(cover, PAGE_W / 2 + 115, 45, 5, 5, 2.2, pal.accent);
 
         // Complex Hindi ligatures and conjuncts on interior verse page
         const hindiVerse = "आरव सर्कस के जादुई मेले में पहुँचा, जहाँ चमकीले सितारे और रंग-बिरंगे झूले थे। जोकर ने मुस्कराकर आरव का स्वागत किया और एक प्यारा सा गुब्बारा उपहार में दिया।";

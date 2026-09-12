@@ -160,17 +160,17 @@ setInterval(() => {
     }
 }, 30 * 60 * 1000);
 
-// FULL-BLEED COVER PRINT-SAFE ZONES
+// COVER PRINT-SAFE ZONES (MATHEMATICALLY PREVENTS OVERLAP)
 const Z = {
-    topSky:       { top: 760, bottom: 560 }, // Open sky / water for title and name
-    focalHero:    { top: 560, bottom: 110 }, // Child hero exploring the scene
-    bottomBanner: { top: 110, bottom: 40 }   // Keepsake footer branding
+    name:  { bottom: 690 },
+    medal: { cx: 300, cy: 450, r: 120 },
+    title: { top: 300, bottom: 150 }
 };
 
 function assertZones() {
-    const ok = Z.topSky.bottom >= Z.focalHero.top &&
-               Z.focalHero.bottom >= Z.bottomBanner.top &&
-               Z.bottomBanner.bottom > 0;
+    const ok = Z.name.bottom > (Z.medal.cy + Z.medal.r + 12) &&
+               (Z.medal.cy - Z.medal.r - 12) > Z.title.top &&
+               Z.title.bottom > 0;
     if (!ok) throw new Error('COVER GUARDRAIL VIOLATION: zones overlap');
 }
 
@@ -638,6 +638,141 @@ function renderCoverTitlePng(name, title, options = {}) {
     return renderHtmlToBuffer(html, width, height, 3);
 }
 
+function renderCoverCompositePng(bgBuffer, vigBuffer, childName, bookTitle, pal, lang = 'en') {
+    const width = 600;
+    const height = 800;
+    const accentHex = rgbToHex(pal.accent);
+    const bgHex = rgbToHex(pal.cover);
+    const topLabel = isNonLatin(childName) ? `${childName}` : `${childName}'s`;
+    const cleanName = sanitizeIndicText(topLabel);
+    const cleanTitle = sanitizeIndicText(bookTitle || `${childName}'s Adventure`);
+
+    const bgDataUrl = bgBuffer ? ('data:image/png;base64,' + bgBuffer.toString('base64')) : '';
+    const vigDataUrl = vigBuffer ? ('data:image/png;base64,' + vigBuffer.toString('base64')) : '';
+
+    const fontFamilies = isNonLatin(cleanName + cleanTitle)
+        ? "'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Arabic', sans-serif"
+        : "'Playfair Display', 'Times New Roman', serif";
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;1,600;1,700&family=Noto+Sans+Devanagari:wght@600;700;800&family=Noto+Sans+Bengali:wght@600;700;800&family=Noto+Sans+Tamil:wght@600;700;800&family=Noto+Sans+Telugu:wght@600;700;800&family=Noto+Sans+Arabic:wght@600;700;800&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    width: ${width}px;
+    height: ${height}px;
+    background-color: ${bgHex};
+    position: relative;
+    overflow: hidden;
+    font-family: ${fontFamilies};
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    padding: 36px 24px 28px 24px;
+    color: #fff;
+  }
+  .bg-img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: ${width}px;
+    height: ${height}px;
+    object-fit: cover;
+    z-index: 1;
+  }
+  .cover-top-name {
+    font-style: ${isNonLatin(cleanName) ? 'normal' : 'italic'};
+    font-size: 40px;
+    font-weight: 700;
+    color: ${accentHex};
+    text-align: center;
+    letter-spacing: 1.5px;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.85), 0 1px 3px rgba(0,0,0,0.9);
+    margin-top: 10px;
+    z-index: 10;
+    max-width: 520px;
+  }
+  .medallion-container {
+    width: 260px;
+    height: 260px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    z-index: 10;
+  }
+  .outer-ring {
+    position: absolute;
+    width: 254px;
+    height: 254px;
+    border-radius: 50%;
+    border: 1.8px solid ${accentHex};
+    opacity: 0.8;
+    box-shadow: 0 0 15px rgba(246, 197, 67, 0.35);
+  }
+  .inner-ring {
+    position: absolute;
+    width: 240px;
+    height: 240px;
+    border-radius: 50%;
+    border: 3.5px solid ${accentHex};
+    overflow: hidden;
+    background: ${bgHex};
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.6), 0 8px 30px rgba(0,0,0,0.7);
+  }
+  .inner-ring img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .cover-title-box {
+    text-align: center;
+    max-width: 500px;
+    z-index: 10;
+    margin-bottom: 14px;
+  }
+  .cover-title {
+    font-size: 34px;
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1.25;
+    text-shadow: 0 3px 12px rgba(0,0,0,0.9), 0 1px 3px rgba(0,0,0,0.9);
+  }
+  .cover-footer {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: ${accentHex};
+    opacity: 0.95;
+    text-align: center;
+    z-index: 10;
+  }
+</style>
+</head>
+<body>
+  ${bgDataUrl ? `<img class="bg-img" src="${bgDataUrl}">` : ''}
+  <div class="cover-top-name">${cleanName}</div>
+  <div class="medallion-container">
+    <div class="outer-ring"></div>
+    <div class="inner-ring">
+      ${vigDataUrl ? `<img src="${vigDataUrl}">` : ''}
+    </div>
+  </div>
+  <div class="cover-title-box">
+    <div class="cover-title">${cleanTitle}</div>
+  </div>
+  <div class="cover-footer">✦ TwinkleTale Keepsake Treasury ✦</div>
+</body>
+</html>`;
+
+    return renderHtmlToBuffer(html, width, height, 3);
+}
+
 function renderDedicationBlockPng(title, rhyme, forLabel, dedMsg, options = {}) {
     const width = 500;
     const height = 480;
@@ -764,7 +899,24 @@ async function generateAvatar(photoData, charAnchor) {
     return extractUrl(out);
 }
 
-// FULL-BLEED STORYBOOK COVER PAINTING (MATCHING THE AARAV & REFERENCE COVERS)
+// THEME-RELEVANT ORNATE COVER BACKGROUND
+async function generateCoverBackground(base, pal) {
+    console.log(`  → Painting ornate theme border background for ${base} theme...`);
+    const bgPrompt = STYLE + `ornate storybook cover BACKGROUND only: elaborate golden-cream vine and leaf border with small vignettes of ${pal.motifs} confined strictly to the outer fifteen percent edges; two gentle painted flourish arches of tiny leaves and stars framing an empty name plaque area at top and empty title plaque area below; the rest of the inner field is ${pal.flatWord}, flat and empty except a few sparse tiny golden stars; absolutely no character, no person, no moon, no text, no letters anywhere; rich painterly detail`;
+    return await generateImage(bgPrompt, null);
+}
+
+// THEME-RELEVANT CHILD MEDALLION HERO
+async function generateChildMedallion(charAnchor, base, pal, photoData) {
+    console.log(`  → Painting child medallion hero for ${base} theme...`);
+    if (photoData) {
+        return await generateAvatar(photoData, charAnchor);
+    }
+    const vigPrompt = STYLE + `circular painted vignette portrait of ${charAnchor} as the storybook hero, head and shoulders, joyful expression, soft golden rim light, a few tiny ${pal.motifs} sparkles around the head, surrounded by ${pal.flatWord} background filling all four corners, vignette edges softly fading into that flat background`;
+    return await generateImage(vigPrompt, null);
+}
+
+// FULL-BLEED STORYBOOK COVER PAINTING (FALLBACK / BESPOKE)
 async function generateCoverPainting(charAnchor, base, pal, photoData, bespokePrompt) {
     console.log(`  → Painting full-bleed storybook cover for ${base} theme...`);
     const prompt = bespokePrompt
@@ -990,10 +1142,27 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme", "sce
         const openingRhyme = storyJson.opening_rhyme || `Underneath the twinkling stars, where dreams begin to play,\nA special tale unfolds tonight, to softly guide your way.\nFor ${childName}, our little dreamer, so brave and kind and bright,\nA magical bedtime story starts before you sleep tonight.`;
         const scenesData = Array.isArray(storyJson.story_scenes) ? storyJson.story_scenes : [];
 
-        // Step 2: Generate Full-Bleed Cover Painting using DeepSeek bespoke art prompt
-        console.log("  → Generating full-bleed storybook cover painting with DeepSeek visual direction...");
-        const coverUrlRaw = await withRetry('cover painting', async () => generateCoverPainting(charAnchor, base, pal, photoData, storyJson.cover_image_prompt));
-        const coverBuffer = await fetchImageBuffer(coverUrlRaw);
+        // Step 2: Generate Theme Border Background & Child Medallion Hero in parallel
+        console.log("  → Painting theme-relevant ornate border & child medallion hero in parallel...");
+        const [bgUrlRaw, vigUrlRaw] = await Promise.all([
+            withRetry('cover background', async () => generateCoverBackground(base, pal)),
+            withRetry('child medallion hero', async () => generateChildMedallion(charAnchor, base, pal, photoData))
+        ]);
+        const [bgBuffer, vigBuffer] = await Promise.all([
+            fetchImageBuffer(bgUrlRaw),
+            fetchImageBuffer(vigUrlRaw)
+        ]);
+
+        // Step 3: Composite into unified, non-overlapping high-resolution cover
+        console.log("  → Compositing theme-framed cover with non-overlapping typography...");
+        let coverBuffer = renderCoverCompositePng(bgBuffer, vigBuffer, childName, bookTitle, pal, lang);
+        let coverIsComposited = true;
+        if (!coverBuffer) {
+            console.warn("⚠️ Chromium cover composite notice, falling back to background buffer");
+            coverBuffer = bgBuffer;
+            coverIsComposited = false;
+        }
+
         const previewId = `prev_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
 
         // Disk persistence for bulletproof preview-to-final book locking
@@ -1024,6 +1193,8 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme", "sce
             charAnchor, pronoun, subjectPronoun, pal,
             title: bookTitle, bookTitle,
             coverBuffer, coverUrl: coverPublicUrl,
+            bgBuffer, vigBuffer,
+            coverIsComposited,
             // Backwards compatibility for legacy references
             bgBuffer: coverBuffer, vigBuffer: coverBuffer, bgUrl: coverPublicUrl, vigUrl: coverPublicUrl,
             scenesData, openingRhyme,
@@ -1269,8 +1440,8 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         const frameImg = await embedImageBuffer(pdfDoc, frameImgBuffer, 'decorative frame');
         await sleep(PACING);
 
-        // ================= PAGE 1: FRONT COVER (FULL-BLEED STORYBOOK PAINTING) =================
-        update(30, 'Binding full-bleed front cover...');
+        // ================= PAGE 1: FRONT COVER (THEME BORDER & MEDALLION) =================
+        update(30, 'Binding theme-framed front cover...');
         let coverImgBuffer = session.coverBuffer;
         if (!coverImgBuffer && session.previewId) {
             const diskCoverPath = path.join(booksFolder, `preview_${session.previewId}_cover.png`);
@@ -1279,55 +1450,76 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
             }
         }
         if (!coverImgBuffer) {
-            console.log("  → Cover buffer not cached in session, generating full-bleed cover painting...");
-            const coverUrl = await withRetry('cover painting', async () => generateCoverPainting(charAnchor, base, pal, photoData, session.coverImagePrompt));
-            coverImgBuffer = await fetchImageBuffer(coverUrl);
+            console.log("  → Cover buffer not cached in session, generating theme border & child medallion in parallel...");
+            const [bgUrlRaw, vigUrlRaw] = await Promise.all([
+                withRetry('cover background', async () => generateCoverBackground(base, pal)),
+                withRetry('child medallion hero', async () => generateChildMedallion(charAnchor, base, pal, photoData))
+            ]);
+            const [bgBuffer, vigBuffer] = await Promise.all([
+                fetchImageBuffer(bgUrlRaw),
+                fetchImageBuffer(vigUrlRaw)
+            ]);
+            coverImgBuffer = renderCoverCompositePng(bgBuffer, vigBuffer, childName, session.bookTitle || title, pal, language);
+            if (!coverImgBuffer) {
+                coverImgBuffer = bgBuffer;
+                session.coverIsComposited = false;
+                session.bgBuffer = bgBuffer;
+                session.vigBuffer = vigBuffer;
+            } else {
+                session.coverIsComposited = true;
+            }
         }
-        const coverImg = await embedImageBuffer(pdfDoc, coverImgBuffer, 'cover');
 
         const cover = pdfDoc.addPage([PAGE_W, PAGE_H]);
         cover.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.cover });
-        cover.drawImage(coverImg, coverFit(coverImg, PAGE_W, PAGE_H));
 
-        // Front Cover Typography (Clean vector drop shadows directly on sky - zero harsh dark boxes!)
-        const topLabel = isNonLatin(childName) ? `${childName}` : `${childName}'s`;
-        const bookTitle = session.bookTitle || title || `${childName}'s Adventure`;
-
-        let coverRendered = false;
-        if (isNonLatin(childName) || isNonLatin(bookTitle)) {
-            const coverTitleBuf = renderCoverTitlePng(topLabel, bookTitle, {
-                accentColor: rgbToHex(pal.accent),
-                titleColor: '#ffffff'
-            });
-            if (coverTitleBuf) {
-                const titleImg = await pdfDoc.embedPng(coverTitleBuf);
-                cover.drawImage(titleImg, {
-                    x: (PAGE_W - 540) / 2,
-                    y: 590,
-                    width: 540,
-                    height: 180
-                });
-                coverRendered = true;
+        if (session.coverIsComposited !== false && coverImgBuffer) {
+            // High-resolution unified cover composite (identical to approved preview)
+            const coverImg = await embedImageBuffer(pdfDoc, coverImgBuffer, 'cover');
+            cover.drawImage(coverImg, coverFit(coverImg, PAGE_W, PAGE_H));
+        } else {
+            // Fallback: draw theme border, child medallion, and non-overlapping typography via pdf-lib
+            if (session.bgBuffer) {
+                const bgImg = await embedImageBuffer(pdfDoc, session.bgBuffer, 'cover_bg');
+                cover.drawImage(bgImg, coverFit(bgImg, PAGE_W, PAGE_H));
+            } else if (coverImgBuffer) {
+                const coverImg = await embedImageBuffer(pdfDoc, coverImgBuffer, 'cover');
+                cover.drawImage(coverImg, coverFit(coverImg, PAGE_W, PAGE_H));
             }
-        }
-        if (!coverRendered) {
+
+            if (session.vigBuffer) {
+                const vigImg = await embedImageBuffer(pdfDoc, session.vigBuffer, 'cover_vig');
+                const d = Z.medal.r * 2;
+                const fit = coverFit(vigImg, d, d);
+                const dx = (Z.medal.cx - Z.medal.r) + fit.x;
+                const dy2 = (Z.medal.cy - Z.medal.r) + fit.y;
+                cover.drawImage(vigImg, { x: dx, y: dy2, width: fit.width, height: fit.height });
+                cover.drawEllipse({ x: Z.medal.cx, y: Z.medal.cy, xScale: Z.medal.r + 5, yScale: Z.medal.r + 5, borderColor: pal.accent, borderWidth: 3.5 });
+                cover.drawEllipse({ x: Z.medal.cx, y: Z.medal.cy, xScale: Z.medal.r + 11, yScale: Z.medal.r + 11, borderColor: pal.accent, borderWidth: 1.5, borderOpacity: 0.7 });
+            }
+
+            // Top Name Plaque (y ≈ 715 pt, framed by top foliage arch)
+            const topLabel = isNonLatin(childName) ? `${childName}` : `${childName}'s`;
             const topFont = chooseFont(topLabel, bookFont, serifBI);
-            drawFlowLine(cover, topLabel, 725, 42, topFont, pal.accent, 2);
+            drawFlowLine(cover, topLabel, 715, 42, topFont, pal.accent, 2);
+
+            // Lower Title (y ≈ 285 pt, safely below medallion - ZERO OVERLAP)
+            const bookTitle = session.bookTitle || title || `${childName}'s Adventure`;
             const titleFont = chooseFont(bookTitle, bookFont, serifB);
             let tSize = 36;
-            let tLines = wrapText(bookTitle, titleFont, tSize, 480);
-            if (tLines.length > 3) { tSize = 30; tLines = wrapText(bookTitle, titleFont, tSize, 480); }
-            let ty = 665;
+            let tLines = wrapText(bookTitle, titleFont, tSize, 470);
+            if (tLines.length > 3) { tSize = 30; tLines = wrapText(bookTitle, titleFont, tSize, 470); }
+            let ty = 285;
             for (const line of tLines) {
                 drawFlowLine(cover, line, ty, tSize, titleFont, rgb(0.99, 0.98, 0.94), 2.5);
                 ty -= 42;
             }
-        }
 
-        // Bottom Keepsake Banner (Safe print margin at y = 38 - clear of child hero)
-        drawCentered(cover, 'TwinkleTale Keepsake Treasury', 38, 11, serifI, pal.accent, 0.95);
-        drawVectorStar(cover, PAGE_W / 2 - 115, 38, 5, 5, 2.2, pal.accent);
-        drawVectorStar(cover, PAGE_W / 2 + 115, 38, 5, 5, 2.2, pal.accent);
+            // Bottom Keepsake Banner (Safe print margin at y = 45 pt)
+            drawCentered(cover, 'TwinkleTale Keepsake Treasury', 45, 11, serifI, pal.accent, 0.95);
+            drawVectorStar(cover, PAGE_W / 2 - 115, 45, 5, 5, 2.2, pal.accent);
+            drawVectorStar(cover, PAGE_W / 2 + 115, 45, 5, 5, 2.2, pal.accent);
+        }
 
         // ================= PAGE 2: WELCOME & DEDICATION (INSIDE FRONT SPREAD) =================
         update(33, 'Crafting welcome dedication page...');
@@ -1669,16 +1861,30 @@ Write all scene text in ${lang} using its authentic script.`;
         let rawPages = Array.isArray(parsed) ? parsed : (parsed.scenes || parsed.story_scenes || []);
         const pages = (Array.isArray(rawPages) ? rawPages : []).slice(0, scenes);
 
-        console.log("  → Painting full-bleed storybook cover...");
-        const coverBuffer = await fetchImageBuffer(await generateCoverPainting(charAnchor, base, pal, photoData));
-        await sleep(PACING);
+        console.log("  → Painting theme-relevant ornate border & child medallion in parallel...");
+        const [bgUrlRaw, vigUrlRaw] = await Promise.all([
+            withRetry('cover background', async () => generateCoverBackground(base, pal)),
+            withRetry('child medallion hero', async () => generateChildMedallion(charAnchor, base, pal, photoData))
+        ]);
+        const [bgBuffer, vigBuffer] = await Promise.all([
+            fetchImageBuffer(bgUrlRaw),
+            fetchImageBuffer(vigUrlRaw)
+        ]);
+
+        let coverBuffer = renderCoverCompositePng(bgBuffer, vigBuffer, childName, title, pal, lang);
+        let coverIsComposited = true;
+        if (!coverBuffer) {
+            coverBuffer = bgBuffer;
+            coverIsComposited = false;
+        }
 
         const session = {
             childName, gender: genderClean, age: childAge, theme, language: lang,
             photoData, dedication, email,
             charAnchor, pronoun, subjectPronoun, pal,
             title, bookTitle: title,
-            coverBuffer, bgBuffer: coverBuffer, vigBuffer: coverBuffer,
+            coverBuffer, bgBuffer, vigBuffer,
+            coverIsComposited,
             scenesData: pages
         };
 

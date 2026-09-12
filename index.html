@@ -768,6 +768,12 @@
       z-index: 1;
       transition: opacity 0.4s ease;
     }
+    .preview-book-mockup.has-cover .preview-mockup-scrim-top,
+    .preview-book-mockup.has-cover .preview-mockup-scrim-bottom,
+    .preview-book-mockup.has-cover .preview-mockup-header,
+    .preview-book-mockup.has-cover .preview-mockup-footer {
+      display: none !important;
+    }
     .preview-book-mockup::before {
       content: '';
       position: absolute;
@@ -2115,6 +2121,7 @@
             coverImg.src = coverSrc;
             coverImg.style.display = 'block';
             mockup.style.backgroundImage = 'none';
+            mockup.classList.add('has-cover');
           }
 
           // Ensure chosen edition is reflected
