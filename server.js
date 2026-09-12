@@ -143,6 +143,46 @@ if (!fs.existsSync(booksFolder)) fs.mkdirSync(booksFolder);
 const fontsFolder = path.join(__dirname, 'fonts');
 if (!fs.existsSync(fontsFolder)) fs.mkdirSync(fontsFolder);
 
+// Pre-cache TTF fonts as base64 for self-contained, 100% reliable SVG typography without OS font dependencies
+const FONT_BASE64 = {};
+try {
+    const devPath = path.join(fontsFolder, 'NotoSansDevanagari-Regular.ttf');
+    if (fs.existsSync(devPath)) FONT_BASE64.hindi = fs.readFileSync(devPath).toString('base64');
+
+    const benPath = path.join(fontsFolder, 'NotoSansBengali-Regular.ttf');
+    if (fs.existsSync(benPath)) FONT_BASE64.bengali = fs.readFileSync(benPath).toString('base64');
+
+    const tamPath = path.join(fontsFolder, 'NotoSansTamil-Regular.ttf');
+    if (fs.existsSync(tamPath)) FONT_BASE64.tamil = fs.readFileSync(tamPath).toString('base64');
+
+    const telPath = path.join(fontsFolder, 'NotoSansTelugu-Regular.ttf');
+    if (fs.existsSync(telPath)) FONT_BASE64.telugu = fs.readFileSync(telPath).toString('base64');
+
+    const araPath = path.join(fontsFolder, 'NotoSansArabic-Regular.ttf');
+    if (fs.existsSync(araPath)) FONT_BASE64.arabic = fs.readFileSync(araPath).toString('base64');
+
+    console.log('🔤 Pre-cached Indic & Arabic base64 fonts for in-process Sharp rendering:', Object.keys(FONT_BASE64).join(', '));
+} catch (fErr) {
+    console.warn('⚠️ Could not pre-cache base64 fonts:', fErr.message);
+}
+
+function getSvgFontFaceStyle(lang = 'en', textSample = '') {
+    const l = String(lang || '').toLowerCase();
+    let fontFace = '';
+    if (FONT_BASE64.hindi && (l.includes('hindi') || /[\u0900-\u097F]/.test(textSample))) {
+        fontFace += `@font-face { font-family: 'StoryFont'; src: url('data:font/ttf;base64,${FONT_BASE64.hindi}') format('truetype'); font-weight: 700; }\n`;
+    } else if (FONT_BASE64.bengali && (l.includes('bengali') || l.includes('bangla') || /[\u0980-\u09FF]/.test(textSample))) {
+        fontFace += `@font-face { font-family: 'StoryFont'; src: url('data:font/ttf;base64,${FONT_BASE64.bengali}') format('truetype'); font-weight: 700; }\n`;
+    } else if (FONT_BASE64.tamil && (l.includes('tamil') || /[\u0B80-\u0BFF]/.test(textSample))) {
+        fontFace += `@font-face { font-family: 'StoryFont'; src: url('data:font/ttf;base64,${FONT_BASE64.tamil}') format('truetype'); font-weight: 700; }\n`;
+    } else if (FONT_BASE64.telugu && (l.includes('telugu') || /[\u0C00-\u0C7F]/.test(textSample))) {
+        fontFace += `@font-face { font-family: 'StoryFont'; src: url('data:font/ttf;base64,${FONT_BASE64.telugu}') format('truetype'); font-weight: 700; }\n`;
+    } else if (FONT_BASE64.arabic && (l.includes('arabic') || l.includes('urdu') || /[\u0600-\u06FF]/.test(textSample))) {
+        fontFace += `@font-face { font-family: 'StoryFont'; src: url('data:font/ttf;base64,${FONT_BASE64.arabic}') format('truetype'); font-weight: 700; }\n`;
+    }
+    return fontFace ? `<style>\n${fontFace}\n</style>` : '';
+}
+
 const PAGE_W = 600, PAGE_H = 800;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const STYLE = 'Masterpiece children\'s storybook illustration, rich painterly storybook realism, soft digital gouache and fine oils texture, warm cinematic volumetric lighting, gentle golden hour rim light, adorable expressive child character with soulful sparkling dark eyes, natural soft dimensional skin tones with gentle peachy warmth, finely rendered silky hair catching the light, charming button nose and joyful smile, highly detailed enchanted surroundings with floating magical motes and glowing starlight, cinematic depth of field, art by Oliver Jeffers and Chris Van Allsburg, award-winning picture book, no text, no words, no letters, no watermark, not flat 2D cartoon, not 3D CGI plastic render: ';
@@ -624,8 +664,8 @@ async function renderCoverCompositePng(bgBuffer, vigBuffer, childName, bookTitle
         // 1. Base background layer
         const base = await sharp(bgBuffer).resize(width, height, { fit: 'cover' }).toBuffer();
 
-        // 2. Circular Child Medallion Hero (315x315 pt safe zone)
-        const medalSize = 315;
+        // 2. Circular Child Medallion Hero (350x350 pt safe zone - Central focal area)
+        const medalSize = 350;
         const medalRadius = medalSize / 2;
         const circleSvg = Buffer.from(
             `<svg width="${medalSize}" height="${medalSize}"><circle cx="${medalRadius}" cy="${medalRadius}" r="${medalRadius}" fill="#fff"/></svg>`
@@ -642,34 +682,39 @@ async function renderCoverCompositePng(bgBuffer, vigBuffer, childName, bookTitle
         const cleanName = escapeXml(sanitizeIndicText(topLabel));
         const cleanTitle = escapeXml(sanitizeIndicText(bookTitle || `${childName}'s Adventure`));
 
+        const fontFaceStyle = getSvgFontFaceStyle(lang, childName + (bookTitle || ''));
         const fontFamilies = nonLatin
-            ? "'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Arabic', 'Nirmala UI', sans-serif"
+            ? "'StoryFont', 'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Arabic', 'Nirmala UI', sans-serif"
             : "'Playfair Display', Georgia, 'Times New Roman', serif";
+
+        const medalCenterY = 385;
+        const medalCenterX = width / 2;
 
         // Balanced title wrap
         const words = cleanTitle.split(' ');
         let line1 = cleanTitle;
         let line2 = '';
-        if (words.length > 3 && cleanTitle.length > 24) {
+        if (words.length > 3 && cleanTitle.length > 20) {
             const mid = Math.ceil(words.length / 2);
             line1 = words.slice(0, mid).join(' ');
             line2 = words.slice(mid).join(' ');
         }
 
         const titleSvg = line2
-            ? `<text x="${width / 2}" y="660" text-anchor="middle" fill="#FFFFFF" font-family="${fontFamilies}" font-size="28" font-weight="800" filter="drop-shadow(0 2px 10px rgba(0,0,0,0.95))">${line1}</text>
-               <text x="${width / 2}" y="700" text-anchor="middle" fill="#FFFFFF" font-family="${fontFamilies}" font-size="28" font-weight="800" filter="drop-shadow(0 2px 10px rgba(0,0,0,0.95))">${line2}</text>`
-            : `<text x="${width / 2}" y="675" text-anchor="middle" fill="#FFFFFF" font-family="${fontFamilies}" font-size="${nonLatin ? 32 : 34}" font-weight="800" filter="drop-shadow(0 2px 10px rgba(0,0,0,0.95))">${line1}</text>`;
+            ? `<text x="${width / 2}" y="635" text-anchor="middle" fill="#FFFFFF" font-family="${fontFamilies}" font-size="26" font-weight="700" filter="drop-shadow(0 2px 8px rgba(0,0,0,0.95))">${line1}</text>
+               <text x="${width / 2}" y="675" text-anchor="middle" fill="#FFFFFF" font-family="${fontFamilies}" font-size="26" font-weight="700" filter="drop-shadow(0 2px 8px rgba(0,0,0,0.95))">${line2}</text>`
+            : `<text x="${width / 2}" y="650" text-anchor="middle" fill="#FFFFFF" font-family="${fontFamilies}" font-size="${nonLatin ? 30 : 32}" font-weight="700" filter="drop-shadow(0 2px 8px rgba(0,0,0,0.95))">${line1}</text>`;
 
         const overlaySvg = Buffer.from(`
           <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+            ${fontFaceStyle}
             <!-- Outer glowing ring -->
-            <circle cx="${width / 2}" cy="${height / 2}" r="${medalRadius + 6}" fill="none" stroke="${accentHex}" stroke-width="2.5" opacity="0.85"/>
+            <circle cx="${medalCenterX}" cy="${medalCenterY}" r="${medalRadius + 6}" fill="none" stroke="${accentHex}" stroke-width="2.5" opacity="0.85"/>
             <!-- Inner gold border ring -->
-            <circle cx="${width / 2}" cy="${height / 2}" r="${medalRadius}" fill="none" stroke="${accentHex}" stroke-width="4.5"/>
+            <circle cx="${medalCenterX}" cy="${medalCenterY}" r="${medalRadius}" fill="none" stroke="${accentHex}" stroke-width="4.5"/>
 
             <!-- Top Child Name -->
-            <text x="${width / 2}" y="115" text-anchor="middle" fill="${accentHex}" font-family="${fontFamilies}" font-size="${nonLatin ? 40 : 42}" font-weight="700" ${nonLatin ? '' : 'font-style="italic" letter-spacing="1.5"'} filter="drop-shadow(0 2px 8px rgba(0,0,0,0.9))">
+            <text x="${width / 2}" y="125" text-anchor="middle" fill="${accentHex}" font-family="${fontFamilies}" font-size="${nonLatin ? 38 : 42}" font-weight="700" ${nonLatin ? '' : 'font-style="italic" letter-spacing="1.5"'} filter="drop-shadow(0 2px 8px rgba(0,0,0,0.9))">
               ${cleanName}
             </text>
 
@@ -677,14 +722,14 @@ async function renderCoverCompositePng(bgBuffer, vigBuffer, childName, bookTitle
             ${titleSvg}
 
             <!-- Bottom Keepsake Banner -->
-            <text x="${width / 2}" y="755" text-anchor="middle" fill="${accentHex}" font-family="${fontFamilies}" font-size="11" font-style="italic" opacity="0.9">
-              TwinkleTale Keepsake Treasury
+            <text x="${width / 2}" y="745" text-anchor="middle" fill="${accentHex}" font-family="${fontFamilies}" font-size="11" font-style="italic" opacity="0.85">
+              ✦ TwinkleTale Keepsake Treasury ✦
             </text>
           </svg>
         `);
 
-        const medalTop = Math.round((height - medalSize) / 2);
-        const medalLeft = Math.round((width - medalSize) / 2);
+        const medalTop = Math.round(medalCenterY - medalRadius);
+        const medalLeft = Math.round(medalCenterX - medalRadius);
 
         return await sharp(base)
             .composite([
@@ -710,7 +755,8 @@ async function renderVersePagePng(title, bodyText, options = {}) {
     const cleanBody = sanitizeIndicText(bodyText);
     const rawLines = cleanBody.split('\n').filter(Boolean).map(l => escapeXml(l.trim()));
 
-    const fontFamilies = "'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Arabic', 'Nirmala UI', sans-serif";
+    const fontFaceStyle = getSvgFontFaceStyle(options.lang || 'hindi', title + bodyText);
+    const fontFamilies = "'StoryFont', 'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Arabic', 'Nirmala UI', sans-serif";
 
     try {
         let linesSvg = '';
@@ -720,6 +766,7 @@ async function renderVersePagePng(title, bodyText, options = {}) {
         });
 
         const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+          ${fontFaceStyle}
           ${cleanTitle ? `<text x="${width / 2}" y="75" text-anchor="middle" fill="${titleColor}" font-family="${fontFamilies}" font-size="26" font-weight="700">${cleanTitle}</text>
           <polygon points="${width / 2},105 ${width / 2 + 5},110 ${width / 2},115 ${width / 2 - 5},110" fill="${accentColor}" />` : ''}
           ${linesSvg}
@@ -741,10 +788,12 @@ async function renderCoverTitlePng(name, title, options = {}) {
     const cleanName = escapeXml(sanitizeIndicText(name));
     const cleanTitle = escapeXml(sanitizeIndicText(title));
 
-    const fontFamilies = "'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Arabic', 'Nirmala UI', sans-serif";
+    const fontFaceStyle = getSvgFontFaceStyle(options.lang || 'hindi', name + title);
+    const fontFamilies = "'StoryFont', 'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Arabic', 'Nirmala UI', sans-serif";
 
     try {
         const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+          ${fontFaceStyle}
           ${cleanName ? `<text x="${width / 2}" y="70" text-anchor="middle" fill="${accentColor}" font-family="${fontFamilies}" font-size="38" font-weight="700">${cleanName}</text>` : ''}
           <text x="${width / 2}" y="${cleanName ? 130 : 100}" text-anchor="middle" fill="${titleColor}" font-family="${fontFamilies}" font-size="32" font-weight="800">${cleanTitle}</text>
         </svg>`;
@@ -767,7 +816,8 @@ async function renderDedicationBlockPng(title, rhyme, forLabel, dedMsg, options 
     const cleanFor = escapeXml(sanitizeIndicText(forLabel));
     const cleanMsg = sanitizeIndicText(dedMsg);
 
-    const fontFamilies = "'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Arabic', 'Nirmala UI', sans-serif";
+    const fontFaceStyle = getSvgFontFaceStyle(options.lang || 'hindi', title + rhyme + forLabel + dedMsg);
+    const fontFamilies = "'StoryFont', 'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Arabic', 'Nirmala UI', sans-serif";
 
     try {
         const rhymeLines = cleanRhyme.split('\n').filter(Boolean).map(l => escapeXml(l.trim()));
@@ -786,6 +836,7 @@ async function renderDedicationBlockPng(title, rhyme, forLabel, dedMsg, options 
         const divY = 160 + rhymeLines.length * 26 + 20;
 
         const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+          ${fontFaceStyle}
           <text x="${width / 2}" y="45" text-anchor="middle" fill="${accent}" font-family="${fontFamilies}" font-size="11" font-weight="700" letter-spacing="2">TWINKLETALE KEEPSAKE TREASURY</text>
           <polygon points="${width / 2},60 ${width / 2 + 4},64 ${width / 2},68 ${width / 2 - 4},64" fill="${accent}" />
           <text x="${width / 2}" y="105" text-anchor="middle" fill="${cover}" font-family="${fontFamilies}" font-size="24" font-weight="700">${cleanTitle}</text>
@@ -1166,21 +1217,57 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme", "sce
 app.post('/api/create-order', rateLimiter, async (req, res) => {
     try {
         const { previewId, bookLength, email } = req.body;
-        const session = previewSessions.get(previewId);
-        if (!session && !String(previewId || '').startsWith('test_')) {
-            return res.status(404).json({ success: false, error: 'Preview session expired. Please preview your book again.' });
-        }
+        let session = previewId ? previewSessions.get(previewId) : null;
+        let effectivePreviewId = previewId;
 
         const isLong = String(bookLength || '').toLowerCase().includes('long') || String(bookLength || '').includes('24');
         const amountPaise = isLong ? 29900 : 19900;
+
+        // Direct Checkout Support (instant payment without prior preview generation)
+        if (req.body.isDirectCheckout || (!session && req.body.childName)) {
+            const { childName, gender, age, theme, language, photoData, dedication, email: reqEmail } = req.body;
+            effectivePreviewId = `direct_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+            const genderClean = ['boy', 'girl', 'little star'].includes((gender || '').toLowerCase()) ? gender.toLowerCase() : 'little star';
+            const childAge = parseInt(age, 10) || 5;
+            const lang = language || 'English';
+            const base = String(theme || 'Magical Forest').split(' (')[0];
+            const pal = themeKit(base);
+            const pronoun = genderClean === 'boy' ? 'his' : (genderClean === 'girl' ? 'her' : 'their');
+            const subjectPronoun = genderClean === 'boy' ? 'he' : (genderClean === 'girl' ? 'she' : 'they');
+            const charAnchor = getCharacterAnchor(genderClean, childAge, photoData);
+            const bookTitle = `${childName}'s ${base} Adventure`;
+
+            session = {
+                previewId: effectivePreviewId,
+                timestamp: Date.now(),
+                isDirectCheckout: true,
+                childName: childName || 'Child',
+                gender: genderClean,
+                age: childAge,
+                theme: base,
+                language: lang,
+                photoData: photoData || null,
+                dedication: dedication || '',
+                email: email || reqEmail || '',
+                charAnchor, pronoun, subjectPronoun, pal,
+                title: bookTitle, bookTitle,
+                coverBuffer: null,
+                scenesData: [],
+                bookLength: isLong ? 'long' : 'short'
+            };
+            previewSessions.set(effectivePreviewId, session);
+            console.log(`⚡ Direct checkout session created for ${session.childName} (id: ${effectivePreviewId})`);
+        } else if (!session && !String(previewId || '').startsWith('test_')) {
+            return res.status(404).json({ success: false, error: 'Preview session expired. Please preview your book again.' });
+        }
 
         if (razorpay) {
             const order = await razorpay.orders.create({
                 amount: amountPaise,
                 currency: 'INR',
-                receipt: (previewId || `rcpt_${Date.now()}`).slice(0, 30),
+                receipt: (effectivePreviewId || `rcpt_${Date.now()}`).slice(0, 30),
                 notes: {
-                    previewId: previewId || '',
+                    previewId: effectivePreviewId || '',
                     bookLength: isLong ? '24 pages' : '12 pages',
                     childName: session ? session.childName : 'Child',
                     email: email || (session ? session.email : '')
@@ -1189,6 +1276,7 @@ app.post('/api/create-order', rateLimiter, async (req, res) => {
             return res.json({
                 success: true,
                 orderId: order.id,
+                previewId: effectivePreviewId,
                 amount: amountPaise,
                 currency: 'INR',
                 keyId: process.env.RAZORPAY_KEY_ID
@@ -1198,6 +1286,7 @@ app.post('/api/create-order', rateLimiter, async (req, res) => {
             return res.json({
                 success: true,
                 orderId: simOrderId,
+                previewId: effectivePreviewId,
                 amount: amountPaise,
                 currency: 'INR',
                 keyId: 'rzp_test_simulated_key',
@@ -1397,6 +1486,22 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         console.log(`📖 Async Assembly Job ${jobId} | ${childName} | scenes=${scenes} | Lang=${language}`);
         const startUpscales = bookUpscalesCount;
 
+        // If direct checkout, generate bespoke story scenes via LLM if not already available
+        let activeScenes = Array.isArray(scenesData) && scenesData.length > 0 ? scenesData : [];
+        if (activeScenes.length === 0) {
+            update(10, 'Authoring personalized bedtime story...');
+            try {
+                const sysPrompt = `You are an award-winning children's author. Write a charming ${scenes}-scene bedtime story for a child named ${childName} (${gender}, age ${age}) about ${theme}. Language: ${language}. Return JSON with scenes array containing { scene_title, page_text, image_prompt }.`;
+                const userPrompt = `Generate a ${scenes}-scene bedtime story for ${childName} in ${language}.`;
+                const rawStory = await callStoryLLM(sysPrompt, userPrompt, language);
+                const parsed = JSON.parse(rawStory.replace(/```json/g, '').replace(/```/g, '').trim());
+                activeScenes = Array.isArray(parsed) ? parsed : (parsed.scenes || parsed.story_scenes || []);
+                console.log(`✨ Direct checkout story authored: ${activeScenes.length} scenes`);
+            } catch (llmErr) {
+                console.warn('⚠️ Direct checkout LLM story fallback notice:', llmErr.message);
+            }
+        }
+
         const pdfDoc = await PDFDocument.create();
         pdfDoc.setTitle(`${childName}'s ${title}`);
         pdfDoc.setAuthor('TwinkleTale');
@@ -1571,7 +1676,7 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         drawCentered(dedPage, 'TwinkleTale Studios • Keepsake Treasury Edition', 70, 9, serif, pal.ink, 0.6);
 
         // Validate or fallback scenes
-        const effectiveScenes = (scenesData || []).slice(0, scenes);
+        const effectiveScenes = (activeScenes || []).slice(0, scenes);
         while (effectiveScenes.length < scenes) {
             const idx = effectiveScenes.length + 1;
             effectiveScenes.push({

@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+  <meta name="theme-color" content="#161B33">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="description" content="TwinkleTale - Personalized Keepsake Children's Storybooks. Every child is the hero of their own bedtime story. Available in 11 languages with free instant preview!">
   <meta name="keywords" content="personalized storybook, children's books India, custom bedtime stories, personalized gifts kids">
   <meta property="og:title" content="TwinkleTale - Magical Personalized Children's Storybooks">
@@ -1285,20 +1288,152 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
+    /* Base Touch & Mobile Hygiene */
+    html, body {
+      overflow-x: hidden;
+      width: 100%;
+      -webkit-text-size-adjust: 100%;
+    }
+    button, a, input, select, textarea {
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    /* Action Buttons Row */
+    .form-actions-row {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .direct-checkout-btn {
+      width: 100%;
+      background: linear-gradient(135deg, #161B33 0%, #242D56 100%);
+      color: var(--gold-light);
+      border: 1.5px solid var(--gold);
+      padding: 16px 22px;
+      border-radius: var(--radius-md);
+      font-size: 1.05rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(22, 27, 51, 0.25);
+      transition: all 0.25s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .direct-checkout-btn:hover {
+      background: #111528;
+      border-color: var(--gold-light);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(212, 175, 55, 0.35);
+      color: #fff;
+    }
+    .direct-checkout-btn:active {
+      transform: translateY(0);
+    }
+
     /* Mobile / Tablet Responsive Optimizations */
     @media (max-width: 900px) {
       .showcase-banner, .preview-grid, .footer-grid { grid-template-columns: 1fr; }
+      .hero { padding: 45px 0 35px; }
     }
-    @media (max-width: 650px) {
-      .hero h1 { font-size: 2.2rem; }
-      .form-grid-2, .gender-selector { grid-template-columns: 1fr; }
-      .customizer-card { padding: 25px 18px; }
-      .edition-selector { grid-template-columns: 1fr; }
-      .themes-grid { grid-template-columns: repeat(3, 1fr); }
-      .brand-title { font-size: 1.4rem; }
+    @media (max-width: 768px) {
+      /* CRITICAL iOS SAFARI ZOOM FIX: 16px font prevents disruptive auto-zooming */
+      input, select, textarea {
+        font-size: 16px !important;
+      }
+      .container {
+        padding: 0 16px;
+      }
+      .hero h1 {
+        font-size: 2.1rem;
+        line-height: 1.25;
+      }
+      .hero-subtitle {
+        font-size: 1.05rem;
+        margin-bottom: 22px;
+      }
+      .hero-cta-group {
+        flex-direction: column;
+        width: 100%;
+        gap: 12px;
+      }
+      .hero-cta-group a {
+        width: 100%;
+        text-align: center;
+        justify-content: center;
+      }
+      .customizer-card {
+        padding: 22px 14px;
+        border-radius: var(--radius-md);
+      }
+      .form-grid-2, .gender-selector {
+        grid-template-columns: 1fr;
+      }
+      .edition-selector {
+        grid-template-columns: 1fr;
+      }
+      .preview-card {
+        padding: 24px 14px;
+      }
+      .preview-book-mockup {
+        max-width: 290px;
+        margin: 0 auto;
+      }
+      .policy-modal-card {
+        width: 95%;
+        max-height: 90vh;
+      }
+      .policy-modal-header {
+        padding: 16px 18px;
+      }
+      .policy-tabs-nav {
+        padding: 8px 12px;
+        -webkit-overflow-scrolling: touch;
+      }
+      .policy-tab-btn {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        white-space: nowrap;
+      }
+      .policy-modal-body {
+        padding: 16px 14px;
+        -webkit-overflow-scrolling: touch;
+      }
     }
-    @media (max-width: 420px) {
-      .themes-grid { grid-template-columns: repeat(2, 1fr); }
+    @media (max-width: 480px) {
+      .brand-title { font-size: 1.25rem; }
+      .brand-subtitle { font-size: 0.65rem; }
+      .nav-btn { padding: 8px 12px; font-size: 0.82rem; }
+      .trust-bar .container {
+        font-size: 0.72rem;
+        gap: 6px;
+        justify-content: center;
+      }
+      .themes-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px;
+      }
+      .theme-btn {
+        padding: 10px 6px;
+        font-size: 0.82rem;
+      }
+      .gender-btn {
+        padding: 12px 8px;
+        font-size: 0.9rem;
+      }
+      .generate-preview-btn {
+        font-size: 1.05rem;
+        padding: 15px 16px;
+      }
+      .direct-checkout-btn {
+        font-size: 0.98rem;
+        padding: 14px 16px;
+      }
     }
 
     /* ========================================================= */
@@ -1810,12 +1945,18 @@
             </div>
           </div>
 
-          <!-- Submit Button -->
-          <button type="submit" class="generate-preview-btn" id="previewBtn">
-            <span>✨ Generate Free Book Preview (40s)</span>
-            <i class="fas fa-arrow-right"></i>
-          </button>
-          <p class="btn-guarantee"><i class="fas fa-shield-halved" style="color:var(--forest);"></i> 100% Free Instant Teaser • No Credit Card Required</p>
+          <!-- Action Buttons Row -->
+          <div class="form-actions-row">
+            <button type="submit" class="generate-preview-btn" id="previewBtn">
+              <span>✨ Generate Free Book Preview (40s)</span>
+              <i class="fas fa-arrow-right"></i>
+            </button>
+            <button type="button" class="direct-checkout-btn" id="directCheckoutBtn" onclick="handleDirectCheckout()">
+              <span>⚡ Skip Preview & Order Directly (<span id="directBtnPrice">₹199</span>)</span>
+              <i class="fas fa-bolt"></i>
+            </button>
+          </div>
+          <p class="btn-guarantee"><i class="fas fa-shield-halved" style="color:var(--forest);"></i> Free 40s preview available • Or skip directly to checkout for instant 3–5 min delivery!</p>
         </form>
       </div>
     </div>
@@ -2398,6 +2539,8 @@
         ? '24 Story Pages (28 Total Physical Pages) • 12 Illustrated Spreads • Print-Ready PDF'
         : '12 Story Pages (16 Total Physical Pages) • 6 Illustrated Spreads • Print-Ready PDF';
       if (btnPrice) btnPrice.textContent = isLong ? '₹299' : '₹199';
+      const directPrice = document.getElementById('directBtnPrice');
+      if (directPrice) directPrice.textContent = isLong ? '₹299' : '₹199';
     }
 
     function selectEditionFromPricing(edition) {
@@ -2552,6 +2695,110 @@
         razorpay_payment_id: `pay_test_${Date.now()}`,
         razorpay_signature: `sig_test_${Date.now()}`
       });
+    }
+
+    // =========================================================
+    // FLOW C: DIRECT CHECKOUT (SKIP PREVIEW & INSTANT ORDER)
+    // =========================================================
+    async function handleDirectCheckout() {
+      const form = document.getElementById('storyForm');
+      if (form && !form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+
+      const childName = document.getElementById('childName').value.trim();
+      const email = document.getElementById('parentEmail').value.trim();
+      const age = document.getElementById('childAge').value;
+      const language = document.getElementById('storyLanguage').value;
+      const theme = selectedTheme || 'Magical Forest';
+      const gender = selectedGender || 'little star';
+      const dedication = document.getElementById('dedicationText')?.value.trim() || '';
+      const isLong = selectedEdition === 'long';
+      const bookLength = isLong ? '24 pages' : '12 pages';
+
+      if (!childName) {
+        alert("Please enter your child's name.");
+        return;
+      }
+      if (!email) {
+        alert("Please enter your email to receive the digital storybook.");
+        return;
+      }
+
+      const directBtn = document.getElementById('directCheckoutBtn');
+      const originalHtml = directBtn ? directBtn.innerHTML : '';
+      if (directBtn) {
+        directBtn.disabled = true;
+        directBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing Instant Checkout...';
+      }
+
+      try {
+        const payload = {
+          isDirectCheckout: true,
+          childName,
+          gender,
+          age,
+          theme,
+          language,
+          photoData: uploadedPhotoData || null,
+          dedication,
+          email,
+          bookLength
+        };
+
+        const orderRes = await fetchWithRetry(`${API_BASE}/api/create-order`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }, 2, 3000);
+        const orderData = await orderRes.json();
+
+        if (!orderData.success) {
+          alert(`Order error: ${orderData.error}`);
+          if (directBtn) { directBtn.disabled = false; directBtn.innerHTML = originalHtml; }
+          return;
+        }
+
+        currentPreviewId = orderData.previewId;
+
+        if (orderData.isTestMode || orderData.keyId.includes('simulated') || orderData.keyId.includes('YOUR_')) {
+          pendingOrderData = orderData;
+          openCheckoutModal(orderData);
+          if (directBtn) { directBtn.disabled = false; directBtn.innerHTML = originalHtml; }
+          return;
+        }
+
+        const options = {
+          key: orderData.keyId,
+          amount: orderData.amount,
+          currency: orderData.currency || "INR",
+          name: "TwinkleTale",
+          description: `${childName}'s Keepsake Storybook (Direct Order)`,
+          order_id: orderData.orderId,
+          prefill: { email, name: childName },
+          theme: { color: "#161B33" },
+          handler: function (response) {
+            completeBookAfterPayment(response);
+          },
+          modal: {
+            ondismiss: function () {
+              if (directBtn) { directBtn.disabled = false; directBtn.innerHTML = originalHtml; }
+            }
+          }
+        };
+
+        const rzp = new Razorpay(options);
+        rzp.on('payment.failed', function (response) {
+          alert(`Payment failed: ${response.error.description}`);
+          if (directBtn) { directBtn.disabled = false; directBtn.innerHTML = originalHtml; }
+        });
+        rzp.open();
+
+      } catch (err) {
+        alert(`Direct checkout initiation failed: ${err.message}`);
+        if (directBtn) { directBtn.disabled = false; directBtn.innerHTML = originalHtml; }
+      }
     }
 
     // =========================================================
