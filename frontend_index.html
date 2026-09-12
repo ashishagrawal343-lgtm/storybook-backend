@@ -1298,6 +1298,174 @@
     @media (max-width: 420px) {
       .themes-grid { grid-template-columns: repeat(2, 1fr); }
     }
+
+    /* ========================================================= */
+    /* COMPLIANCE & LEGAL POLICY MODAL (RAZORPAY MANDATORY)     */
+    /* ========================================================= */
+    .policy-modal-card {
+      background: var(--bg-card);
+      border: 1.5px solid var(--gold);
+      border-radius: var(--radius-lg);
+      max-width: 820px;
+      width: 100%;
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 25px 70px rgba(0,0,0,0.6);
+      position: relative;
+      animation: modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow: hidden;
+    }
+    .policy-modal-header {
+      padding: 20px 26px 16px;
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg-card);
+    }
+    .policy-tabs-nav {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding: 10px 20px;
+      background: var(--input-bg);
+      border-bottom: 1px solid var(--border-light);
+      scrollbar-width: thin;
+    }
+    .policy-tab-btn {
+      padding: 8px 16px;
+      border-radius: 30px;
+      background: none;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .policy-tab-btn:hover {
+      color: var(--navy);
+      background: rgba(212, 175, 55, 0.12);
+    }
+    .policy-tab-btn.active {
+      background: var(--gold-gradient);
+      color: #111526;
+      border-color: var(--gold);
+      font-weight: 700;
+      box-shadow: 0 2px 8px rgba(212, 175, 55, 0.35);
+    }
+    .policy-modal-body {
+      padding: 26px 30px;
+      overflow-y: auto;
+      flex: 1;
+      font-size: 0.93rem;
+      line-height: 1.7;
+      color: var(--text-dark);
+    }
+    .policy-content-pane {
+      display: none;
+    }
+    .policy-content-pane.active {
+      display: block;
+      animation: fadeIn 0.25s ease;
+    }
+    .policy-content-pane h3 {
+      font-size: 1.35rem;
+      color: var(--navy);
+      margin-bottom: 12px;
+      border-bottom: 2px solid var(--gold);
+      padding-bottom: 6px;
+      display: inline-block;
+    }
+    .policy-content-pane h4 {
+      font-size: 1.05rem;
+      color: var(--navy);
+      margin: 18px 0 6px;
+      font-weight: 700;
+    }
+    .policy-content-pane p {
+      margin-bottom: 12px;
+      color: var(--text-muted);
+    }
+    .policy-content-pane ul {
+      margin-left: 20px;
+      margin-bottom: 14px;
+      color: var(--text-muted);
+    }
+    .policy-content-pane li {
+      margin-bottom: 6px;
+    }
+    .policy-highlight-box {
+      background: rgba(212, 175, 55, 0.1);
+      border-left: 4px solid var(--gold);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      margin: 16px 0;
+      font-size: 0.9rem;
+      color: var(--text-dark);
+    }
+    .policy-contact-card {
+      background: var(--input-bg);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      margin-top: 15px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .contact-item-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--gold);
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .contact-item-val {
+      font-size: 0.95rem;
+      color: var(--text-dark);
+      font-weight: 600;
+    }
+    .contact-item-val a {
+      color: var(--coral);
+      text-decoration: none;
+    }
+    .contact-item-val a:hover {
+      text-decoration: underline;
+    }
+    /* Floating WhatsApp / Support Badge */
+    .whatsapp-float {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #25D366;
+      color: white;
+      border-radius: 50px;
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 0.88rem;
+      text-decoration: none;
+      box-shadow: 0 8px 25px rgba(37, 211, 102, 0.45);
+      z-index: 99;
+      transition: all 0.25s ease;
+    }
+    .whatsapp-float:hover {
+      background: #1ebc59;
+      transform: translateY(-3px) scale(1.02);
+      color: white;
+      box-shadow: 0 12px 30px rgba(37, 211, 102, 0.6);
+    }
+    @media (max-width: 600px) {
+      .whatsapp-float span { display: none; }
+      .whatsapp-float { padding: 14px; border-radius: 50%; bottom: 18px; right: 18px; }
+      .policy-modal-body { padding: 20px 16px; }
+    }
   </style>
 </head>
 <body>
@@ -1834,29 +2002,233 @@
         </div>
 
         <div class="footer-links">
-          <h5>Quick Links</h5>
+          <h5>Company & Support</h5>
           <ul>
-            <li><a href="#create">Create Storybook</a></li>
-            <li><a href="#previewShowcase">Quality Standards</a></li>
-            <li><a href="mailto:support@twinkletale.in">Contact Support</a></li>
+            <li><a href="#about" onclick="openPolicyModal('about'); return false;">About Us</a></li>
+            <li><a href="#contact" onclick="openPolicyModal('contact'); return false;">Contact & Support</a></li>
+            <li><a href="#shipping" onclick="openPolicyModal('shipping'); return false;">Digital Delivery Policy</a></li>
+            <li><a href="mailto:support@twinkletale.in">Email Helpdesk</a></li>
           </ul>
         </div>
 
         <div class="footer-links">
-          <h5>Policies</h5>
+          <h5>Legal & Compliance</h5>
           <ul>
-            <li><a href="#" onclick="alert('Privacy Policy: Photos uploaded are used exclusively for illustration synthesis and never shared.')">Privacy Policy</a></li>
-            <li><a href="#" onclick="alert('Terms: Instant digital delivery upon generation.')">Terms of Service</a></li>
-            <li><a href="#" onclick="alert('Refund Policy: 100% refund guarantee if generation fails.')">Refund Policy</a></li>
+            <li><a href="#terms" onclick="openPolicyModal('terms'); return false;">Terms & Conditions</a></li>
+            <li><a href="#privacy" onclick="openPolicyModal('privacy'); return false;">Privacy Policy</a></li>
+            <li><a href="#refund" onclick="openPolicyModal('refund'); return false;">Refund & Cancellation</a></li>
           </ul>
         </div>
       </div>
 
       <div class="footer-bottom">
-        &copy; <span id="yearSpan">2026</span> TwinkleTale Studios. All rights reserved. Made with love for little dreamers.
+        <div style="margin-bottom: 8px;">
+          &copy; <span id="yearSpan">2026</span> TwinkleTale Studios. All rights reserved. Handcrafted with love for little dreamers.
+        </div>
+        <div style="font-size: 0.78rem; color: #5a627a;">
+          Operated by Ashish Agrawal • Digital Personalized Children's Literature • Secure Payments via Razorpay
+        </div>
       </div>
     </div>
   </footer>
+
+  <!-- Floating WhatsApp Quick Support Badge -->
+  <a href="https://wa.me/919999999999?text=Hi%20TwinkleTale%2C%20I%20have%20a%20question%20about%20a%20personalized%20storybook" 
+     target="_blank" 
+     class="whatsapp-float" 
+     id="whatsappSupportBtn"
+     title="Chat with Support on WhatsApp">
+    <i class="fab fa-whatsapp" style="font-size:1.25rem;"></i>
+    <span>Need Help? Chat with us</span>
+  </a>
+
+  <!-- ========================================================= -->
+  <!-- COMPREHENSIVE LEGAL & POLICY MODAL (RAZORPAY COMPLIANCE)  -->
+  <!-- ========================================================= -->
+  <div id="policyModal" class="modal-backdrop" onclick="handlePolicyBackdropClick(event)">
+    <div class="policy-modal-card">
+      <div class="policy-modal-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <i class="fas fa-scale-balanced" style="color:var(--gold); font-size:1.3rem;"></i>
+          <h3 id="policyModalHeading" style="margin:0; font-size:1.25rem; color:var(--navy);">Policies & Support</h3>
+        </div>
+        <button type="button" class="modal-close-btn" onclick="closePolicyModal()" aria-label="Close">&times;</button>
+      </div>
+
+      <div class="policy-tabs-nav">
+        <button type="button" class="policy-tab-btn active" id="tabBtn-about" onclick="switchPolicyTab('about')">About Us</button>
+        <button type="button" class="policy-tab-btn" id="tabBtn-contact" onclick="switchPolicyTab('contact')">Contact & Support</button>
+        <button type="button" class="policy-tab-btn" id="tabBtn-terms" onclick="switchPolicyTab('terms')">Terms & Conditions</button>
+        <button type="button" class="policy-tab-btn" id="tabBtn-privacy" onclick="switchPolicyTab('privacy')">Privacy Policy</button>
+        <button type="button" class="policy-tab-btn" id="tabBtn-refund" onclick="switchPolicyTab('refund')">Refund & Cancellation</button>
+        <button type="button" class="policy-tab-btn" id="tabBtn-shipping" onclick="switchPolicyTab('shipping')">Digital Delivery</button>
+      </div>
+
+      <div class="policy-modal-body">
+        <!-- TAB 1: ABOUT US -->
+        <div class="policy-content-pane active" id="pane-about">
+          <h3>About TwinkleTale</h3>
+          <p>
+            Welcome to <strong>TwinkleTale</strong>. We are an independent creative studio dedicated to transforming bedtime into an unforgettable adventure for children across India and worldwide.
+          </p>
+          <div class="policy-highlight-box">
+            <strong>Our Mission:</strong> Every child deserves to see themselves as the brave, kind, curious hero of their own story. We blend high-art painterly illustrations, lyrical read-aloud verses, and cutting-edge generative technology to create heirloom storybooks that families cherish forever.
+          </div>
+          <h4>What Makes TwinkleTale Unique?</h4>
+          <ul>
+            <li><strong>Bespoke Painterly Artistry:</strong> Every illustration is composed with digital gouache textures, cinematic lighting, and rich storybook realism inspired by master picture book artists.</li>
+            <li><strong>Multilingual Read-Aloud Verses:</strong> We support authentic Indian and global languages (including Hindi, Bengali, Tamil, Telugu, and English) crafted with native typography shaping.</li>
+            <li><strong>Classical Book Architecture:</strong> Each edition adheres to professional publishing standards: paired left-side illustrations, right-side rhymes, keepsake certificate pages, and print-ready 300+ DPI resolution.</li>
+            <li><strong>Solo Artisan Commitment:</strong> Operated personally by founder Ashish Agrawal, ensuring hands-on care, meticulous quality inspection, and direct personal customer support for every parent.</li>
+          </ul>
+        </div>
+
+        <!-- TAB 2: CONTACT US -->
+        <div class="policy-content-pane" id="pane-contact">
+          <h3>Contact & Customer Support</h3>
+          <p>
+            We are here to help! Whether you have questions about personalizing your book, tracking an order, or requesting an edit, our founder-led support team responds promptly.
+          </p>
+          <div class="policy-contact-card">
+            <div>
+              <div class="contact-item-label"><i class="fas fa-building"></i> Operating Trade Name</div>
+              <div class="contact-item-val">TwinkleTale Studios</div>
+              <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">Proprietor: Ashish Agrawal</div>
+            </div>
+            <div>
+              <div class="contact-item-label"><i class="fas fa-envelope"></i> Support Email</div>
+              <div class="contact-item-val"><a href="mailto:support@twinkletale.in">support@twinkletale.in</a></div>
+              <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">Alt: twinkletale.books@gmail.com</div>
+            </div>
+            <div>
+              <div class="contact-item-label"><i class="fab fa-whatsapp"></i> WhatsApp Helpline</div>
+              <div class="contact-item-val"><a href="https://wa.me/919999999999?text=Hi%20TwinkleTale%2C%20I%20need%20assistance%20with%20an%20order" target="_blank">+91 99999 99999</a></div>
+              <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">Instant chat & order queries</div>
+            </div>
+            <div>
+              <div class="contact-item-label"><i class="fas fa-clock"></i> Support Working Hours</div>
+              <div class="contact-item-val">Mon – Sat: 10:00 AM – 6:00 PM IST</div>
+              <div style="font-size:0.8rem; color:var(--forest); font-weight:600; margin-top:2px;">Email responses within 24 hours</div>
+            </div>
+            <div>
+              <div class="contact-item-label"><i class="fas fa-location-dot"></i> Registered Location</div>
+              <div class="contact-item-val">India</div>
+              <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">Governed by Indian Law</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3: TERMS & CONDITIONS -->
+        <div class="policy-content-pane" id="pane-terms">
+          <h3>Terms and Conditions</h3>
+          <p style="font-size:0.82rem; color:var(--text-muted);">Last Updated: September 2026</p>
+          <p>
+            By accessing or ordering from TwinkleTale ("Website", "Service"), you agree to be bound by these Terms and Conditions. Please read them carefully.
+          </p>
+          <h4>1. Nature of the Service</h4>
+          <p>
+            TwinkleTale provides personalized digital children's storybooks generated through proprietary artistic and automated storytelling pipelines based on parent-provided inputs (child name, gender, age, theme, language, dedication, and optional photograph).
+          </p>
+          <h4>2. User Content & Representations</h4>
+          <p>
+            When you submit a child's name, dedication, or photo, you warrant that you are the parent or legal guardian, or have explicit parental consent to provide this information. You agree not to upload copyrighted, offensive, or unlawful content.
+          </p>
+          <h4>3. License & Intellectual Property</h4>
+          <p>
+            Upon payment, you receive a perpetual, non-exclusive, worldwide personal license to download, view, print, and share the generated PDF storybook for non-commercial personal use. The underlying algorithms, character models, artistic templates, and site branding remain the exclusive intellectual property of TwinkleTale Studios.
+          </p>
+          <h4>4. Electronic Goods Delivery</h4>
+          <p>
+            All purchases are delivered electronically in high-resolution PDF format. No physical printed copy is shipped unless explicitly specified as part of a physical printing add-on.
+          </p>
+          <h4>5. Limitation of Liability & Governing Law</h4>
+          <p>
+            TwinkleTale shall not be liable for indirect, incidental, or consequential damages. In all circumstances, maximum liability is limited strictly to the amount paid for the specific storybook order. These terms are governed by and construed in accordance with the laws of India.
+          </p>
+        </div>
+
+        <!-- TAB 4: PRIVACY POLICY -->
+        <div class="policy-content-pane" id="pane-privacy">
+          <h3>Privacy Policy & Child Safety</h3>
+          <p style="font-size:0.82rem; color:var(--text-muted);">Last Updated: September 2026</p>
+          <p>
+            At TwinkleTale, we treat child privacy with sacred responsibility. This policy outlines how we handle information submitted to our website.
+          </p>
+          <div class="policy-highlight-box">
+            <strong><i class="fas fa-shield-heart" style="color:var(--coral);"></i> Strict Photo Deletion Guarantee:</strong>
+            Optional child photographs are processed strictly in volatile, ephemeral memory for the sole purpose of synthesizing an artistic storybook avatar. Photographs are never permanently stored on our servers, never shared with third parties, never sold, and <strong>NEVER used to train public artificial intelligence models</strong>.
+          </div>
+          <h4>1. Information We Collect</h4>
+          <ul>
+            <li><strong>Story Personalization Data:</strong> Child's first name, age, gender, chosen theme, preferred story language, and personalized gift dedication.</li>
+            <li><strong>Contact Details:</strong> Parent's email address (used strictly to dispatch order confirmations, PDF download links, and direct support responses).</li>
+            <li><strong>Technical Telemetry:</strong> Standard browser headers and non-identifying access logs to ensure server stability.</li>
+          </ul>
+          <h4>2. Payment Security Guarantee</h4>
+          <p>
+            All financial transactions are processed directly through <strong>Razorpay</strong>, an RBI-licensed payment aggregator equipped with bank-grade 128-bit SSL encryption and PCI-DSS Level 1 compliance. <strong>TwinkleTale never sees, captures, or stores your credit/debit card numbers, CVVs, net-banking passwords, or UPI PINs.</strong>
+          </p>
+          <h4>3. Data Retention & Erasure Rights</h4>
+          <p>
+            Generated book files are stored in private cloud storage for 30 days so parents can re-download their books anytime. You may request immediate, permanent deletion of your storybook and email record at any point by sending an email to <a href="mailto:support@twinkletale.in">support@twinkletale.in</a>.
+          </p>
+        </div>
+
+        <!-- TAB 5: REFUND & CANCELLATION -->
+        <div class="policy-content-pane" id="pane-refund">
+          <h3>Refund and Cancellation Policy</h3>
+          <p style="font-size:0.82rem; color:var(--text-muted);">Last Updated: September 2026</p>
+          <h4>1. Nature of Personalized Digital Products</h4>
+          <p>
+            Each TwinkleTale storybook is an individual, custom-computed digital asset personalized specifically for your child. Because generation begins automatically upon payment confirmation, <strong>orders cannot be cancelled or retracted once processing has initiated</strong>.
+          </p>
+          <h4>2. 100% Quality & Defect Guarantee</h4>
+          <p>
+            We stand behind the magic of our books. You are entitled to an immediate free re-generation or a <strong>100% Full Refund</strong> within <strong>7 days of purchase</strong> under any of the following circumstances:
+          </p>
+          <ul>
+            <li>Generation failed or the download link is broken/inaccessible.</li>
+            <li>System rendering error resulting in overlapping, unreadable, or missing text.</li>
+            <li>Severe spelling distortion caused by system generation failure.</li>
+            <li>The final delivered book does not match the customized child details entered in the preview order.</li>
+          </ul>
+          <h4>3. How to Claim a Refund or Free Re-generation</h4>
+          <p>
+            Simply email <a href="mailto:support@twinkletale.in">support@twinkletale.in</a> or message us on WhatsApp with:
+          </p>
+          <ul>
+            <li>Your Order ID or registered email address.</li>
+            <li>A brief description or screenshot of the issue.</li>
+          </ul>
+          <div class="policy-highlight-box">
+            <strong>Refund Settlement Timeline:</strong> Refund requests are reviewed and approved within <strong>24 hours</strong>. Once approved, the funds are automatically reversed by Razorpay directly to your original payment method (UPI, Debit/Credit Card, NetBanking) within <strong>5 to 7 business days</strong> as per banking network timelines.
+          </div>
+        </div>
+
+        <!-- TAB 6: SHIPPING & DELIVERY -->
+        <div class="policy-content-pane" id="pane-shipping">
+          <h3>Digital Shipping & Delivery Policy</h3>
+          <h4>1. 100% Electronic Digital Delivery</h4>
+          <p>
+            TwinkleTale storybooks are exclusively digital products delivered in high-resolution, print-ready PDF format (300+ DPI). <strong>No physical courier or parcel shipment is required.</strong>
+          </p>
+          <h4>2. Delivery Timelines</h4>
+          <ul>
+            <li><strong>Immediate On-Screen Download:</strong> Upon payment verification, our high-speed engine compiles your complete personalized book within <strong>60 to 90 seconds</strong>. A prominent "Download Storybook (PDF)" button appears right on your screen.</li>
+            <li><strong>Automated Email Dispatch:</strong> An automated confirmation containing a permanent download link is delivered to your registered email address within <strong>2 to 5 minutes</strong> of payment.</li>
+          </ul>
+          <h4>3. Shipping Costs</h4>
+          <p>
+            Digital shipping and delivery is <strong>100% FREE (₹0.00)</strong> worldwide for all editions.
+          </p>
+          <h4>4. Delivery Troubleshooting</h4>
+          <p>
+            If you do not see the email in your inbox within 5 minutes, please check your Spam/Promotions folder. If you still need help, reach out to <a href="mailto:support@twinkletale.in">support@twinkletale.in</a> or WhatsApp us, and we will personally resend your book PDF within hours.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- ========================================================= -->
   <!-- IN-PAGE SECURE CHECKOUT MODAL (TEST/LIVE REPLACEMENT)     -->
@@ -2328,6 +2700,96 @@
         }
       }, 3500);
     }
+
+    // =========================================================
+    // COMPLIANCE & LEGAL POLICY MODAL CONTROLLER
+    // =========================================================
+    const policyTitles = {
+      about: 'About TwinkleTale',
+      contact: 'Contact & Support',
+      terms: 'Terms and Conditions',
+      privacy: 'Privacy Policy & Child Safety',
+      refund: 'Refund & Cancellation Policy',
+      shipping: 'Digital Delivery Policy'
+    };
+
+    function switchPolicyTab(tabKey) {
+      // Deactivate all buttons & panes
+      document.querySelectorAll('.policy-tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.policy-content-pane').forEach(p => p.classList.remove('active'));
+
+      // Activate target button & pane
+      const targetBtn = document.getElementById(`tabBtn-${tabKey}`);
+      const targetPane = document.getElementById(`pane-${tabKey}`);
+
+      if (targetBtn) targetBtn.classList.add('active');
+      if (targetPane) targetPane.classList.add('active');
+
+      const heading = document.getElementById('policyModalHeading');
+      if (heading && policyTitles[tabKey]) {
+        heading.textContent = policyTitles[tabKey];
+      }
+
+      // Scroll modal body to top
+      const body = document.querySelector('.policy-modal-body');
+      if (body) body.scrollTop = 0;
+    }
+
+    function openPolicyModal(initialTab = 'about') {
+      const modal = document.getElementById('policyModal');
+      if (!modal) return;
+      
+      const cleanTab = String(initialTab || 'about').replace('#', '');
+      const validTabs = ['about', 'contact', 'terms', 'privacy', 'refund', 'shipping'];
+      const target = validTabs.includes(cleanTab) ? cleanTab : 'about';
+
+      switchPolicyTab(target);
+      modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+
+      // Update URL hash without scrolling the main window
+      try {
+        history.replaceState(null, null, '#' + target);
+      } catch (_) {}
+    }
+
+    function closePolicyModal() {
+      const modal = document.getElementById('policyModal');
+      if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+      }
+      try {
+        if (location.hash && ['#about', '#contact', '#terms', '#privacy', '#refund', '#shipping'].includes(location.hash)) {
+          history.replaceState(null, null, ' ');
+        }
+      } catch (_) {}
+    }
+
+    function handlePolicyBackdropClick(e) {
+      if (e.target && e.target.id === 'policyModal') {
+        closePolicyModal();
+      }
+    }
+
+    // Deep-linking hash support: loads policy immediately if visited directly
+    function checkUrlPolicyHash() {
+      const hash = (window.location.hash || '').replace('#', '').toLowerCase();
+      if (['about', 'contact', 'terms', 'privacy', 'refund', 'shipping'].includes(hash)) {
+        openPolicyModal(hash);
+      }
+    }
+
+    window.addEventListener('hashchange', checkUrlPolicyHash);
+    document.addEventListener('DOMContentLoaded', checkUrlPolicyHash);
+
+    // Global Escape Key Listener for all Modals
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closePolicyModal();
+        closeCheckoutModal();
+      }
+    });
   </script>
 </body>
 </html>
