@@ -1142,12 +1142,14 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme", "sce
         const openingRhyme = storyJson.opening_rhyme || `Underneath the twinkling stars, where dreams begin to play,\nA special tale unfolds tonight, to softly guide your way.\nFor ${childName}, our little dreamer, so brave and kind and bright,\nA magical bedtime story starts before you sleep tonight.`;
         const scenesData = Array.isArray(storyJson.story_scenes) ? storyJson.story_scenes : [];
 
-        // Step 2: Generate Theme Border Background & Child Medallion Hero in parallel
-        console.log("  → Painting theme-relevant ornate border & child medallion hero in parallel...");
-        const [bgUrlRaw, vigUrlRaw] = await Promise.all([
-            withRetry('cover background', async () => generateCoverBackground(base, pal)),
-            withRetry('child medallion hero', async () => generateChildMedallion(charAnchor, base, pal, photoData))
-        ]);
+        // Step 2: Generate Theme Border Background & Child Medallion Hero with rate pacing
+        console.log("  → Painting theme-relevant ornate border background...");
+        const bgUrlRaw = await withRetry('cover background', async () => generateCoverBackground(base, pal));
+        await sleep(PACING);
+
+        console.log("  → Painting child medallion hero...");
+        const vigUrlRaw = await withRetry('child medallion hero', async () => generateChildMedallion(charAnchor, base, pal, photoData));
+
         const [bgBuffer, vigBuffer] = await Promise.all([
             fetchImageBuffer(bgUrlRaw),
             fetchImageBuffer(vigUrlRaw)
@@ -1450,11 +1452,10 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
             }
         }
         if (!coverImgBuffer) {
-            console.log("  → Cover buffer not cached in session, generating theme border & child medallion in parallel...");
-            const [bgUrlRaw, vigUrlRaw] = await Promise.all([
-                withRetry('cover background', async () => generateCoverBackground(base, pal)),
-                withRetry('child medallion hero', async () => generateChildMedallion(charAnchor, base, pal, photoData))
-            ]);
+            console.log("  → Cover buffer not cached in session, generating theme border & child medallion...");
+            const bgUrlRaw = await withRetry('cover background', async () => generateCoverBackground(base, pal));
+            await sleep(PACING);
+            const vigUrlRaw = await withRetry('child medallion hero', async () => generateChildMedallion(charAnchor, base, pal, photoData));
             const [bgBuffer, vigBuffer] = await Promise.all([
                 fetchImageBuffer(bgUrlRaw),
                 fetchImageBuffer(vigUrlRaw)
@@ -1861,11 +1862,11 @@ Write all scene text in ${lang} using its authentic script.`;
         let rawPages = Array.isArray(parsed) ? parsed : (parsed.scenes || parsed.story_scenes || []);
         const pages = (Array.isArray(rawPages) ? rawPages : []).slice(0, scenes);
 
-        console.log("  → Painting theme-relevant ornate border & child medallion in parallel...");
-        const [bgUrlRaw, vigUrlRaw] = await Promise.all([
-            withRetry('cover background', async () => generateCoverBackground(base, pal)),
-            withRetry('child medallion hero', async () => generateChildMedallion(charAnchor, base, pal, photoData))
-        ]);
+        console.log("  → Painting theme-relevant ornate border background...");
+        const bgUrlRaw = await withRetry('cover background', async () => generateCoverBackground(base, pal));
+        await sleep(PACING);
+        console.log("  → Painting child medallion hero...");
+        const vigUrlRaw = await withRetry('child medallion hero', async () => generateChildMedallion(charAnchor, base, pal, photoData));
         const [bgBuffer, vigBuffer] = await Promise.all([
             fetchImageBuffer(bgUrlRaw),
             fetchImageBuffer(vigUrlRaw)
