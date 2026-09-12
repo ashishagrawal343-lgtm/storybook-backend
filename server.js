@@ -12,7 +12,9 @@ const path = require('path');
 const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
 const Razorpay = require('razorpay');
-const { execSync } = require('child_process');
+const sharp = require('sharp');
+// Strictly cap sharp/libvips cache so it never exceeds 16MB of RAM
+sharp.cache({ memory: 16, files: 0, items: 5 });
 
 // ====================================================================
 // CRITICAL PATCH: fontkit GPOS null anchor bug fix for Indic/Arabic fonts
@@ -91,8 +93,8 @@ try {
 const app = express();
 app.set('trust proxy', true);
 app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.json({ limit: '25mb' }));
+app.use(express.urlencoded({ limit: '25mb', extended: true }));
 
 const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN });
 
@@ -154,15 +156,21 @@ const fulfilledPayments = new Map();
 setInterval(() => {
     const now = Date.now();
     for (const [id, item] of previewSessions.entries()) {
-        if (now - item.timestamp > 2 * 3600 * 1000) previewSessions.delete(id);
+        if (now - item.timestamp > 30 * 60 * 1000) {
+            try {
+                const fPath = path.join(booksFolder, `preview_${id}_cover.png`);
+                if (fs.existsSync(fPath)) fs.unlinkSync(fPath);
+            } catch (_) {}
+            previewSessions.delete(id);
+        }
     }
     for (const [id, item] of activeJobs.entries()) {
-        if (now - item.timestamp > 2 * 3600 * 1000) activeJobs.delete(id);
+        if (now - item.timestamp > 30 * 60 * 1000) activeJobs.delete(id);
     }
     for (const [id, timestamp] of fulfilledPayments.entries()) {
         if (now - timestamp > 48 * 3600 * 1000) fulfilledPayments.delete(id);
     }
-}, 30 * 60 * 1000);
+}, 10 * 60 * 1000);
 
 // COVER PRINT-SAFE ZONES (MATHEMATICALLY PREVENTS OVERLAP)
 const Z = {
@@ -596,387 +604,202 @@ function rgbToHex(c) {
     return `#${r}${g}${b}`;
 }
 
-function getBrowserExecutable() {
-    const chromeWin = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-    const edgeWin = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
-    if (fs.existsSync(chromeWin)) return chromeWin;
-    if (fs.existsSync(edgeWin)) return edgeWin;
-    const linuxPaths = ['/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser'];
-    for (const lp of linuxPaths) {
-        if (fs.existsSync(lp)) return lp;
-    }
-    return null;
+function escapeXml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
 }
 
-function renderHtmlToBuffer(htmlContent, width, height, scale = 3) {
-    const browserPath = getBrowserExecutable();
-    if (!browserPath) return null;
-
-    const scratchDir = path.join(__dirname, 'scratch');
-    if (!fs.existsSync(scratchDir)) fs.mkdirSync(scratchDir, { recursive: true });
-    const tmpHtml = path.join(scratchDir, `tmp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.html`);
-    const tmpPng = path.join(scratchDir, `tmp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.png`);
+async function renderCoverCompositePng(bgBuffer, vigBuffer, childName, bookTitle, pal, lang = 'en') {
+    const width = 600;
+    const height = 800;
+    const accentHex = rgbToHex(pal.accent);
+    const bgHex = rgbToHex(pal.cover);
 
     try {
-        fs.writeFileSync(tmpHtml, htmlContent, 'utf8');
-        const cmd = `"${browserPath}" --headless --disable-gpu --default-background-color=00000000 --window-size=${width},${height} --force-device-scale-factor=${scale} --screenshot="${tmpPng}" "${tmpHtml}"`;
-        execSync(cmd, { stdio: 'pipe', timeout: 12000 });
-        if (fs.existsSync(tmpPng)) {
-            return fs.readFileSync(tmpPng);
+        // 1. Base background layer
+        const base = await sharp(bgBuffer).resize(width, height, { fit: 'cover' }).toBuffer();
+
+        // 2. Circular Child Medallion Hero (315x315 pt safe zone)
+        const medalSize = 315;
+        const medalRadius = medalSize / 2;
+        const circleSvg = Buffer.from(
+            `<svg width="${medalSize}" height="${medalSize}"><circle cx="${medalRadius}" cy="${medalRadius}" r="${medalRadius}" fill="#fff"/></svg>`
+        );
+        const circularMedallion = await sharp(vigBuffer)
+            .resize(medalSize, medalSize, { fit: 'cover' })
+            .composite([{ input: circleSvg, blend: 'dest-in' }])
+            .png()
+            .toBuffer();
+
+        // 3. Clean Typography & Safe-Zone Spacing
+        const nonLatin = isNonLatin(childName + (bookTitle || ''));
+        const topLabel = nonLatin ? childName : `${childName}'s`;
+        const cleanName = escapeXml(sanitizeIndicText(topLabel));
+        const cleanTitle = escapeXml(sanitizeIndicText(bookTitle || `${childName}'s Adventure`));
+
+        const fontFamilies = nonLatin
+            ? "'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Arabic', 'Nirmala UI', sans-serif"
+            : "'Playfair Display', Georgia, 'Times New Roman', serif";
+
+        // Balanced title wrap
+        const words = cleanTitle.split(' ');
+        let line1 = cleanTitle;
+        let line2 = '';
+        if (words.length > 3 && cleanTitle.length > 24) {
+            const mid = Math.ceil(words.length / 2);
+            line1 = words.slice(0, mid).join(' ');
+            line2 = words.slice(mid).join(' ');
         }
-    } catch (e) {
-        console.warn('⚠️ HarfBuzz browser render notice:', e.message);
-    } finally {
-        try { if (fs.existsSync(tmpHtml)) fs.unlinkSync(tmpHtml); } catch (_) {}
-        try { if (fs.existsSync(tmpPng)) fs.unlinkSync(tmpPng); } catch (_) {}
+
+        const titleSvg = line2
+            ? `<text x="${width / 2}" y="660" text-anchor="middle" fill="#FFFFFF" font-family="${fontFamilies}" font-size="28" font-weight="800" filter="drop-shadow(0 2px 10px rgba(0,0,0,0.95))">${line1}</text>
+               <text x="${width / 2}" y="700" text-anchor="middle" fill="#FFFFFF" font-family="${fontFamilies}" font-size="28" font-weight="800" filter="drop-shadow(0 2px 10px rgba(0,0,0,0.95))">${line2}</text>`
+            : `<text x="${width / 2}" y="675" text-anchor="middle" fill="#FFFFFF" font-family="${fontFamilies}" font-size="${nonLatin ? 32 : 34}" font-weight="800" filter="drop-shadow(0 2px 10px rgba(0,0,0,0.95))">${line1}</text>`;
+
+        const overlaySvg = Buffer.from(`
+          <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+            <!-- Outer glowing ring -->
+            <circle cx="${width / 2}" cy="${height / 2}" r="${medalRadius + 6}" fill="none" stroke="${accentHex}" stroke-width="2.5" opacity="0.85"/>
+            <!-- Inner gold border ring -->
+            <circle cx="${width / 2}" cy="${height / 2}" r="${medalRadius}" fill="none" stroke="${accentHex}" stroke-width="4.5"/>
+
+            <!-- Top Child Name -->
+            <text x="${width / 2}" y="115" text-anchor="middle" fill="${accentHex}" font-family="${fontFamilies}" font-size="${nonLatin ? 40 : 42}" font-weight="700" ${nonLatin ? '' : 'font-style="italic" letter-spacing="1.5"'} filter="drop-shadow(0 2px 8px rgba(0,0,0,0.9))">
+              ${cleanName}
+            </text>
+
+            <!-- Lower Book Title -->
+            ${titleSvg}
+
+            <!-- Bottom Keepsake Banner -->
+            <text x="${width / 2}" y="755" text-anchor="middle" fill="${accentHex}" font-family="${fontFamilies}" font-size="11" font-style="italic" opacity="0.9">
+              TwinkleTale Keepsake Treasury
+            </text>
+          </svg>
+        `);
+
+        const medalTop = Math.round((height - medalSize) / 2);
+        const medalLeft = Math.round((width - medalSize) / 2);
+
+        return await sharp(base)
+            .composite([
+                { input: circularMedallion, top: medalTop, left: medalLeft },
+                { input: overlaySvg, top: 0, left: 0 }
+            ])
+            .png()
+            .toBuffer();
+    } catch (err) {
+        console.error("❌ Sharp cover composite error:", err.message);
+        return null;
     }
-    return null;
 }
 
-function renderVersePagePng(title, bodyText, options = {}) {
+async function renderVersePagePng(title, bodyText, options = {}) {
     const width = 480;
     const height = 360;
     const titleColor = options.titleColor || '#1e3799';
     const accentColor = options.accentColor || '#c8963e';
     const textColor = options.textColor || '#2d3436';
 
-    const cleanTitle = sanitizeIndicText(title);
+    const cleanTitle = escapeXml(sanitizeIndicText(title));
     const cleanBody = sanitizeIndicText(bodyText);
+    const rawLines = cleanBody.split('\n').filter(Boolean).map(l => escapeXml(l.trim()));
 
-    const htmlContent = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@500;600;700&family=Noto+Sans+Bengali:wght@500;600;700&family=Noto+Sans+Tamil:wght@500;600;700&family=Noto+Sans+Telugu:wght@500;600;700&family=Noto+Sans+Arabic:wght@500;600;700&display=swap');
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    width: ${width}px;
-    height: ${height}px;
-    background: transparent;
-    font-family: 'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Arabic', sans-serif;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-  }
-  .title {
-    font-size: 26px;
-    font-weight: 700;
-    color: ${titleColor};
-    line-height: 1.3;
-    margin-bottom: 12px;
-  }
-  .diamond {
-    width: 8px;
-    height: 8px;
-    background-color: ${accentColor};
-    transform: rotate(45deg);
-    margin: 0 auto 28px auto;
-  }
-  .body {
-    font-size: 18px;
-    line-height: 1.85;
-    font-weight: 500;
-    color: ${textColor};
-    max-width: 440px;
-    word-break: break-word;
-  }
-</style>
-</head>
-<body>
-  ${cleanTitle ? `<div class="title">${cleanTitle}</div><div class="diamond"></div>` : ''}
-  <div class="body">${cleanBody}</div>
-</body>
-</html>`;
-    return renderHtmlToBuffer(htmlContent, width, height, 3);
+    const fontFamilies = "'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Arabic', 'Nirmala UI', sans-serif";
+
+    try {
+        let linesSvg = '';
+        let startY = rawLines.length > 3 ? 150 : 175;
+        rawLines.forEach((line, idx) => {
+            linesSvg += `<text x="${width / 2}" y="${startY + idx * 34}" text-anchor="middle" fill="${textColor}" font-family="${fontFamilies}" font-size="19" font-weight="500">${line}</text>`;
+        });
+
+        const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+          ${cleanTitle ? `<text x="${width / 2}" y="75" text-anchor="middle" fill="${titleColor}" font-family="${fontFamilies}" font-size="26" font-weight="700">${cleanTitle}</text>
+          <polygon points="${width / 2},105 ${width / 2 + 5},110 ${width / 2},115 ${width / 2 - 5},110" fill="${accentColor}" />` : ''}
+          ${linesSvg}
+        </svg>`;
+
+        return await sharp(Buffer.from(svg)).png().toBuffer();
+    } catch (e) {
+        console.warn('⚠️ Sharp verse page render notice:', e.message);
+        return null;
+    }
 }
 
-function renderCoverTitlePng(name, title, options = {}) {
+async function renderCoverTitlePng(name, title, options = {}) {
     const width = 540;
     const height = 180;
     const accentColor = options.accentColor || '#f9ca24';
     const titleColor = options.titleColor || '#ffffff';
 
-    const cleanName = sanitizeIndicText(name);
-    const cleanTitle = sanitizeIndicText(title);
+    const cleanName = escapeXml(sanitizeIndicText(name));
+    const cleanTitle = escapeXml(sanitizeIndicText(title));
 
-    const html = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@600;700;800&family=Noto+Sans+Bengali:wght@600;700;800&family=Noto+Sans+Tamil:wght@600;700;800&family=Noto+Sans+Telugu:wght@600;700;800&family=Noto+Sans+Arabic:wght@600;700;800&display=swap');
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    width: ${width}px;
-    height: ${height}px;
-    background: transparent;
-    font-family: 'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Arabic', sans-serif;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-  }
-  .name {
-    font-size: 38px;
-    font-weight: 700;
-    color: ${accentColor};
-    line-height: 1.2;
-    margin-bottom: 6px;
-    text-shadow: 0 2px 6px rgba(0,0,0,0.65), 0 1px 2px rgba(0,0,0,0.9);
-  }
-  .title {
-    font-size: 32px;
-    font-weight: 800;
-    color: ${titleColor};
-    line-height: 1.25;
-    max-width: 500px;
-    text-shadow: 0 2px 8px rgba(0,0,0,0.75), 0 1px 3px rgba(0,0,0,0.9);
-  }
-</style>
-</head>
-<body>
-  ${cleanName ? `<div class="name">${cleanName}</div>` : ''}
-  <div class="title">${cleanTitle}</div>
-</body>
-</html>`;
-    return renderHtmlToBuffer(html, width, height, 3);
+    const fontFamilies = "'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Arabic', 'Nirmala UI', sans-serif";
+
+    try {
+        const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+          ${cleanName ? `<text x="${width / 2}" y="70" text-anchor="middle" fill="${accentColor}" font-family="${fontFamilies}" font-size="38" font-weight="700">${cleanName}</text>` : ''}
+          <text x="${width / 2}" y="${cleanName ? 130 : 100}" text-anchor="middle" fill="${titleColor}" font-family="${fontFamilies}" font-size="32" font-weight="800">${cleanTitle}</text>
+        </svg>`;
+        return await sharp(Buffer.from(svg)).png().toBuffer();
+    } catch (e) {
+        console.warn('⚠️ Sharp cover title render notice:', e.message);
+        return null;
+    }
 }
 
-function renderCoverCompositePng(bgBuffer, vigBuffer, childName, bookTitle, pal, lang = 'en') {
-    const width = 600;
-    const height = 800;
-    const accentHex = rgbToHex(pal.accent);
-    const bgHex = rgbToHex(pal.cover);
-    const topLabel = isNonLatin(childName) ? `${childName}` : `${childName}'s`;
-    const cleanName = sanitizeIndicText(topLabel);
-    const cleanTitle = sanitizeIndicText(bookTitle || `${childName}'s Adventure`);
-
-    const bgDataUrl = bgBuffer ? ('data:image/png;base64,' + bgBuffer.toString('base64')) : '';
-    const vigDataUrl = vigBuffer ? ('data:image/png;base64,' + vigBuffer.toString('base64')) : '';
-
-    const fontFamilies = isNonLatin(cleanName + cleanTitle)
-        ? "'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Arabic', sans-serif"
-        : "'Playfair Display', 'Times New Roman', serif";
-
-    const html = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;1,600;1,700&family=Noto+Sans+Devanagari:wght@600;700;800&family=Noto+Sans+Bengali:wght@600;700;800&family=Noto+Sans+Tamil:wght@600;700;800&family=Noto+Sans+Telugu:wght@600;700;800&family=Noto+Sans+Arabic:wght@600;700;800&display=swap');
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    width: ${width}px;
-    height: ${height}px;
-    background-color: ${bgHex};
-    position: relative;
-    overflow: hidden;
-    font-family: ${fontFamilies};
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    align-items: center;
-    padding: 68px 50px 58px 50px;
-    color: #fff;
-  }
-  .bg-img {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: ${width}px;
-    height: ${height}px;
-    object-fit: cover;
-    z-index: 1;
-  }
-  .cover-top-name {
-    font-style: ${isNonLatin(cleanName) ? 'normal' : 'italic'};
-    font-size: 40px;
-    font-weight: 700;
-    color: ${accentHex};
-    text-align: center;
-    letter-spacing: ${isNonLatin(cleanName) ? '0px' : '1.5px'};
-    text-shadow: 0 2px 10px rgba(0,0,0,0.9), 0 1px 3px rgba(0,0,0,0.95);
-    z-index: 10;
-    max-width: 480px;
-    margin-top: 0;
-  }
-  .medallion-container {
-    width: 315px;
-    height: 315px;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto;
-    z-index: 10;
-  }
-  .outer-ring {
-    position: absolute;
-    width: 310px;
-    height: 310px;
-    border-radius: 50%;
-    border: 2px solid ${accentHex};
-    opacity: 0.85;
-    box-shadow: 0 0 20px rgba(246, 197, 67, 0.45);
-  }
-  .inner-ring {
-    position: absolute;
-    width: 295px;
-    height: 295px;
-    border-radius: 50%;
-    border: 4px solid ${accentHex};
-    overflow: hidden;
-    background: ${bgHex};
-    box-shadow: inset 0 0 22px rgba(0,0,0,0.65), 0 10px 35px rgba(0,0,0,0.8);
-  }
-  .inner-ring img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-  .cover-title-box {
-    text-align: center;
-    max-width: 480px;
-    z-index: 10;
-    margin-bottom: 4px;
-  }
-  .cover-title {
-    font-size: ${isNonLatin(cleanTitle) ? '32px' : '34px'};
-    font-weight: 800;
-    color: #ffffff;
-    line-height: 1.25;
-    text-shadow: 0 3px 14px rgba(0,0,0,0.95), 0 1px 3px rgba(0,0,0,0.95);
-  }
-  .cover-footer {
-    font-size: 11px;
-    letter-spacing: 2.5px;
-    text-transform: uppercase;
-    color: ${accentHex};
-    opacity: 0.95;
-    text-align: center;
-    z-index: 10;
-  }
-</style>
-</head>
-<body>
-  ${bgDataUrl ? `<img class="bg-img" src="${bgDataUrl}">` : ''}
-  <div class="cover-top-name">${cleanName}</div>
-  <div class="medallion-container">
-    <div class="outer-ring"></div>
-    <div class="inner-ring">
-      ${vigDataUrl ? `<img src="${vigDataUrl}">` : ''}
-    </div>
-  </div>
-  <div class="cover-title-box">
-    <div class="cover-title">${cleanTitle}</div>
-  </div>
-  <div class="cover-footer">✦ TwinkleTale Keepsake Treasury ✦</div>
-</body>
-</html>`;
-
-    return renderHtmlToBuffer(html, width, height, 3);
-}
-
-function renderDedicationBlockPng(title, rhyme, forLabel, dedMsg, options = {}) {
+async function renderDedicationBlockPng(title, rhyme, forLabel, dedMsg, options = {}) {
     const width = 500;
     const height = 480;
     const accent = options.accentColor || '#c8963e';
     const ink = options.inkColor || '#1e272e';
     const cover = options.coverColor || '#1e3799';
 
-    const cleanTitle = sanitizeIndicText(title);
+    const cleanTitle = escapeXml(sanitizeIndicText(title));
     const cleanRhyme = sanitizeIndicText(rhyme);
-    const cleanFor = sanitizeIndicText(forLabel);
+    const cleanFor = escapeXml(sanitizeIndicText(forLabel));
     const cleanMsg = sanitizeIndicText(dedMsg);
 
-    const rhymeLines = (cleanRhyme || '').split('\n').filter(Boolean).map(l => `<div>${l}</div>`).join('');
-    const dedLines = (cleanMsg || '').split('\n').filter(Boolean).map(l => `<div>${l}</div>`).join('');
+    const fontFamilies = "'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Arabic', 'Nirmala UI', sans-serif";
 
-    const html = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@500;600;700&family=Noto+Sans+Bengali:wght@500;600;700&family=Noto+Sans+Tamil:wght@500;600;700&family=Noto+Sans+Telugu:wght@500;600;700&family=Noto+Sans+Arabic:wght@500;600;700&display=swap');
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    width: ${width}px;
-    height: ${height}px;
-    background: transparent;
-    font-family: 'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Arabic', sans-serif;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: center;
-    padding-top: 10px;
-  }
-  .header {
-    font-size: 11px;
-    letter-spacing: 2px;
-    font-weight: 700;
-    color: ${accent};
-    margin-bottom: 8px;
-  }
-  .diamond {
-    width: 6px;
-    height: 6px;
-    background-color: ${accent};
-    transform: rotate(45deg);
-    margin: 0 auto 16px auto;
-  }
-  .title {
-    font-size: 24px;
-    font-weight: 700;
-    color: ${cover};
-    line-height: 1.3;
-    margin-bottom: 20px;
-    max-width: 440px;
-  }
-  .rhyme {
-    font-size: 14px;
-    line-height: 1.85;
-    font-weight: 500;
-    color: ${ink};
-    margin-bottom: 24px;
-    font-style: italic;
-  }
-  .divider {
-    width: 260px;
-    height: 1px;
-    background-color: ${accent};
-    opacity: 0.5;
-    margin: 0 auto 24px auto;
-  }
-  .forLabel {
-    font-size: 16px;
-    font-weight: 700;
-    color: ${cover};
-    margin-bottom: 12px;
-  }
-  .dedMsg {
-    font-size: 13px;
-    line-height: 1.8;
-    color: ${ink};
-    max-width: 400px;
-  }
-</style>
-</head>
-<body>
-  <div class="header">TWINKLETALE KEEPSAKE TREASURY</div>
-  <div class="diamond"></div>
-  <div class="title">${cleanTitle}</div>
-  <div class="rhyme">${rhymeLines}</div>
-  <div class="divider"></div>
-  <div class="forLabel">${cleanFor}</div>
-  <div class="dedMsg">${dedLines}</div>
-</body>
-</html>`;
-    return renderHtmlToBuffer(html, width, height, 3);
+    try {
+        const rhymeLines = cleanRhyme.split('\n').filter(Boolean).map(l => escapeXml(l.trim()));
+        let rhymeSvg = '';
+        rhymeLines.forEach((l, i) => {
+            rhymeSvg += `<text x="${width / 2}" y="${160 + i * 26}" text-anchor="middle" fill="${ink}" font-family="${fontFamilies}" font-size="14" font-weight="500" font-style="italic">${l}</text>`;
+        });
+
+        const dedLines = cleanMsg.split('\n').filter(Boolean).map(l => escapeXml(l.trim()));
+        let dedSvg = '';
+        const dedStartY = 160 + rhymeLines.length * 26 + 65;
+        dedLines.forEach((l, i) => {
+            dedSvg += `<text x="${width / 2}" y="${dedStartY + i * 24}" text-anchor="middle" fill="${ink}" font-family="${fontFamilies}" font-size="13" font-weight="400">${l}</text>`;
+        });
+
+        const divY = 160 + rhymeLines.length * 26 + 20;
+
+        const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+          <text x="${width / 2}" y="45" text-anchor="middle" fill="${accent}" font-family="${fontFamilies}" font-size="11" font-weight="700" letter-spacing="2">TWINKLETALE KEEPSAKE TREASURY</text>
+          <polygon points="${width / 2},60 ${width / 2 + 4},64 ${width / 2},68 ${width / 2 - 4},64" fill="${accent}" />
+          <text x="${width / 2}" y="105" text-anchor="middle" fill="${cover}" font-family="${fontFamilies}" font-size="24" font-weight="700">${cleanTitle}</text>
+          ${rhymeSvg}
+          <line x1="${width / 2 - 130}" y1="${divY}" x2="${width / 2 + 130}" y2="${divY}" stroke="${accent}" stroke-width="1" opacity="0.5" />
+          <text x="${width / 2}" y="${divY + 30}" text-anchor="middle" fill="${cover}" font-family="${fontFamilies}" font-size="16" font-weight="700">${cleanFor}</text>
+          ${dedSvg}
+        </svg>`;
+
+        return await sharp(Buffer.from(svg)).png().toBuffer();
+    } catch (e) {
+        console.warn('⚠️ Sharp dedication render notice:', e.message);
+        return null;
+    }
 }
 
 // WHIMSICAL STORYBOOK AVATAR (GHIBLI / WATERCOLOR PICTURE BOOK STYLE)
@@ -1266,10 +1089,10 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme", "sce
 
         // Step 3: Composite into unified, non-overlapping high-resolution cover
         console.log("  → Compositing theme-framed cover with non-overlapping typography...");
-        let coverBuffer = renderCoverCompositePng(bgBuffer, vigBuffer, childName, bookTitle, pal, lang);
+        let coverBuffer = await renderCoverCompositePng(bgBuffer, vigBuffer, childName, bookTitle, pal, lang);
         let coverIsComposited = true;
         if (!coverBuffer) {
-            console.warn("⚠️ Chromium cover composite notice, falling back to background buffer");
+            console.warn("⚠️ Sharp cover composite notice, falling back to background buffer");
             coverBuffer = bgBuffer;
             coverIsComposited = false;
         }
@@ -1303,11 +1126,11 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme", "sce
             photoData, dedication, email,
             charAnchor, pronoun, subjectPronoun, pal,
             title: bookTitle, bookTitle,
-            coverBuffer, coverUrl: coverPublicUrl,
-            bgBuffer, vigBuffer,
+            coverUrl: coverPublicUrl,
             coverIsComposited,
-            // Backwards compatibility for legacy references
-            bgBuffer: coverBuffer, vigBuffer: coverBuffer, bgUrl: coverPublicUrl, vigUrl: coverPublicUrl,
+            // Buffers are saved to disk (preview_${previewId}_cover.png) to keep RAM usage under 15MB
+            coverBuffer: null,
+            bgUrl: coverPublicUrl, vigUrl: coverPublicUrl,
             scenesData, openingRhyme,
             coverImagePrompt: storyJson.cover_image_prompt
         });
@@ -1610,7 +1433,7 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
                 fetchImageBuffer(bgUrlRaw),
                 fetchImageBuffer(vigUrlRaw)
             ]);
-            coverImgBuffer = renderCoverCompositePng(bgBuffer, vigBuffer, childName, session.bookTitle || title, pal, language);
+            coverImgBuffer = await renderCoverCompositePng(bgBuffer, vigBuffer, childName, session.bookTitle || title, pal, language);
             if (!coverImgBuffer) {
                 coverImgBuffer = bgBuffer;
                 session.coverIsComposited = false;
@@ -1688,7 +1511,7 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
 
         let dedRendered = false;
         if (isNonLatin(dedTitle) || isNonLatin(rhyme) || isNonLatin(dedMsg) || isNonLatin(childName)) {
-            const dedBuf = renderDedicationBlockPng(dedTitle, rhyme, forLabel, dedMsg, {
+            const dedBuf = await renderDedicationBlockPng(dedTitle, rhyme, forLabel, dedMsg, {
                 accentColor: rgbToHex(pal.accent),
                 inkColor: rgbToHex(pal.ink),
                 coverColor: rgbToHex(pal.cover)
@@ -1788,7 +1611,7 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
             // Verse Page Content (HarfBuzz rendering for Indic & complex scripts, vector for Latin)
             let verseRendered = false;
             if (isNonLatin(scene.page_text) || isNonLatin(scene.scene_title)) {
-                const versePngBuf = renderVersePagePng(scene.scene_title, scene.page_text, {
+                const versePngBuf = await renderVersePagePng(scene.scene_title, scene.page_text, {
                     titleColor: rgbToHex(pal.cover),
                     accentColor: rgbToHex(pal.accent),
                     textColor: rgbToHex(pal.ink)
@@ -2033,7 +1856,7 @@ Write all scene text in ${lang} using its authentic script.`;
             fetchImageBuffer(vigUrlRaw)
         ]);
 
-        let coverBuffer = renderCoverCompositePng(bgBuffer, vigBuffer, childName, title, pal, lang);
+        let coverBuffer = await renderCoverCompositePng(bgBuffer, vigBuffer, childName, title, pal, lang);
         let coverIsComposited = true;
         if (!coverBuffer) {
             coverBuffer = bgBuffer;
