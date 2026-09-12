@@ -672,7 +672,7 @@ function renderCoverCompositePng(bgBuffer, vigBuffer, childName, bookTitle, pal,
     flex-direction: column;
     justify-content: space-between;
     align-items: center;
-    padding: 36px 24px 28px 24px;
+    padding: 76px 55px 65px 55px;
     color: #fff;
   }
   .bg-img {
@@ -686,19 +686,19 @@ function renderCoverCompositePng(bgBuffer, vigBuffer, childName, bookTitle, pal,
   }
   .cover-top-name {
     font-style: ${isNonLatin(cleanName) ? 'normal' : 'italic'};
-    font-size: 40px;
+    font-size: 38px;
     font-weight: 700;
     color: ${accentHex};
     text-align: center;
-    letter-spacing: 1.5px;
+    letter-spacing: ${isNonLatin(cleanName) ? '0px' : '1.5px'};
     text-shadow: 0 2px 10px rgba(0,0,0,0.85), 0 1px 3px rgba(0,0,0,0.9);
-    margin-top: 10px;
     z-index: 10;
-    max-width: 520px;
+    max-width: 480px;
+    margin-top: 0;
   }
   .medallion-container {
-    width: 260px;
-    height: 260px;
+    width: 245px;
+    height: 245px;
     position: relative;
     display: flex;
     align-items: center;
@@ -708,8 +708,8 @@ function renderCoverCompositePng(bgBuffer, vigBuffer, childName, bookTitle, pal,
   }
   .outer-ring {
     position: absolute;
-    width: 254px;
-    height: 254px;
+    width: 240px;
+    height: 240px;
     border-radius: 50%;
     border: 1.8px solid ${accentHex};
     opacity: 0.8;
@@ -717,8 +717,8 @@ function renderCoverCompositePng(bgBuffer, vigBuffer, childName, bookTitle, pal,
   }
   .inner-ring {
     position: absolute;
-    width: 240px;
-    height: 240px;
+    width: 226px;
+    height: 226px;
     border-radius: 50%;
     border: 3.5px solid ${accentHex};
     overflow: hidden;
@@ -732,25 +732,26 @@ function renderCoverCompositePng(bgBuffer, vigBuffer, childName, bookTitle, pal,
   }
   .cover-title-box {
     text-align: center;
-    max-width: 500px;
+    max-width: 460px;
     z-index: 10;
-    margin-bottom: 14px;
+    margin-bottom: 6px;
   }
   .cover-title {
-    font-size: 34px;
+    font-size: ${isNonLatin(cleanTitle) ? '32px' : '34px'};
     font-weight: 800;
     color: #ffffff;
     line-height: 1.25;
     text-shadow: 0 3px 12px rgba(0,0,0,0.9), 0 1px 3px rgba(0,0,0,0.9);
   }
   .cover-footer {
-    font-size: 11px;
+    font-size: 10.5px;
     letter-spacing: 2px;
     text-transform: uppercase;
     color: ${accentHex};
     opacity: 0.95;
     text-align: center;
     z-index: 10;
+    margin-top: 4px;
   }
 </style>
 </head>
@@ -899,10 +900,10 @@ async function generateAvatar(photoData, charAnchor) {
     return extractUrl(out);
 }
 
-// THEME-RELEVANT ORNATE COVER BACKGROUND
+// THEME-RELEVANT ORNATE COVER BACKGROUND (WITH DEDICATED TEXT SAFE ZONES)
 async function generateCoverBackground(base, pal) {
-    console.log(`  → Painting ornate theme border background for ${base} theme...`);
-    const bgPrompt = STYLE + `ornate storybook cover BACKGROUND only: elaborate golden-cream vine and leaf border with small vignettes of ${pal.motifs} confined strictly to the outer fifteen percent edges; two gentle painted flourish arches of tiny leaves and stars framing an empty name plaque area at top and empty title plaque area below; the rest of the inner field is ${pal.flatWord}, flat and empty except a few sparse tiny golden stars; absolutely no character, no person, no moon, no text, no letters anywhere; rich painterly detail`;
+    console.log(`  → Painting ornate theme border background for ${base} theme with dedicated text safe zones...`);
+    const bgPrompt = `Masterpiece luxury book cover background, rich digital gouache and fine gold leaf texture: solid flat ${pal.flatWord} background with an ornate golden vine and leaf border with subtle ${pal.motifs} running strictly along the four outer perimeter edges and four corners only; the entire wide central area, the entire upper text area, and the entire lower title area are completely empty, blank, uniform ${pal.flatWord} with zero ornaments, zero leaves, zero flowers, zero vines, zero stars, zero arches, and zero lines; clean minimalist dark field inside an ornate golden outer border frame; no characters, no people, no words, no text, no letters, no watermark, no inner frames, no lines cutting through the center or bottom`;
     return await generateImage(bgPrompt, null);
 }
 
