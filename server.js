@@ -146,9 +146,10 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 const STYLE = 'Masterpiece children\'s storybook illustration, rich painterly storybook realism, soft digital gouache and fine oils texture, warm cinematic volumetric lighting, gentle golden hour rim light, adorable expressive child character with soulful sparkling dark eyes, natural soft dimensional skin tones with gentle peachy warmth, finely rendered silky hair catching the light, charming button nose and joyful smile, highly detailed enchanted surroundings with floating magical motes and glowing starlight, cinematic depth of field, art by Oliver Jeffers and Chris Van Allsburg, award-winning picture book, no text, no words, no letters, no watermark, not flat 2D cartoon, not 3D CGI plastic render: ';
 const PACING = 10000;
 
-// Preview session cache and Job status tracking
+// Preview session cache, Job status tracking, and Replay-Attack Prevention
 const previewSessions = new Map();
 const activeJobs = new Map();
+const fulfilledPayments = new Map();
 
 setInterval(() => {
     const now = Date.now();
@@ -157,6 +158,9 @@ setInterval(() => {
     }
     for (const [id, item] of activeJobs.entries()) {
         if (now - item.timestamp > 2 * 3600 * 1000) activeJobs.delete(id);
+    }
+    for (const [id, timestamp] of fulfilledPayments.entries()) {
+        if (now - timestamp > 48 * 3600 * 1000) fulfilledPayments.delete(id);
     }
 }, 30 * 60 * 1000);
 
@@ -1456,18 +1460,59 @@ app.post('/api/verify-and-complete-book', rateLimiter, async (req, res) => {
             console.log('🔒 Exact approved preview cover locked for final book!');
         }
 
+        // =========================================================
+        // HACK-PROOF RAZORPAY VERIFICATION & ANTI-REPLAY CHECK
+        // =========================================================
         if (razorpay && process.env.RAZORPAY_KEY_SECRET) {
+            if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+                return res.status(400).json({ success: false, error: 'Incomplete payment credentials received from gateway.' });
+            }
+
+            // Anti-Replay Guard: Reject if payment ID was already redeemed
+            if (fulfilledPayments.has(razorpay_payment_id)) {
+                return res.status(400).json({ success: false, error: 'This payment has already been verified and processed. Please check your email for the download link.' });
+            }
+
+            // 1. Timing-Safe HMAC-SHA256 Cryptographic Verification (prevents side-channel timing attacks)
             const expectedSig = crypto
                 .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
                 .update(`${razorpay_order_id}|${razorpay_payment_id}`)
                 .digest('hex');
 
-            if (expectedSig !== razorpay_signature) {
-                return res.status(400).json({ success: false, error: 'Payment signature verification failed' });
+            const expectedBuf = Buffer.from(expectedSig, 'utf8');
+            const providedBuf = Buffer.from(String(razorpay_signature || ''), 'utf8');
+            if (expectedBuf.length !== providedBuf.length || !crypto.timingSafeEqual(expectedBuf, providedBuf)) {
+                return res.status(400).json({ success: false, error: 'Payment signature verification failed. Tampered payload detected.' });
             }
-            console.log(`💳 Payment Verified: ${razorpay_payment_id} for order ${razorpay_order_id}`);
+
+            // 2. Direct Razorpay Gateway API Audit (Double Verification against real funds captured)
+            try {
+                const payment = await razorpay.payments.fetch(razorpay_payment_id);
+                if (!payment || (payment.status !== 'captured' && payment.status !== 'authorized')) {
+                    return res.status(400).json({ success: false, error: `Payment not confirmed by Razorpay gateway (status: ${payment?.status || 'unknown'}).` });
+                }
+                if (payment.order_id !== razorpay_order_id) {
+                    return res.status(400).json({ success: false, error: 'Payment order ID mismatch.' });
+                }
+                const isLong = String(bookLength || '').toLowerCase().includes('long') || String(bookLength || '').includes('24');
+                const minExpectedPaise = isLong ? 29900 : 19900;
+                if (payment.amount < minExpectedPaise) {
+                    return res.status(400).json({ success: false, error: 'Paid amount is less than the required book edition price.' });
+                }
+            } catch (fetchErr) {
+                console.error('❌ Razorpay server audit error:', fetchErr.message);
+                return res.status(400).json({ success: false, error: 'Failed to verify transaction status directly with Razorpay.' });
+            }
+
+            // Mark payment as fulfilled to prevent re-submissions
+            fulfilledPayments.set(razorpay_payment_id, Date.now());
+            console.log(`💳 Cryptographically Verified & Settled: ${razorpay_payment_id} for order ${razorpay_order_id}`);
         } else {
-            console.log(`💳 Test Payment simulated: ${razorpay_payment_id || 'test_payment'}`);
+            // In Production, reject unconfigured gateways immediately
+            if (process.env.NODE_ENV === 'production') {
+                return res.status(503).json({ success: false, error: 'Razorpay payment gateway is not configured for production transactions.' });
+            }
+            console.log(`💳 Test Payment simulated in dev mode: ${razorpay_payment_id || 'test_payment'}`);
         }
 
         const jobId = `job_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
@@ -1850,7 +1895,7 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         drawCentered(backCover, backHeroTag, 355, 12, chooseFont(backHeroTag, bookFont, serifB), pal.accent, 0.9);
 
         drawCentered(backCover, 'A Keepsake Treasury To Treasure Forever', 160, 11, serifI, pal.accent, 0.85);
-        drawCentered(backCover, 'www.twinkletale.com • Keepsake Edition', 60, 10, serif, pal.accent, 0.7);
+        drawCentered(backCover, 'www.twinkletaleai.com • Keepsake Edition', 60, 10, serif, pal.accent, 0.7);
 
         // ================= STRICT PAGE COUNT GUARDRAIL (PRINT-SHOP MULTIPLES OF 4) =================
         const expectedPages = (scenes * 2) + 4;
@@ -1862,7 +1907,8 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         update(97, 'Saving print-ready PDF...');
         const pdfBytes = await pdfDoc.save();
         const safeName = String(childName).replace(/[^a-zA-Z0-9_-]/g, '_');
-        const fileName = `twinkletale_${safeName}_${Date.now()}.pdf`;
+        const cryptToken = crypto.randomBytes(16).toString('hex');
+        const fileName = `twinkletale_${safeName}_${cryptToken}.pdf`;
         let pdfUrl = null;
 
         if (supabase) {
@@ -1927,13 +1973,23 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
             job.error = err.message;
             job.step = 'Generation encountered an error';
         }
+    } finally {
+        if (session) {
+            session.photoData = null; // Ephemeral photo memory purged immediately for child privacy
+        }
     }
 }
 
 // ====================================================================
-// DIRECT BOOK GENERATION (SMOKE TEST ENDPOINT)
+// DIRECT BOOK GENERATION (RESTRICTED TO ADMIN / DEV)
 // ====================================================================
 app.post('/api/create-book', rateLimiter, async (req, res) => {
+    if (process.env.NODE_ENV === 'production') {
+        const adminToken = req.headers['x-admin-token'] || req.query.admin_token;
+        if (!process.env.ADMIN_TOKEN || adminToken !== process.env.ADMIN_TOKEN) {
+            return res.status(403).json({ success: false, error: 'Direct creation is restricted in production. Please use /api/create-preview and verified checkout.' });
+        }
+    }
     const t0 = Date.now();
     try {
         const { childName, gender, age, theme, language, photoData, bookLength, dedication, email } = req.body;
