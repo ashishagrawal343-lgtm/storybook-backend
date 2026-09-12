@@ -194,22 +194,126 @@ function rateLimiter(req, res, next) {
     next();
 }
 
-// 12 DIVERSE THEMES
+// 12 DIVERSE THEMES WITH THEME-SPECIFIC BORDER STYLES
 function themeKit(base) {
     const b = String(base || '').toLowerCase();
-    if (b.includes('space')) return { cover: rgb(0.05, 0.10, 0.32), accent: rgb(0.96, 0.78, 0.26), textBg: rgb(0.985, 0.965, 0.92), ink: rgb(0.20, 0.20, 0.30), flatWord: 'solid flat deep indigo navy', motifs: 'tiny stars, crescent moons, little silver rockets and planets' };
-    if (b.includes('animal') || b.includes('forest')) return { cover: rgb(0.10, 0.30, 0.24), accent: rgb(0.95, 0.80, 0.45), textBg: rgb(0.985, 0.965, 0.92), ink: rgb(0.20, 0.24, 0.20), flatWord: 'solid flat deep forest green', motifs: 'friendly forest animals, oak leaves, acorns and wildflowers' };
-    if (b.includes('princess') || b.includes('castle') || b.includes('kingdom')) return { cover: rgb(0.55, 0.16, 0.35), accent: rgb(0.99, 0.85, 0.60), textBg: rgb(0.99, 0.96, 0.94), ink: rgb(0.32, 0.17, 0.24), flatWord: 'solid flat deep rose plum', motifs: 'roses, tiny golden crowns, castle spires and silk ribbons' };
-    if (b.includes('super')) return { cover: rgb(0.45, 0.08, 0.12), accent: rgb(0.98, 0.75, 0.20), textBg: rgb(0.985, 0.96, 0.92), ink: rgb(0.30, 0.16, 0.14), flatWord: 'solid flat deep crimson', motifs: 'bright stars, hero shields and lightning bolts' };
-    if (b.includes('dinosaur')) return { cover: rgb(0.18, 0.28, 0.15), accent: rgb(0.94, 0.76, 0.30), textBg: rgb(0.985, 0.965, 0.92), ink: rgb(0.22, 0.24, 0.18), flatWord: 'solid flat deep moss green', motifs: 'prehistoric ferns, gentle friendly baby dinosaurs and amber leaves' };
-    if (b.includes('ocean') || b.includes('dolphin') || b.includes('mermaid')) return { cover: rgb(0.06, 0.22, 0.38), accent: rgb(0.60, 0.88, 0.95), textBg: rgb(0.96, 0.98, 0.99), ink: rgb(0.12, 0.24, 0.34), flatWord: 'solid flat deep sapphire ocean blue', motifs: 'playful dolphins, seashells, starfish and coral reef bubbles' };
-    if (b.includes('fairy') || b.includes('magic')) return { cover: rgb(0.38, 0.15, 0.42), accent: rgb(0.95, 0.82, 0.55), textBg: rgb(0.99, 0.96, 0.98), ink: rgb(0.28, 0.16, 0.30), flatWord: 'solid flat deep enchanted violet', motifs: 'glowing fireflies, tiny pixie wings, blossom lanterns and sparkles' };
-    if (b.includes('train') || b.includes('vehicle')) return { cover: rgb(0.15, 0.24, 0.35), accent: rgb(0.96, 0.72, 0.22), textBg: rgb(0.985, 0.965, 0.92), ink: rgb(0.20, 0.22, 0.28), flatWord: 'solid flat deep slate navy', motifs: 'steam engines, little train tracks, station bells and signals' };
-    if (b.includes('lullaby') || b.includes('bedtime') || b.includes('cloud')) return { cover: rgb(0.10, 0.14, 0.32), accent: rgb(0.98, 0.85, 0.48), textBg: rgb(0.985, 0.97, 0.94), ink: rgb(0.20, 0.22, 0.32), flatWord: 'solid flat midnight twilight blue', motifs: 'sleeping moons, soft woolly lambs, fluffy pillows and night stars' };
-    if (b.includes('circus') || b.includes('carnival')) return { cover: rgb(0.42, 0.12, 0.18), accent: rgb(0.98, 0.82, 0.32), textBg: rgb(0.99, 0.97, 0.92), ink: rgb(0.30, 0.16, 0.18), flatWord: 'solid flat festive berry crimson', motifs: 'carousel horses, colorful balloons, circus tents and ribbons' };
-    if (b.includes('unicorn') || b.includes('rainbow')) return { cover: rgb(0.48, 0.18, 0.38), accent: rgb(0.99, 0.85, 0.65), textBg: rgb(0.99, 0.96, 0.98), ink: rgb(0.32, 0.18, 0.26), flatWord: 'solid flat magical plum berry', motifs: 'golden unicorn horns, pastel rainbows, starry clouds and magic gems' };
-    if (b.includes('safari') || b.includes('jungle')) return { cover: rgb(0.22, 0.28, 0.14), accent: rgb(0.95, 0.78, 0.30), textBg: rgb(0.98, 0.97, 0.93), ink: rgb(0.22, 0.24, 0.16), flatWord: 'solid flat deep safari khaki green', motifs: 'baby elephants, jungle palms, golden sunbeams and tropical birds' };
-    return { cover: rgb(0.05, 0.10, 0.32), accent: rgb(0.96, 0.78, 0.26), textBg: rgb(0.985, 0.965, 0.92), ink: rgb(0.20, 0.20, 0.30), flatWord: 'solid flat deep indigo navy', motifs: 'flowers, leaves, ribbons and golden bells' };
+    if (b.includes('space')) return {
+        cover: rgb(0.05, 0.10, 0.32),
+        accent: rgb(0.96, 0.78, 0.26),
+        textBg: rgb(0.985, 0.965, 0.92),
+        ink: rgb(0.20, 0.20, 0.30),
+        flatWord: 'solid flat deep indigo navy',
+        motifs: 'tiny stars, crescent moons, little silver rockets and planets',
+        borderDesc: 'celestial starlight border with constellation lines, glowing cosmic dust, miniature crescent moons, tiny Saturn-like planets, and gleaming starbursts strictly along the outer perimeter edges and four corners only'
+    };
+    if (b.includes('animal') || b.includes('forest')) return {
+        cover: rgb(0.10, 0.30, 0.24),
+        accent: rgb(0.95, 0.80, 0.45),
+        textBg: rgb(0.985, 0.965, 0.92),
+        ink: rgb(0.20, 0.24, 0.20),
+        flatWord: 'solid flat deep forest green',
+        motifs: 'friendly forest animals, oak leaves, acorns and wildflowers',
+        borderDesc: 'lush woodland botanical border of entwined oak and fern boughs, golden acorns, tiny forest berries, blooming woodland wildflowers, and gentle firefly motes strictly along the outer perimeter edges and four corners only'
+    };
+    if (b.includes('princess') || b.includes('castle') || b.includes('kingdom')) return {
+        cover: rgb(0.55, 0.16, 0.35),
+        accent: rgb(0.99, 0.85, 0.60),
+        textBg: rgb(0.99, 0.96, 0.94),
+        ink: rgb(0.32, 0.17, 0.24),
+        flatWord: 'solid flat deep rose plum',
+        motifs: 'roses, tiny golden crowns, castle spires and silk ribbons',
+        borderDesc: 'regal fairytale baroque border of delicate royal rose garlands, ornate filigree scrollwork, tiny jeweled tiara motifs, and flowing silk ribbons strictly along the outer perimeter edges and four corners only'
+    };
+    if (b.includes('super')) return {
+        cover: rgb(0.45, 0.08, 0.12),
+        accent: rgb(0.98, 0.75, 0.20),
+        textBg: rgb(0.985, 0.96, 0.92),
+        ink: rgb(0.30, 0.16, 0.14),
+        flatWord: 'solid flat deep heroic crimson-black',
+        motifs: 'bright stars, hero shields and lightning bolts',
+        borderDesc: 'dynamic art deco heroic emblem border with geometric lightning crests, bold starburst corner shields, soaring heroic velocity lines, and golden energy flares strictly along the outer perimeter edges and four corners only'
+    };
+    if (b.includes('dinosaur')) return {
+        cover: rgb(0.18, 0.28, 0.15),
+        accent: rgb(0.94, 0.76, 0.30),
+        textBg: rgb(0.985, 0.965, 0.92),
+        ink: rgb(0.22, 0.24, 0.18),
+        flatWord: 'solid flat deep moss green',
+        motifs: 'prehistoric ferns, gentle friendly baby dinosaurs and amber leaves',
+        borderDesc: 'ancient prehistoric botanical border of lush prehistoric cycad and fern fronds, fossil stone carvings, polished amber gemstones, and tropical jungle leaves strictly along the outer perimeter edges and four corners only'
+    };
+    if (b.includes('ocean') || b.includes('dolphin') || b.includes('mermaid')) return {
+        cover: rgb(0.06, 0.22, 0.38),
+        accent: rgb(0.60, 0.88, 0.95),
+        textBg: rgb(0.96, 0.98, 0.99),
+        ink: rgb(0.12, 0.24, 0.34),
+        flatWord: 'solid flat deep oceanic sapphire blue',
+        motifs: 'playful dolphins, seashells, starfish and coral reef bubbles',
+        borderDesc: 'enchanted aquatic ocean border of sculpted coral branches, sea kelp ribbons, luminous pearl strands, iridescent seashells, and shimmering sea glass bubbles strictly along the outer perimeter edges and four corners only'
+    };
+    if (b.includes('fairy') || b.includes('magic')) return {
+        cover: rgb(0.38, 0.15, 0.42),
+        accent: rgb(0.95, 0.82, 0.55),
+        textBg: rgb(0.99, 0.96, 0.98),
+        ink: rgb(0.28, 0.16, 0.30),
+        flatWord: 'solid flat deep enchanted violet',
+        motifs: 'glowing fireflies, tiny pixie wings, blossom lanterns and sparkles',
+        borderDesc: 'enchanted fairy garden border of delicate morning-glory vines, glowing pixie dust trails, crystal lantern blooms, and gossamer butterfly wings strictly along the outer perimeter edges and four corners only'
+    };
+    if (b.includes('train') || b.includes('vehicle')) return {
+        cover: rgb(0.15, 0.24, 0.35),
+        accent: rgb(0.96, 0.72, 0.22),
+        textBg: rgb(0.985, 0.965, 0.92),
+        ink: rgb(0.20, 0.22, 0.28),
+        flatWord: 'solid flat deep slate navy',
+        motifs: 'steam engines, little train tracks, station bells and signals',
+        borderDesc: 'vintage storybook locomotive border of polished brass steam train tracks, miniature telegraph gears, lantern lamps, and golden railway signals strictly along the outer perimeter edges and four corners only'
+    };
+    if (b.includes('lullaby') || b.includes('bedtime') || b.includes('cloud')) return {
+        cover: rgb(0.10, 0.14, 0.32),
+        accent: rgb(0.98, 0.85, 0.48),
+        textBg: rgb(0.985, 0.97, 0.94),
+        ink: rgb(0.20, 0.22, 0.32),
+        flatWord: 'solid flat midnight twilight blue',
+        motifs: 'sleeping moons, soft woolly lambs, fluffy pillows and night stars',
+        borderDesc: 'dreamy bedtime lullaby border of soft billowing cloud ribbons, sleeping crescent moons, slumbering stardust trails, and gentle golden lullaby notes strictly along the outer perimeter edges and four corners only'
+    };
+    if (b.includes('circus') || b.includes('carnival')) return {
+        cover: rgb(0.42, 0.12, 0.18),
+        accent: rgb(0.98, 0.82, 0.32),
+        textBg: rgb(0.99, 0.97, 0.92),
+        ink: rgb(0.30, 0.16, 0.18),
+        flatWord: 'solid flat festive berry crimson',
+        motifs: 'carousel horses, colorful balloons, circus tents and ribbons',
+        borderDesc: 'festive vintage carnival border of golden carousel filigree, carnival pennant bunting, festive star ribbons, and ornamental circus flourishes strictly along the outer perimeter edges and four corners only'
+    };
+    if (b.includes('unicorn') || b.includes('rainbow')) return {
+        cover: rgb(0.48, 0.18, 0.38),
+        accent: rgb(0.99, 0.85, 0.65),
+        textBg: rgb(0.99, 0.96, 0.98),
+        ink: rgb(0.32, 0.18, 0.26),
+        flatWord: 'solid flat magical plum berry',
+        motifs: 'golden unicorn horns, pastel rainbows, starry clouds and magic gems',
+        borderDesc: 'magical celestial unicorn border of flowing pastel rainbow ribbons, starlit crystal gems, golden clover vines, and shimmering sparkle flourishes strictly along the outer perimeter edges and four corners only'
+    };
+    if (b.includes('safari') || b.includes('jungle')) return {
+        cover: rgb(0.22, 0.28, 0.14),
+        accent: rgb(0.95, 0.78, 0.30),
+        textBg: rgb(0.98, 0.97, 0.93),
+        ink: rgb(0.22, 0.24, 0.16),
+        flatWord: 'solid flat deep safari khaki green',
+        motifs: 'baby elephants, jungle palms, golden sunbeams and tropical birds',
+        borderDesc: 'vibrant savannah safari border of exotic jungle palm fronds, golden acacia branches, sunbeam rays, and tribal storybook vine scrollwork strictly along the outer perimeter edges and four corners only'
+    };
+    return {
+        cover: rgb(0.05, 0.10, 0.32),
+        accent: rgb(0.96, 0.78, 0.26),
+        textBg: rgb(0.985, 0.965, 0.92),
+        ink: rgb(0.20, 0.20, 0.30),
+        flatWord: 'solid flat deep indigo navy',
+        motifs: 'flowers, leaves, ribbons and golden bells',
+        borderDesc: 'ornate storybook border with elegant filigree vine scrollwork, ribbons, and delicate decorative corners strictly along the outer perimeter edges and four corners only'
+    };
 }
 
 function themeTitle(base) {
@@ -672,7 +776,7 @@ function renderCoverCompositePng(bgBuffer, vigBuffer, childName, bookTitle, pal,
     flex-direction: column;
     justify-content: space-between;
     align-items: center;
-    padding: 76px 55px 65px 55px;
+    padding: 68px 50px 58px 50px;
     color: #fff;
   }
   .bg-img {
@@ -686,19 +790,19 @@ function renderCoverCompositePng(bgBuffer, vigBuffer, childName, bookTitle, pal,
   }
   .cover-top-name {
     font-style: ${isNonLatin(cleanName) ? 'normal' : 'italic'};
-    font-size: 38px;
+    font-size: 40px;
     font-weight: 700;
     color: ${accentHex};
     text-align: center;
     letter-spacing: ${isNonLatin(cleanName) ? '0px' : '1.5px'};
-    text-shadow: 0 2px 10px rgba(0,0,0,0.85), 0 1px 3px rgba(0,0,0,0.9);
+    text-shadow: 0 2px 10px rgba(0,0,0,0.9), 0 1px 3px rgba(0,0,0,0.95);
     z-index: 10;
     max-width: 480px;
     margin-top: 0;
   }
   .medallion-container {
-    width: 245px;
-    height: 245px;
+    width: 315px;
+    height: 315px;
     position: relative;
     display: flex;
     align-items: center;
@@ -708,22 +812,22 @@ function renderCoverCompositePng(bgBuffer, vigBuffer, childName, bookTitle, pal,
   }
   .outer-ring {
     position: absolute;
-    width: 240px;
-    height: 240px;
+    width: 310px;
+    height: 310px;
     border-radius: 50%;
-    border: 1.8px solid ${accentHex};
-    opacity: 0.8;
-    box-shadow: 0 0 15px rgba(246, 197, 67, 0.35);
+    border: 2px solid ${accentHex};
+    opacity: 0.85;
+    box-shadow: 0 0 20px rgba(246, 197, 67, 0.45);
   }
   .inner-ring {
     position: absolute;
-    width: 226px;
-    height: 226px;
+    width: 295px;
+    height: 295px;
     border-radius: 50%;
-    border: 3.5px solid ${accentHex};
+    border: 4px solid ${accentHex};
     overflow: hidden;
     background: ${bgHex};
-    box-shadow: inset 0 0 20px rgba(0,0,0,0.6), 0 8px 30px rgba(0,0,0,0.7);
+    box-shadow: inset 0 0 22px rgba(0,0,0,0.65), 0 10px 35px rgba(0,0,0,0.8);
   }
   .inner-ring img {
     width: 100%;
@@ -732,26 +836,25 @@ function renderCoverCompositePng(bgBuffer, vigBuffer, childName, bookTitle, pal,
   }
   .cover-title-box {
     text-align: center;
-    max-width: 460px;
+    max-width: 480px;
     z-index: 10;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
   }
   .cover-title {
     font-size: ${isNonLatin(cleanTitle) ? '32px' : '34px'};
     font-weight: 800;
     color: #ffffff;
     line-height: 1.25;
-    text-shadow: 0 3px 12px rgba(0,0,0,0.9), 0 1px 3px rgba(0,0,0,0.9);
+    text-shadow: 0 3px 14px rgba(0,0,0,0.95), 0 1px 3px rgba(0,0,0,0.95);
   }
   .cover-footer {
-    font-size: 10.5px;
-    letter-spacing: 2px;
+    font-size: 11px;
+    letter-spacing: 2.5px;
     text-transform: uppercase;
     color: ${accentHex};
     opacity: 0.95;
     text-align: center;
     z-index: 10;
-    margin-top: 4px;
   }
 </style>
 </head>
@@ -900,10 +1003,11 @@ async function generateAvatar(photoData, charAnchor) {
     return extractUrl(out);
 }
 
-// THEME-RELEVANT ORNATE COVER BACKGROUND (WITH DEDICATED TEXT SAFE ZONES)
+// THEME-RELEVANT ORNATE COVER BACKGROUND (WITH THEME-SPECIFIC BORDER & DEDICATED TEXT SAFE ZONES)
 async function generateCoverBackground(base, pal) {
-    console.log(`  → Painting ornate theme border background for ${base} theme with dedicated text safe zones...`);
-    const bgPrompt = `Masterpiece luxury book cover background, rich digital gouache and fine gold leaf texture: solid flat ${pal.flatWord} background with an ornate golden vine and leaf border with subtle ${pal.motifs} running strictly along the four outer perimeter edges and four corners only; the entire wide central area, the entire upper text area, and the entire lower title area are completely empty, blank, uniform ${pal.flatWord} with zero ornaments, zero leaves, zero flowers, zero vines, zero stars, zero arches, and zero lines; clean minimalist dark field inside an ornate golden outer border frame; no characters, no people, no words, no text, no letters, no watermark, no inner frames, no lines cutting through the center or bottom`;
+    console.log(`  → Painting ornate theme-specific border background for ${base} theme with dedicated text safe zones...`);
+    const borderDetail = pal.borderDesc || `ornate storybook border with subtle ${pal.motifs} strictly along the outer perimeter edges and four corners only`;
+    const bgPrompt = `Masterpiece luxury book cover background, rich digital gouache and fine artisan texture: solid flat ${pal.flatWord} background with an ${borderDetail}; the entire wide central area, the entire upper text area, and the entire lower title area are completely empty, blank, uniform ${pal.flatWord} with zero ornaments, zero leaves, zero flowers, zero vines, zero stars, zero arches, and zero lines; clean minimalist dark field inside an ornate theme-specific outer border frame; no characters, no people, no words, no text, no letters, no watermark, no inner frames, no lines cutting through the center or bottom`;
     return await generateImage(bgPrompt, null);
 }
 
