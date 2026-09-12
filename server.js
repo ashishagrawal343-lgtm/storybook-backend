@@ -137,6 +137,11 @@ if (process.env.BREVO_API_KEY && process.env.SENDER_EMAIL) {
     console.log('⚠️ Brevo not configured — link-only delivery');
 }
 
+// Image Generation Pipeline Versioning (v2 default, with v1 instant rollback via GEN_PIPELINE_VERSION=v1)
+const PIPELINE_VERSION = process.env.GEN_PIPELINE_VERSION || 'v2';
+const IS_V2 = PIPELINE_VERSION !== 'v1';
+console.log(`🚀 Image Generation Pipeline: ${PIPELINE_VERSION.toUpperCase()} (v1 rollback available via GEN_PIPELINE_VERSION=v1)`);
+
 const booksFolder = path.join(__dirname, 'books');
 if (!fs.existsSync(booksFolder)) fs.mkdirSync(booksFolder);
 
@@ -212,18 +217,29 @@ setInterval(() => {
     }
 }, 10 * 60 * 1000);
 
-// COVER PRINT-SAFE ZONES (MATHEMATICALLY PREVENTS OVERLAP)
+// COVER PRINT-SAFE ZONES (UNIFIED 600x800 px TOP-LEFT GEOMETRY)
 const Z = {
-    name:  { bottom: 690 },
-    medal: { cx: 300, cy: 450, r: 120 },
-    title: { top: 300, bottom: 150 }
+    canvas: { width: 600, height: 800 },
+    name:   { top: 70, y: 125, bottom: 175 },
+    medal:  { cx: 300, cy: 385, r: 175, top: 210, bottom: 560 },
+    title:  { top: 605, y1: 635, y2: 675, bottom: 715 },
+    footer: { y: 745, bottom: 775 }
+};
+
+// PDF-lib bottom-left coordinate mapping (PAGE_H = 800)
+const PDF_Z = {
+    medal: { cx: Z.medal.cx, cy: 800 - Z.medal.cy, r: Z.medal.r }, // cy: 415
+    name:  { y: 800 - Z.name.y },                                    // y: 675
+    title: { y: 800 - 650 },                                         // y: 150
+    footer: { y: 800 - Z.footer.y }                                  // y: 55
 };
 
 function assertZones() {
-    const ok = Z.name.bottom > (Z.medal.cy + Z.medal.r + 12) &&
-               (Z.medal.cy - Z.medal.r - 12) > Z.title.top &&
-               Z.title.bottom > 0;
-    if (!ok) throw new Error('COVER GUARDRAIL VIOLATION: zones overlap');
+    const ok = (Z.name.bottom < Z.medal.top - 20) &&
+               (Z.medal.bottom < Z.title.top - 20) &&
+               (Z.title.bottom < Z.footer.y - 15) &&
+               (Z.footer.bottom <= Z.canvas.height);
+    if (!ok) throw new Error('COVER GUARDRAIL VIOLATION: safe zones overlap');
 }
 
 async function withRetry(label, fn, attempts = 3, wait = 6000) {
@@ -655,8 +671,8 @@ function escapeXml(str) {
 }
 
 async function renderCoverCompositePng(bgBuffer, vigBuffer, childName, bookTitle, pal, lang = 'en') {
-    const width = 600;
-    const height = 800;
+    const width = Z.canvas.width;
+    const height = Z.canvas.height;
     const accentHex = rgbToHex(pal.accent);
     const bgHex = rgbToHex(pal.cover);
 
@@ -664,9 +680,9 @@ async function renderCoverCompositePng(bgBuffer, vigBuffer, childName, bookTitle
         // 1. Base background layer
         const base = await sharp(bgBuffer).resize(width, height, { fit: 'cover' }).toBuffer();
 
-        // 2. Circular Child Medallion Hero (350x350 pt safe zone - Central focal area)
-        const medalSize = 350;
-        const medalRadius = medalSize / 2;
+        // 2. Circular Child Medallion Hero (Central focal area strictly bounded by Z.medal safe zone)
+        const medalSize = Z.medal.r * 2; // 350 px
+        const medalRadius = Z.medal.r;   // 175 px
         const circleSvg = Buffer.from(
             `<svg width="${medalSize}" height="${medalSize}"><circle cx="${medalRadius}" cy="${medalRadius}" r="${medalRadius}" fill="#fff"/></svg>`
         );
@@ -687,8 +703,8 @@ async function renderCoverCompositePng(bgBuffer, vigBuffer, childName, bookTitle
             ? "'StoryFont', 'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Arabic', 'Nirmala UI', sans-serif"
             : "'Playfair Display', Georgia, 'Times New Roman', serif";
 
-        const medalCenterY = 385;
-        const medalCenterX = width / 2;
+        const medalCenterY = Z.medal.cy; // 385 px
+        const medalCenterX = Z.medal.cx; // 300 px
 
         // Balanced title wrap
         const words = cleanTitle.split(' ');
@@ -701,20 +717,40 @@ async function renderCoverCompositePng(bgBuffer, vigBuffer, childName, bookTitle
         }
 
         const titleSvg = line2
-            ? `<text x="${width / 2}" y="635" text-anchor="middle" fill="#FFFFFF" font-family="${fontFamilies}" font-size="26" font-weight="700" filter="drop-shadow(0 2px 8px rgba(0,0,0,0.95))">${line1}</text>
-               <text x="${width / 2}" y="675" text-anchor="middle" fill="#FFFFFF" font-family="${fontFamilies}" font-size="26" font-weight="700" filter="drop-shadow(0 2px 8px rgba(0,0,0,0.95))">${line2}</text>`
+            ? `<text x="${width / 2}" y="${Z.title.y1}" text-anchor="middle" fill="#FFFFFF" font-family="${fontFamilies}" font-size="26" font-weight="700" filter="drop-shadow(0 2px 8px rgba(0,0,0,0.95))">${line1}</text>
+               <text x="${width / 2}" y="${Z.title.y2}" text-anchor="middle" fill="#FFFFFF" font-family="${fontFamilies}" font-size="26" font-weight="700" filter="drop-shadow(0 2px 8px rgba(0,0,0,0.95))">${line2}</text>`
             : `<text x="${width / 2}" y="650" text-anchor="middle" fill="#FFFFFF" font-family="${fontFamilies}" font-size="${nonLatin ? 30 : 32}" font-weight="700" filter="drop-shadow(0 2px 8px rgba(0,0,0,0.95))">${line1}</text>`;
 
         const overlaySvg = Buffer.from(`
           <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="topScrim" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#000000" stop-opacity="0.65"/>
+                <stop offset="65%" stop-color="#000000" stop-opacity="0.35"/>
+                <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+              </linearGradient>
+              <linearGradient id="bottomScrim" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#000000" stop-opacity="0"/>
+                <stop offset="35%" stop-color="#000000" stop-opacity="0.45"/>
+                <stop offset="100%" stop-color="#000000" stop-opacity="0.8"/>
+              </linearGradient>
+              <radialGradient id="medalBackdrop" cx="50%" cy="50%" r="50%">
+                <stop offset="70%" stop-color="#000000" stop-opacity="0.45"/>
+                <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+              </radialGradient>
+            </defs>
             ${fontFaceStyle}
-            <!-- Outer glowing ring -->
+            <!-- Vignette / Scrim Bands for 100% Guaranteed Typography Legibility -->
+            <rect x="0" y="0" width="${width}" height="195" fill="url(#topScrim)"/>
+            <rect x="0" y="585" width="${width}" height="215" fill="url(#bottomScrim)"/>
+
+            <!-- Medallion Backdrop Shadow & Accent Rings -->
+            <circle cx="${medalCenterX}" cy="${medalCenterY}" r="${medalRadius + 14}" fill="url(#medalBackdrop)"/>
             <circle cx="${medalCenterX}" cy="${medalCenterY}" r="${medalRadius + 6}" fill="none" stroke="${accentHex}" stroke-width="2.5" opacity="0.85"/>
-            <!-- Inner gold border ring -->
             <circle cx="${medalCenterX}" cy="${medalCenterY}" r="${medalRadius}" fill="none" stroke="${accentHex}" stroke-width="4.5"/>
 
             <!-- Top Child Name -->
-            <text x="${width / 2}" y="125" text-anchor="middle" fill="${accentHex}" font-family="${fontFamilies}" font-size="${nonLatin ? 38 : 42}" font-weight="700" ${nonLatin ? '' : 'font-style="italic" letter-spacing="1.5"'} filter="drop-shadow(0 2px 8px rgba(0,0,0,0.9))">
+            <text x="${width / 2}" y="${Z.name.y}" text-anchor="middle" fill="${accentHex}" font-family="${fontFamilies}" font-size="${nonLatin ? 38 : 42}" font-weight="700" ${nonLatin ? '' : 'font-style="italic" letter-spacing="1.5"'} filter="drop-shadow(0 2px 8px rgba(0,0,0,0.9))">
               ${cleanName}
             </text>
 
@@ -722,7 +758,7 @@ async function renderCoverCompositePng(bgBuffer, vigBuffer, childName, bookTitle
             ${titleSvg}
 
             <!-- Bottom Keepsake Banner -->
-            <text x="${width / 2}" y="745" text-anchor="middle" fill="${accentHex}" font-family="${fontFamilies}" font-size="11" font-style="italic" opacity="0.85">
+            <text x="${width / 2}" y="${Z.footer.y}" text-anchor="middle" fill="${accentHex}" font-family="${fontFamilies}" font-size="11" font-style="italic" opacity="0.85">
               ✦ TwinkleTale Keepsake Treasury ✦
             </text>
           </svg>
@@ -856,29 +892,45 @@ async function renderDedicationBlockPng(title, rhyme, forLabel, dedMsg, options 
 // WHIMSICAL STORYBOOK AVATAR (GHIBLI / WATERCOLOR PICTURE BOOK STYLE)
 async function generateAvatar(photoData, charAnchor) {
     if (photoData) {
+        const t0 = Date.now();
+        const modelUsed = "black-forest-labs/flux-kontext-pro";
         try {
             console.log("  → Transforming reference photo into rich painterly storybook avatar via flux-kontext-pro...");
-            const avatarPrompt = `Transform the child in this photo into an adorable, charming storybook hero in lush painterly storybook realism, soft digital gouache and fine oils texture, gentle cinematic golden lighting. Soulful sparkling dark eyes with lifelike reflection, natural soft dimensional skin tones with warm peachy glow, sweet button nose, joyful happy smile, finely rendered silky hair strands catching the rim light. Capture the child's exact hairstyle, hair color, eye shape, and sweet expression faithfully, rendered with rich picture book artistry. Not flat 2D cartoon, not stiff 3D CGI, not plastic, no text, no watermark`;
-            const out = await replicate.run("black-forest-labs/flux-kontext-pro", {
-                input: {
-                    input_image: photoData,
-                    prompt: avatarPrompt,
-                    output_format: "png"
-                }
-            });
+            const avatarPrompt = `Transform the child in this photo into an adorable, charming storybook hero in lush painterly storybook realism, soft digital gouache and fine oils texture, gentle cinematic golden lighting. Centered head-and-shoulders portrait of the child, eye level, face fully in frame with ample margin around hair and chin, portrait orientation. Soulful sparkling dark eyes with lifelike reflection, natural soft dimensional skin tones with warm peachy glow, sweet button nose, joyful happy smile, finely rendered silky hair strands catching the rim light. Capture the child's exact hairstyle, hair color, eye shape, and sweet expression faithfully, rendered with rich picture book artistry. Not flat 2D cartoon, not stiff 3D CGI, not plastic, no text, no watermark`;
+            const out = await withRetry('avatar transformation (flux-kontext-pro)', async () => {
+                return await replicate.run(modelUsed, {
+                    input: {
+                        input_image: photoData,
+                        prompt: avatarPrompt,
+                        aspect_ratio: "1:1",
+                        output_format: "png"
+                    }
+                });
+            }, 2, 3000);
             const u = extractUrl(out);
-            if (u) return u;
+            if (!u) throw new Error("Empty URL returned from avatar model");
+            console.log(`📊 [IMAGE_GEN] Model: ${modelUsed} | Mode: photo-conditioned | Status: OK | Latency: ${Date.now() - t0}ms`);
+            return u;
         } catch (e) {
-            console.log("    ⚠️ Avatar transformation fallback notice:", e.message);
+            console.error(`📊 [IMAGE_GEN] Model: ${modelUsed} | Mode: photo-conditioned | Status: FAILED | Latency: ${Date.now() - t0}ms | Error: ${e.message}`);
+            if (IS_V2) {
+                // PRD FR-4: Never silently substitute a generic face when customer uploaded a photo
+                throw new Error(`Photo avatar transformation failed: ${e.message}. Please verify photo or retry.`);
+            }
+            console.log("    ⚠️ [V1 Fallback] Avatar transformation fallback notice:", e.message);
         }
     }
 
+    const t0 = Date.now();
+    const modelUsed = "black-forest-labs/flux-1.1-pro";
     console.log("  → Painting rich storybook portrait via flux-1.1-pro...");
-    const prompt = STYLE + `portrait of ${charAnchor} as an adorable storybook hero, soft warm studio lighting, cheerful expression, rich painterly storybook illustration, clean soft background`;
-    const out = await replicate.run("black-forest-labs/flux-1.1-pro", {
+    const prompt = STYLE + `portrait of ${charAnchor} as an adorable storybook hero, centered head-and-shoulders portrait with ample margin around hair and chin, soft warm studio lighting, cheerful expression, rich painterly storybook illustration, clean soft background`;
+    const out = await replicate.run(modelUsed, {
         input: { prompt: prompt, aspect_ratio: "1:1", output_format: "png" }
     });
-    return extractUrl(out);
+    const u = extractUrl(out);
+    console.log(`📊 [IMAGE_GEN] Model: ${modelUsed} | Mode: text-to-image | Status: ${u ? 'OK' : 'FAILED'} | Latency: ${Date.now() - t0}ms`);
+    return u;
 }
 
 // THEME-RELEVANT ORNATE COVER BACKGROUND (WITH THEME-SPECIFIC BORDER & DEDICATED TEXT SAFE ZONES)
@@ -886,7 +938,7 @@ async function generateCoverBackground(base, pal) {
     console.log(`  → Painting ornate theme-specific border background for ${base} theme with dedicated text safe zones...`);
     const borderDetail = pal.borderDesc || `ornate storybook border with subtle ${pal.motifs} strictly along the outer perimeter edges and four corners only`;
     const bgPrompt = `Masterpiece luxury book cover background, rich digital gouache and fine artisan texture: solid flat ${pal.flatWord} background with an ${borderDetail}; the entire wide central area, the entire upper text area, and the entire lower title area are completely empty, blank, uniform ${pal.flatWord} with zero ornaments, zero leaves, zero flowers, zero vines, zero stars, zero arches, and zero lines; clean minimalist dark field inside an ornate theme-specific outer border frame; no characters, no people, no words, no text, no letters, no watermark, no inner frames, no lines cutting through the center or bottom`;
-    return await generateImage(bgPrompt, null);
+    return await generateImage(bgPrompt, null, { isFace: false });
 }
 
 // THEME-RELEVANT CHILD MEDALLION HERO
@@ -896,7 +948,7 @@ async function generateChildMedallion(charAnchor, base, pal, photoData) {
         return await generateAvatar(photoData, charAnchor);
     }
     const vigPrompt = STYLE + `circular painted vignette portrait of ${charAnchor} as the storybook hero, head and shoulders, joyful expression, soft golden rim light, a few tiny ${pal.motifs} sparkles around the head, surrounded by ${pal.flatWord} background filling all four corners, vignette edges softly fading into that flat background`;
-    return await generateImage(vigPrompt, null);
+    return await generateImage(vigPrompt, null, { aspect_ratio: "1:1", isFace: true });
 }
 
 // FULL-BLEED STORYBOOK COVER PAINTING (FALLBACK / BESPOKE)
@@ -905,16 +957,20 @@ async function generateCoverPainting(charAnchor, base, pal, photoData, bespokePr
     const prompt = bespokePrompt
         ? (STYLE + bespokePrompt)
         : (STYLE + `full-bleed children's book cover illustration of ${charAnchor} as the joyful adventure hero exploring a breathtaking, magical ${base} world with ${pal.motifs}; child is smiling warmly in the lower-center of the scene; wide open tranquil uncluttered empty ${pal.flatWord} sky in the upper third of the composition, pure background art, warm magical volumetric golden hour lighting, rich digital gouache and fine oils texture, painterly storybook realism, masterpiece picture book cover, no text, no words, no letters, no title, no typography, no watermark, no border, no frame`);
-    return await generateImage(prompt, photoData);
+    return await generateImage(prompt, photoData, { isFace: true });
 }
 
 const QUALITY_SUFFIX = ' Composition: full-bleed page art, subject on rule-of-thirds, eye-level camera for child subjects, strong silhouette readability. Micro-detail: crisp fabric weave, individual hair strands, tiny specular highlights in eyes. Print finish: gallery-grade print quality, clean anti-aliased edges, no banding, no compression artifacts, no oversharpening.';
 let bookUpscalesCount = 0;
 
 // UPSCALE CHAIN (CLARITY-UPSCALER -> REAL-ESRGAN -> NATIVE FALLBACK)
-async function upscaleImageWithFallback(url) {
+async function upscaleImageWithFallback(url, isFace = false) {
     const cleanUrl = extractUrl(url);
     if (!cleanUrl) return url;
+
+    // PRD FR-7: Face-safe settings to prevent facial alteration / hallucinated features
+    const creativity = isFace ? 0.1 : 0.25;
+    const resemblance = isFace ? 0.95 : 0.85;
 
     // a) philz1337x/clarity-upscaler with 1 retry (2 attempts total)
     try {
@@ -922,8 +978,8 @@ async function upscaleImageWithFallback(url) {
             return await replicate.run("philz1337x/clarity-upscaler:dfad41707589d68ecdccd1dfa600d55a208f9310748e44bfe35b4a6291453d5e", {
                 input: {
                     image: cleanUrl,
-                    creativity: 0.3,
-                    resemblance: 0.85,
+                    creativity: creativity,
+                    resemblance: resemblance,
                     scale: 4,
                     output_format: 'jpg'
                 }
@@ -931,7 +987,7 @@ async function upscaleImageWithFallback(url) {
         }, 2, 3000);
         const upscaledUrl = extractUrl(out);
         if (upscaledUrl) {
-            console.log("⬆️ 4K upscale via philz1337x/clarity-upscaler");
+            console.log(`⬆️ 4K upscale via philz1337x/clarity-upscaler (isFace=${isFace}, creativity=${creativity}, resemblance=${resemblance})`);
             bookUpscalesCount++;
             await sleep(PACING);
             return upscaledUrl;
@@ -964,49 +1020,67 @@ async function upscaleImageWithFallback(url) {
     return cleanUrl;
 }
 
-async function generateImage(prompt, photoData) {
+async function generateImage(prompt, photoData, options = {}) {
     const finalPrompt = prompt + QUALITY_SUFFIX;
     let rawUrl = '';
+    const isFace = !!photoData || options.isFace || false;
+    const t0 = Date.now();
 
     if (photoData) {
+        const modelUsed = "black-forest-labs/flux-kontext-pro";
         try {
-            const out = await replicate.run("black-forest-labs/flux-kontext-pro", {
-                input: {
-                    input_image: photoData,
-                    prompt: finalPrompt,
-                    aspect_ratio: "3:4",
-                    output_format: "png",
-                    safety_tolerance: 2
-                }
-            });
+            const out = await withRetry('scene generation (flux-kontext-pro)', async () => {
+                return await replicate.run(modelUsed, {
+                    input: {
+                        input_image: photoData,
+                        prompt: finalPrompt,
+                        aspect_ratio: options.aspect_ratio || "3:4",
+                        output_format: "png",
+                        safety_tolerance: 2
+                    }
+                });
+            }, 2, 3000);
             rawUrl = extractUrl(out);
+            if (rawUrl) {
+                console.log(`📊 [IMAGE_GEN] Model: ${modelUsed} | Mode: photo-conditioned | Status: OK | Latency: ${Date.now() - t0}ms`);
+            }
         } catch (e) {
-            console.log("    (face model notice, falling back to non-photo model):", e.message);
+            console.error(`📊 [IMAGE_GEN] Model: ${modelUsed} | Mode: photo-conditioned | Status: FAILED | Latency: ${Date.now() - t0}ms | Error: ${e.message}`);
+            if (IS_V2) {
+                // PRD FR-4: Never silently fall back to non-photo text-to-image when reference photo/avatar was provided
+                throw new Error(`Photo-conditioned image generation failed: ${e.message}`);
+            }
+            console.log("    (face model notice, V1 falling back to non-photo model):", e.message);
         }
     }
 
-    if (!rawUrl) {
-        const model = process.env.IMAGE_GEN_MODEL;
-        if (model === 'google/nano-banana-pro') {
-            const out = await replicate.run("google/nano-banana-pro", {
-                input: { prompt: finalPrompt, resolution: '4K', aspect_ratio: '3:4' }
-            });
+    if (!rawUrl && (!photoData || !IS_V2)) {
+        const model = process.env.IMAGE_GEN_MODEL || 'black-forest-labs/flux-1.1-pro';
+        try {
+            let out;
+            if (model === 'google/nano-banana-pro') {
+                out = await replicate.run("google/nano-banana-pro", {
+                    input: { prompt: finalPrompt, resolution: '4K', aspect_ratio: options.aspect_ratio || '3:4' }
+                });
+            } else if (model === 'black-forest-labs/flux-2-pro') {
+                out = await replicate.run("black-forest-labs/flux-2-pro", {
+                    input: { prompt: finalPrompt, aspect_ratio: options.aspect_ratio || "3:4", output_format: "png" }
+                });
+            } else {
+                out = await replicate.run("black-forest-labs/flux-1.1-pro", {
+                    input: { prompt: finalPrompt, aspect_ratio: options.aspect_ratio || "3:4", output_format: "png" }
+                });
+            }
             rawUrl = extractUrl(out);
-        } else if (model === 'black-forest-labs/flux-2-pro') {
-            const out = await replicate.run("black-forest-labs/flux-2-pro", {
-                input: { prompt: finalPrompt, aspect_ratio: "3:4", output_format: "png" }
-            });
-            rawUrl = extractUrl(out);
-        } else {
-            const out = await replicate.run("black-forest-labs/flux-1.1-pro", {
-                input: { prompt: finalPrompt, aspect_ratio: "3:4", output_format: "png" }
-            });
-            rawUrl = extractUrl(out);
+            console.log(`📊 [IMAGE_GEN] Model: ${model} | Mode: text-to-image | Status: ${rawUrl ? 'OK' : 'FAILED'} | Latency: ${Date.now() - t0}ms`);
+        } catch (e) {
+            console.error(`📊 [IMAGE_GEN] Model: ${model} | Mode: text-to-image | Status: FAILED | Latency: ${Date.now() - t0}ms | Error: ${e.message}`);
+            throw e;
         }
     }
 
     if (process.env.UPSCALE_IMAGES !== 'false' && rawUrl) {
-        rawUrl = await upscaleImageWithFallback(rawUrl);
+        rawUrl = await upscaleImageWithFallback(rawUrl, isFace);
     }
     return rawUrl;
 }
@@ -1178,6 +1252,7 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme", "sce
             charAnchor, pronoun, subjectPronoun, pal,
             title: bookTitle, bookTitle,
             coverUrl: coverPublicUrl,
+            referencePortraitUrl: vigUrlRaw, // PRD FR-1 & FR-3: Single locked reference portrait anchor
             coverIsComposited,
             // Buffers are saved to disk (preview_${previewId}_cover.png) to keep RAM usage under 15MB
             coverBuffer: null,
@@ -1218,6 +1293,10 @@ app.post('/api/create-order', rateLimiter, async (req, res) => {
     try {
         const { previewId, bookLength, email } = req.body;
         let session = previewId ? previewSessions.get(previewId) : null;
+        if (session) {
+            // PRD FR-5: Refresh timestamp so session TTL does not expire during checkout
+            session.timestamp = Date.now();
+        }
         let effectivePreviewId = previewId;
 
         const isLong = String(bookLength || '').toLowerCase().includes('long') || String(bookLength || '').includes('24');
@@ -1523,14 +1602,36 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         // ================= PAGE 1: FRONT COVER (THEME BORDER & MEDALLION) =================
         update(30, 'Binding theme-framed front cover...');
         let coverImgBuffer = session.coverBuffer;
+
+        // PRD FR-5: Strict Parity Check — Cloud storage first (survives restarts/TTL), then disk cache
+        if (!coverImgBuffer && session.coverUrl && typeof session.coverUrl === 'string' && session.coverUrl.startsWith('http')) {
+            console.log(`🔒 [COVER PARITY] Fetching durable preview cover from cloud URL: ${session.coverUrl}`);
+            try {
+                coverImgBuffer = await fetchImageBuffer(session.coverUrl);
+                if (coverImgBuffer && coverImgBuffer.length > 1000) {
+                    session.coverIsComposited = true;
+                }
+            } catch (e) {
+                console.warn(`⚠️ [COVER PARITY] Could not fetch cover from cloud URL (${session.coverUrl}):`, e.message);
+            }
+        }
+
         if (!coverImgBuffer && session.previewId) {
             const diskCoverPath = path.join(booksFolder, `preview_${session.previewId}_cover.png`);
             if (fs.existsSync(diskCoverPath)) {
-                coverImgBuffer = fs.readFileSync(diskCoverPath);
+                try {
+                    console.log(`🔒 [COVER PARITY] Loaded preview cover from local disk cache: ${diskCoverPath}`);
+                    coverImgBuffer = fs.readFileSync(diskCoverPath);
+                    session.coverIsComposited = true;
+                } catch (e) {
+                    console.warn(`⚠️ [COVER PARITY] Could not read disk cover:`, e.message);
+                }
             }
         }
+
         if (!coverImgBuffer) {
-            console.log("  → Cover buffer not cached in session, generating theme border & child medallion...");
+            console.warn(`🚨 [CRITICAL PARITY WARNING] Cover regeneration triggered for session ${session.previewId || 'unknown'}. Preview cover could not be found.`);
+            console.log("  → Generating theme border & child medallion...");
             const bgUrlRaw = await withRetry('cover background', async () => generateCoverBackground(base, pal));
             await sleep(PACING);
             const vigUrlRaw = await withRetry('child medallion hero', async () => generateChildMedallion(charAnchor, base, pal, photoData));
@@ -1568,36 +1669,36 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
 
             if (session.vigBuffer) {
                 const vigImg = await embedImageBuffer(pdfDoc, session.vigBuffer, 'cover_vig');
-                const d = Z.medal.r * 2;
+                const d = PDF_Z.medal.r * 2;
                 const fit = coverFit(vigImg, d, d);
-                const dx = (Z.medal.cx - Z.medal.r) + fit.x;
-                const dy2 = (Z.medal.cy - Z.medal.r) + fit.y;
+                const dx = (PDF_Z.medal.cx - PDF_Z.medal.r) + fit.x;
+                const dy2 = (PDF_Z.medal.cy - PDF_Z.medal.r) + fit.y;
                 cover.drawImage(vigImg, { x: dx, y: dy2, width: fit.width, height: fit.height });
-                cover.drawEllipse({ x: Z.medal.cx, y: Z.medal.cy, xScale: Z.medal.r + 5, yScale: Z.medal.r + 5, borderColor: pal.accent, borderWidth: 3.5 });
-                cover.drawEllipse({ x: Z.medal.cx, y: Z.medal.cy, xScale: Z.medal.r + 11, yScale: Z.medal.r + 11, borderColor: pal.accent, borderWidth: 1.5, borderOpacity: 0.7 });
+                cover.drawEllipse({ x: PDF_Z.medal.cx, y: PDF_Z.medal.cy, xScale: PDF_Z.medal.r + 5, yScale: PDF_Z.medal.r + 5, borderColor: pal.accent, borderWidth: 3.5 });
+                cover.drawEllipse({ x: PDF_Z.medal.cx, y: PDF_Z.medal.cy, xScale: PDF_Z.medal.r + 11, yScale: PDF_Z.medal.r + 11, borderColor: pal.accent, borderWidth: 1.5, borderOpacity: 0.7 });
             }
 
-            // Top Name Plaque (y ≈ 715 pt, framed by top foliage arch)
+            // Top Name Plaque (framed by top foliage arch)
             const topLabel = isNonLatin(childName) ? `${childName}` : `${childName}'s`;
             const topFont = chooseFont(topLabel, bookFont, serifBI);
-            drawFlowLine(cover, topLabel, 715, 42, topFont, pal.accent, 2);
+            drawFlowLine(cover, topLabel, PDF_Z.name.y, 42, topFont, pal.accent, 2);
 
-            // Lower Title (y ≈ 285 pt, safely below medallion - ZERO OVERLAP)
+            // Lower Title (safely below medallion - ZERO OVERLAP)
             const bookTitle = session.bookTitle || title || `${childName}'s Adventure`;
             const titleFont = chooseFont(bookTitle, bookFont, serifB);
             let tSize = 36;
             let tLines = wrapText(bookTitle, titleFont, tSize, 470);
             if (tLines.length > 3) { tSize = 30; tLines = wrapText(bookTitle, titleFont, tSize, 470); }
-            let ty = 285;
+            let ty = PDF_Z.title.y;
             for (const line of tLines) {
                 drawFlowLine(cover, line, ty, tSize, titleFont, rgb(0.99, 0.98, 0.94), 2.5);
                 ty -= 42;
             }
 
-            // Bottom Keepsake Banner (Safe print margin at y = 45 pt)
-            drawCentered(cover, 'TwinkleTale Keepsake Treasury', 45, 11, serifI, pal.accent, 0.95);
-            drawVectorStar(cover, PAGE_W / 2 - 115, 45, 5, 5, 2.2, pal.accent);
-            drawVectorStar(cover, PAGE_W / 2 + 115, 45, 5, 5, 2.2, pal.accent);
+            // Bottom Keepsake Banner (Safe print margin)
+            drawCentered(cover, 'TwinkleTale Keepsake Treasury', PDF_Z.footer.y, 11, serifI, pal.accent, 0.95);
+            drawVectorStar(cover, PAGE_W / 2 - 115, PDF_Z.footer.y, 5, 5, 2.2, pal.accent);
+            drawVectorStar(cover, PAGE_W / 2 + 115, PDF_Z.footer.y, 5, 5, 2.2, pal.accent);
         }
 
         // ================= PAGE 2: WELCOME & DEDICATION (INSIDE FRONT SPREAD) =================
@@ -1686,6 +1787,18 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
             });
         }
 
+        // PRD FR-1 & FR-3: Identity Anchor setup
+        let referencePortrait = session.referencePortraitUrl || photoData;
+        if (!session.referencePortraitUrl && photoData) {
+            try {
+                console.log("🎨 Generating locked reference portrait for book session...");
+                session.referencePortraitUrl = await generateAvatar(photoData, charAnchor);
+                referencePortrait = session.referencePortraitUrl;
+            } catch (err) {
+                console.warn("⚠️ Could not generate locked reference portrait, using photoData directly:", err.message);
+            }
+        }
+
         // ================= INTERIOR SPREADS: LEFT IMAGE + RIGHT TEXT =================
         let spreadIndex = 1;
         for (let i = 0; i < scenes; i++) {
@@ -1700,8 +1813,14 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
                 const nameRegex = new RegExp(`\\b${childName}\\b`, 'gi');
                 rawPrompt = rawPrompt.replace(nameRegex, (gender === 'little star') ? 'the child' : `the little ${gender || 'hero'}`);
             }
-            const scenePrompt = STYLE + rawPrompt;
-            const sceneImgBuf = await withRetry(`scene ${i + 1} image`, async () => fetchImageBuffer(await generateImage(scenePrompt, photoData)));
+
+            // PRD FR-1 & FR-3: Identity anchor linking back to the reference portrait
+            const identityAnchor = (IS_V2 && referencePortrait)
+                ? `whimsical picture book scene featuring the exact same child from the reference image, keeping facial structure, hair color, eye shape, and skin tone identical. In this scene: ${rawPrompt}`
+                : rawPrompt;
+            const scenePrompt = STYLE + identityAnchor;
+
+            const sceneImgBuf = await withRetry(`scene ${i + 1} image`, async () => fetchImageBuffer(await generateImage(scenePrompt, referencePortrait, { isFace: true })));
             const sceneImg = await embedImageBuffer(pdfDoc, sceneImgBuf, `scene ${i + 1}`);
 
             // LEFT PAGE: Full-bleed Scene Illustration
