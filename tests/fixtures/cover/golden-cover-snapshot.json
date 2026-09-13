@@ -1,0 +1,31 @@
+{
+  "fixtureVersion": "1.0.0",
+  "description": "Structural acceptance criteria for golden cover fixture",
+  "targetDimensions": {
+    "width": 600,
+    "height": 800
+  },
+  "zones": {
+    "titleZone": {
+      "topY": 44,
+      "bottomY": 220,
+      "maxLines": 2
+    },
+    "heroZone": {
+      "topY": 240,
+      "bottomY": 740,
+      "minAreaRatio": 0.6,
+      "maxAreaRatio": 0.65
+    },
+    "brandingZone": {
+      "topY": 744,
+      "bottomY": 772
+    }
+  },
+  "rules": {
+    "zeroMedallion": true,
+    "zeroTextHallucination": true,
+    "photoConditionedIdentity": true,
+    "previewFinalParity": true
+  }
+}

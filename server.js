@@ -150,6 +150,7 @@ console.log(`🎨 Book Cover Pipeline: ${COVER_PIPELINE_VERSION.toUpperCase()} (
 
 const coverEngine = new CoverDesignEngine({
     generateImage: (prompt, photoData, options) => generateImage(prompt, photoData, options),
+    generateAvatar: (photoData, charAnchor) => generateAvatar(photoData, charAnchor),
     fetchImageBuffer: (url) => fetchImageBuffer(url)
 });
 
@@ -1231,7 +1232,11 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme", "sce
             }, 2, 3000);
 
             coverBuffer = coverResult.coverBuffer;
-            vigUrlRaw = coverResult.rawArtUrl;
+            vigUrlRaw = coverResult.characterReferenceUrl || coverResult.rawArtUrl;
+            var coverProvenance = coverResult.provenance || null;
+            var coverDesignSpec = coverResult.designSpec || null;
+            var coverCollision = coverResult.collisionResults || null;
+            var coverDebugOverlay = coverResult.debugOverlayBuffer || null;
         } else {
             // Legacy v1 Medallion fallback
             console.log("  → [V1 Fallback] Painting theme-relevant ornate border background...");
@@ -1260,6 +1265,9 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme", "sce
         // Disk persistence for bulletproof preview-to-final book locking
         try {
             fs.writeFileSync(path.join(booksFolder, `preview_${previewId}_cover.png`), coverBuffer);
+            if (coverDebugOverlay) {
+                fs.writeFileSync(path.join(booksFolder, `preview_${previewId}_debug_zones.png`), coverDebugOverlay);
+            }
         } catch (fsErr) {
             console.warn('⚠️ Could not cache preview cover to disk:', fsErr.message);
         }
@@ -1286,6 +1294,9 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme", "sce
             title: bookTitle, bookTitle,
             coverUrl: coverPublicUrl,
             referencePortraitUrl: vigUrlRaw, // PRD FR-1 & FR-3: Single locked reference portrait anchor
+            coverProvenance: typeof coverProvenance !== 'undefined' ? coverProvenance : null,
+            coverDesignSpec: typeof coverDesignSpec !== 'undefined' ? coverDesignSpec : null,
+            coverCollision: typeof coverCollision !== 'undefined' ? coverCollision : null,
             coverIsComposited,
             // Buffers are saved to disk (preview_${previewId}_cover.png) to keep RAM usage under 15MB
             coverBuffer: null,
