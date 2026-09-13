@@ -682,6 +682,68 @@ function escapeXml(str) {
         .replace(/'/g, '&apos;');
 }
 
+// ====================================================================
+// DYNAMIC TEXT CONTRAST & READABILITY ENGINE
+// Guarantees crystal-clear legibility by measuring actual background luminance
+// ====================================================================
+async function analyzeFrameBackground(frameBuffer) {
+    try {
+        const metadata = await sharp(frameBuffer).metadata();
+        const width = metadata.width || 600;
+        const height = metadata.height || 800;
+
+        // Sample the central reading corridor: middle 60% horizontally, middle 50% vertically
+        const extractRect = {
+            left: Math.max(0, Math.round(width * 0.20)),
+            top: Math.max(0, Math.round(height * 0.25)),
+            width: Math.min(width, Math.round(width * 0.60)),
+            height: Math.min(height, Math.round(height * 0.50))
+        };
+
+        const stats = await sharp(frameBuffer).extract(extractRect).stats();
+        const rMean = stats.channels[0]?.mean ?? 250;
+        const gMean = stats.channels[1]?.mean ?? 245;
+        const bMean = stats.channels[2]?.mean ?? 235;
+
+        return { r: rMean, g: gMean, b: bMean };
+    } catch (e) {
+        console.warn('⚠️ [Frame Luminance Notice]:', e.message);
+        return { r: 250, g: 245, b: 235 }; // Default warm cream fallback
+    }
+}
+
+function getContrastingTextColors(bgR, bgG, bgB, pal) {
+    const rNorm = bgR / 255;
+    const gNorm = bgG / 255;
+    const bNorm = bgB / 255;
+    // Standard relative luminance (ITU-R BT.709)
+    const bgLum = 0.2126 * rNorm + 0.7152 * gNorm + 0.0722 * bNorm;
+
+    console.log(`📖 [READABILITY ENGINE] Measured frame center luminance: ${bgLum.toFixed(3)} (RGB: ${Math.round(bgR)}, ${Math.round(bgG)}, ${Math.round(bgB)})`);
+
+    if (bgLum < 0.48) {
+        // Dark background (e.g. starry night, deep cosmic space, dark forest)
+        // Switch to luminous gold accents and crisp ivory white text for 100% legibility
+        return {
+            isDarkBg: true,
+            titleColor: pal.accent || rgb(0.98, 0.85, 0.35),
+            bodyColor: rgb(0.98, 0.98, 0.98), // Pure luminous white
+            accentColor: pal.accent || rgb(0.98, 0.85, 0.35),
+            subtextColor: rgb(0.88, 0.88, 0.92)
+        };
+    } else {
+        // Light background (e.g. warm cream, soft pastel, morning meadow)
+        // Use deep rich cover palette and dark charcoal ink
+        return {
+            isDarkBg: false,
+            titleColor: pal.cover || rgb(0.12, 0.18, 0.30),
+            bodyColor: pal.ink || rgb(0.15, 0.18, 0.22),
+            accentColor: pal.accent || rgb(0.80, 0.60, 0.20),
+            subtextColor: pal.ink || rgb(0.20, 0.22, 0.26)
+        };
+    }
+}
+
 async function renderCoverCompositePng(bgBuffer, vigBuffer, childName, bookTitle, pal, lang = 'en') {
     const width = Z.canvas.width;
     const height = Z.canvas.height;
@@ -1643,6 +1705,10 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         const frameImg = await embedImageBuffer(pdfDoc, frameImgBuffer, 'decorative frame');
         await sleep(PACING);
 
+        // Dynamically analyze frame background luminance for guaranteed text readability
+        const frameBgStats = await analyzeFrameBackground(frameImgBuffer);
+        const textColors = getContrastingTextColors(frameBgStats.r, frameBgStats.g, frameBgStats.b, pal);
+
         // ================= PAGE 1: FRONT COVER (THEME BORDER & MEDALLION) =================
         update(30, 'Binding theme-framed front cover...');
         let coverImgBuffer = session.coverBuffer;
@@ -1716,6 +1782,35 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         cover.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.cover });
 
         if (session.coverIsComposited !== false && coverImgBuffer) {
+            // Enhanced Cover Processing for Final Book (Ensures maximum print DPI & sharpness)
+            if (process.env.UPSCALE_IMAGES !== 'false' && session.coverUrl && session.coverUrl.startsWith('http') && !session.coverUrl.includes('localhost') && !session.coverUrl.includes('127.0.0.1')) {
+                try {
+                    console.log(`✨ [COVER ENHANCEMENT] Running final book cover through 4K AI upscaler: ${session.coverUrl}`);
+                    const upscaledCoverUrl = await upscaleImageWithFallback(session.coverUrl, true);
+                    if (upscaledCoverUrl && upscaledCoverUrl !== session.coverUrl) {
+                        coverImgBuffer = await fetchImageBuffer(upscaledCoverUrl);
+                        console.log(`✅ [COVER ENHANCEMENT] 4K AI cover upscale complete!`);
+                    }
+                } catch (upErr) {
+                    console.warn(`⚠️ [COVER ENHANCEMENT] AI upscale notice, falling back to high-res Sharp enhancement:`, upErr.message);
+                }
+            }
+
+            // High-fidelity print enhancement: upscale to 1800x2400 (300 DPI for 600x800 pt page)
+            try {
+                coverImgBuffer = await sharp(coverImgBuffer)
+                    .resize(1800, 2400, {
+                        kernel: sharp.kernel.lanczos3,
+                        fit: 'cover'
+                    })
+                    .sharpen({ sigma: 1.0, m1: 0.5, m2: 0.5 })
+                    .png({ quality: 100, compressionLevel: 6 })
+                    .toBuffer();
+                console.log(`✅ [COVER PRINT ENHANCEMENT] Final book cover enhanced to 1800x2400 (300 DPI) for print perfection.`);
+            } catch (sharpErr) {
+                console.warn(`⚠️ [COVER PRINT ENHANCEMENT] Sharp enhancement notice:`, sharpErr.message);
+            }
+
             // High-resolution unified cover composite (identical to approved preview)
             const coverImg = await embedImageBuffer(pdfDoc, coverImgBuffer, 'cover');
             cover.drawImage(coverImg, coverFit(coverImg, PAGE_W, PAGE_H));
@@ -1780,9 +1875,9 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         let dedRendered = false;
         if (isNonLatin(dedTitle) || isNonLatin(rhyme) || isNonLatin(dedMsg) || isNonLatin(childName)) {
             const dedBuf = await renderDedicationBlockPng(dedTitle, rhyme, forLabel, dedMsg, {
-                accentColor: rgbToHex(pal.accent),
-                inkColor: rgbToHex(pal.ink),
-                coverColor: rgbToHex(pal.cover)
+                accentColor: rgbToHex(textColors.accentColor),
+                inkColor: rgbToHex(textColors.bodyColor),
+                coverColor: rgbToHex(textColors.titleColor)
             });
             if (dedBuf) {
                 const dedImg = await pdfDoc.embedPng(dedBuf);
@@ -1797,8 +1892,8 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         }
         if (!dedRendered) {
             // Top Header
-            drawCentered(dedPage, 'TWINKLETALE KEEPSAKE TREASURY', 665, 10, serifB, pal.accent, 0.95);
-            drawVectorDiamond(dedPage, PAGE_W / 2, 648, 6, pal.accent);
+            drawCentered(dedPage, 'TWINKLETALE KEEPSAKE TREASURY', 665, 10, serifB, textColors.accentColor, 0.95);
+            drawVectorDiamond(dedPage, PAGE_W / 2, 648, 6, textColors.accentColor);
 
             const dedTitleFont = chooseFont(dedTitle, bookFont, serifB);
             let dtSize = 26;
@@ -1806,7 +1901,7 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
             if (dtLines.length > 2) { dtSize = 22; dtLines = wrapText(dedTitle, dedTitleFont, dtSize, 420); }
             let dty = 612;
             for (const line of dtLines) {
-                drawCentered(dedPage, line, dty, dtSize, dedTitleFont, pal.cover);
+                drawCentered(dedPage, line, dty, dtSize, dedTitleFont, textColors.titleColor);
                 dty -= 34;
             }
 
@@ -1814,29 +1909,29 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
             const rhymeLines = wrapText(rhyme, rhymeFont, 14, 400);
             let ry = dty - 16;
             for (const line of rhymeLines) {
-                drawCentered(dedPage, line, ry, 14, rhymeFont, pal.ink, 0.9);
+                drawCentered(dedPage, line, ry, 14, rhymeFont, textColors.bodyColor, 0.95);
                 ry -= 24;
             }
 
             // Golden divider
-            dedPage.drawLine({ start: { x: 140, y: ry - 12 }, end: { x: PAGE_W - 140, y: ry - 12 }, color: pal.accent, thickness: 1, opacity: 0.6 });
-            drawVectorStar(dedPage, PAGE_W / 2, ry - 12, 5, 8, 3.5, pal.accent);
+            dedPage.drawLine({ start: { x: 140, y: ry - 12 }, end: { x: PAGE_W - 140, y: ry - 12 }, color: textColors.accentColor, thickness: 1, opacity: 0.6 });
+            drawVectorStar(dedPage, PAGE_W / 2, ry - 12, 5, 8, 3.5, textColors.accentColor);
 
             // Personalized Parent Dedication Block
             const dedForFont = chooseFont(forLabel, bookFont, serifB);
-            drawCentered(dedPage, forLabel, ry - 40, 16, dedForFont, pal.cover);
+            drawCentered(dedPage, forLabel, ry - 40, 16, dedForFont, textColors.titleColor);
 
             const dedMsgFont = chooseFont(dedMsg, bookFont, serifI);
             const dedMsgLines = wrapText(dedMsg, dedMsgFont, 13, 390);
             let my = ry - 68;
             for (const line of dedMsgLines) {
-                drawCentered(dedPage, line, my, 13, dedMsgFont, pal.ink, 0.85);
+                drawCentered(dedPage, line, my, 13, dedMsgFont, textColors.bodyColor, 0.9);
                 my -= 22;
             }
         }
 
         // Keepsake footer
-        drawCentered(dedPage, 'TwinkleTale Studios • Keepsake Treasury Edition', 70, 9, serif, pal.ink, 0.6);
+        drawCentered(dedPage, 'TwinkleTale Studios • Keepsake Treasury Edition', 70, 9, serif, textColors.subtextColor, 0.7);
 
         // Validate or fallback scenes
         const effectiveScenes = (activeScenes || []).slice(0, scenes);
@@ -1894,13 +1989,13 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
             textPage.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.textBg });
             textPage.drawImage(frameImg, coverFit(frameImg, PAGE_W, PAGE_H));
 
-            // Verse Page Content (HarfBuzz rendering for Indic & complex scripts, vector for Latin)
+            // Verse Page Content (Dynamically contrast-adjusted based on frame background luminance)
             let verseRendered = false;
             if (isNonLatin(scene.page_text) || isNonLatin(scene.scene_title)) {
                 const versePngBuf = await renderVersePagePng(scene.scene_title, scene.page_text, {
-                    titleColor: rgbToHex(pal.cover),
-                    accentColor: rgbToHex(pal.accent),
-                    textColor: rgbToHex(pal.ink)
+                    titleColor: rgbToHex(textColors.titleColor),
+                    accentColor: rgbToHex(textColors.accentColor),
+                    textColor: rgbToHex(textColors.bodyColor)
                 });
                 if (versePngBuf) {
                     const versePngImg = await pdfDoc.embedPng(versePngBuf);
@@ -1914,23 +2009,23 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
                 }
             }
             if (!verseRendered) {
-                // Scene Title (Multilingual font routing)
+                // Scene Title
                 const sceneTitleFont = chooseFont(scene.scene_title, bookFont, serifB);
-                drawCentered(textPage, scene.scene_title, 610, 26, sceneTitleFont, pal.cover);
-                drawVectorDiamond(textPage, PAGE_W / 2, 576, 8, pal.cover);
+                drawCentered(textPage, scene.scene_title, 610, 26, sceneTitleFont, textColors.titleColor);
+                drawVectorDiamond(textPage, PAGE_W / 2, 576, 8, textColors.accentColor);
 
-                // Verse Text (Multilingual font routing)
+                // Verse Text
                 const verseFont = chooseFont(scene.page_text, bookFont, serif);
                 const verseLines = wrapText(scene.page_text, verseFont, 18, 400);
                 let by = 520 - ((520 - 180) - verseLines.length * 32) / 2;
                 for (const line of verseLines) {
-                    drawCentered(textPage, line, by, 18, verseFont, pal.ink);
+                    drawCentered(textPage, line, by, 18, verseFont, textColors.bodyColor);
                     by -= 32;
                 }
             }
 
-            // Spread Number (ALWAYS rendered with serif to prevent fontkit tofu blocks)
-            drawCentered(textPage, `— ${spreadIndex} —`, 100, 12, serif, pal.ink, 0.75);
+            // Spread Number
+            drawCentered(textPage, `— ${spreadIndex} —`, 100, 12, serif, textColors.subtextColor, 0.75);
             spreadIndex++;
 
             if (i < scenes - 1) {

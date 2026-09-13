@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="TwinkleTale - Personalized Keepsake Children's Storybooks. Every child is the hero of their own bedtime story. Available in 11 languages with free instant preview!">
+  <meta name="description" content="TwinkleTale - Personalized Keepsake Children's Storybooks. Every child is the hero of their own bedtime story. Free instant preview in 40 seconds!">
   <meta name="keywords" content="personalized storybook, children's books India, custom bedtime stories, personalized gifts kids">
   <meta property="og:title" content="TwinkleTale - Magical Personalized Children's Storybooks">
-  <meta property="og:description" content="Turn your child into the hero of their bedtime story in 11 languages. Free 40-second preview!">
+  <meta property="og:description" content="Turn your child into the hero of their bedtime story. Free 40-second preview!">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://www.twinkletaleai.com/">
   <link rel="canonical" href="https://www.twinkletaleai.com/">
@@ -1476,7 +1476,7 @@
   <div class="trust-bar">
     <div class="container">
       <span><i class="fas fa-star"></i> Over 5,000+ Bedtime Smiles</span>
-      <span><i class="fas fa-globe"></i> 11 Languages Supported</span>
+      <span><i class="fas fa-heart"></i> Handcrafted Keepsakes</span>
       <span><i class="fas fa-bolt"></i> Instant Digital Keepsake</span>
     </div>
   </div>
@@ -1509,7 +1509,7 @@
       </div>
       <h1>Turn Your Child Into The Hero Of Their Own <em>Bedtime Story</em></h1>
       <p class="lead">
-        A personalized, heirloom storybook woven with their name, photo, and favorite theme in 11 languages.
+        A personalized, heirloom storybook woven with their name, photo, and favorite theme.
         Preview your child's custom cover and opening rhyme for free in 40 seconds!
       </p>
 
@@ -1544,7 +1544,7 @@
           </p>
           <ul class="spread-features">
             <li><i class="fas fa-check-circle"></i> <strong>Consistent 3D Pixar Hero:</strong> Your child's likeness, expressive features & signature theme outfit preserved across every page.</li>
-            <li><i class="fas fa-check-circle"></i> <strong>Multilingual Magic:</strong> Authentic script typography in English, Hindi, Bengali, Tamil, Telugu, Urdu, Spanish & more.</li>
+            <li><i class="fas fa-check-circle"></i> <strong>Lyrical Bedtime Verses:</strong> Rhyming poetry and heartwarming stories crafted to inspire wonder and sweet dreams.</li>
             <li><i class="fas fa-check-circle"></i> <strong>High-Res 300 DPI PDF:</strong> Crisp on tablets, iPads, phones, or printed out into a bedside keepsake.</li>
           </ul>
         </div>
@@ -1583,7 +1583,7 @@
               <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> <strong>12 Story Pages</strong> (6 Full Spreads)</li>
               <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> <strong>16 Total Physical Pages</strong> (Cover, Dedication Spread, 6 Spreads, Keepsake Seal, Back Cover)</li>
               <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> Personalized with child's keepsake portrait & name</li>
-              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> Available in all 11 languages (Hindi, English, etc.)</li>
+              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> Beautiful rhyming verses and character-first storytelling</li>
               <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> High-Res 300 DPI PDF download & delivery email</li>
             </ul>
           </div>
@@ -1613,7 +1613,7 @@
               <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> <strong>28 Total Physical Pages</strong> (Cover, Dedication Spread, 12 Spreads, Keepsake Seal, Back Cover)</li>
               <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> 12 unique storybook scene illustrations & locked outfit</li>
               <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> Deeper bedtime storyline & character development</li>
-              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> All 11 languages with authentic script typography</li>
+              <li><i class="fas fa-check-circle" style="color:var(--forest);"></i> Full lyrical story arc with premium editorial styling</li>
             </ul>
           </div>
           <button type="button" class="btn-primary" style="width:100%; justify-content:center; background:var(--forest);" onclick="selectEditionFromPricing('long')">
@@ -1676,23 +1676,8 @@
               <input type="hidden" id="childGender" value="boy">
             </div>
 
-            <!-- Language Selector -->
-            <div style="margin-top: 18px;">
-              <label style="display:block; font-size:0.88rem; font-weight:600; margin-bottom:6px;">Story Language</label>
-              <select id="storyLanguage" class="input-field" style="cursor:pointer;">
-                <option value="English" selected>🇬🇧 English (Default)</option>
-                <option value="Hindi">🇮🇳 Hindi (हिंदी)</option>
-                <option value="Bengali">🇮🇳 Bengali (বাংলা)</option>
-                <option value="Tamil">🇮🇳 Tamil (தமிழ்)</option>
-                <option value="Telugu">🇮🇳 Telugu (తెలుగు)</option>
-                <option value="Urdu">🇵🇰 Urdu (اردو)</option>
-                <option value="Spanish">🇪🇸 Spanish (Español)</option>
-                <option value="French">🇫🇷 French (Français)</option>
-                <option value="German">🇩🇪 German (Deutsch)</option>
-                <option value="Arabic">🇸🇦 Arabic (العربية)</option>
-                <option value="Portuguese">🇧🇷 Portuguese (Português)</option>
-              </select>
-            </div>
+            <!-- Story Language (Default: English) -->
+            <input type="hidden" id="storyLanguage" value="English">
           </div>
 
           <!-- Step 2: 12 Diverse Themes -->
@@ -1952,17 +1937,17 @@
             <i class="fas fa-chevron-down"></i>
           </div>
           <div class="faq-answer">
-            You enter your child's details, select a theme and language, and optionally upload a photo. In just ~40 seconds, our AI paints your child's personalized front cover and writes an opening lullaby rhyme for you to inspect for free.
+            You enter your child's details, select a favorite theme, and optionally upload a photo. In just ~40 seconds, our AI paints your child's personalized front cover and writes an opening lullaby rhyme for you to inspect for free.
           </div>
         </div>
 
         <div class="faq-item" onclick="toggleFaq(this)">
           <div class="faq-question">
-            <span>What languages are supported?</span>
+            <span>Can I personalize the story with my own dedication?</span>
             <i class="fas fa-chevron-down"></i>
           </div>
           <div class="faq-answer">
-            TwinkleTale supports 11 languages: English, Hindi, Bengali, Tamil, Telugu, Urdu, Spanish, French, German, Arabic, and Portuguese! All stories and poems are composed in the authentic script of the selected language.
+            Yes, absolutely! You can write your own custom heartfelt dedication message, which will be beautifully set on the opening keepsake dedication spread of your storybook.
           </div>
         </div>
 
@@ -2079,7 +2064,7 @@
           <h4>What Makes TwinkleTale Unique?</h4>
           <ul>
             <li><strong>Bespoke Painterly Artistry:</strong> Every illustration is composed with digital gouache textures, cinematic lighting, and rich storybook realism inspired by master picture book artists.</li>
-            <li><strong>Multilingual Read-Aloud Verses:</strong> We support authentic Indian and global languages (including Hindi, Bengali, Tamil, Telugu, and English) crafted with native typography shaping.</li>
+            <li><strong>Heartwarming Read-Aloud Verses:</strong> Each book features gentle, rhythmic rhyming verses tailored to your child's age group and bedtime reading comfort.</li>
             <li><strong>Classical Book Architecture:</strong> Each edition adheres to professional publishing standards: paired left-side illustrations, right-side rhymes, keepsake certificate pages, and print-ready 300+ DPI resolution.</li>
             <li><strong>Dedicated Artisan Care:</strong> Every storybook is individually crafted with hands-on attention, meticulous quality inspection, and direct customer care for every parent.</li>
           </ul>
