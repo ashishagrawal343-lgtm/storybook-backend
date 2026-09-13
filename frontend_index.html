@@ -2655,13 +2655,17 @@
     function pollJobStatus(jobId) {
       const fill = document.getElementById('progressBarFill');
       const stepText = document.getElementById('progressStepText');
+      let consecutiveErrors = 0;
+      let totalPolls = 0;
 
       const interval = setInterval(async () => {
+        totalPolls++;
         try {
           const res = await fetch(`${API_BASE}/api/job-status/${jobId}`);
           const data = await res.json();
 
-          if (data.success) {
+          if (data && data.success) {
+            consecutiveErrors = 0;
             fill.style.width = `${Math.min(100, data.progress || 20)}%`;
             stepText.textContent = data.step || 'Crafting storybook...';
 
@@ -2675,18 +2679,38 @@
               downloadLink.href = data.pdfUrl;
               document.getElementById('downloadBox').style.display = 'block';
 
-              if (data.emailed) {
+              const parentEmailVal = document.getElementById('parentEmail') ? document.getElementById('parentEmail').value : '';
+              if (data.emailed && parentEmailVal) {
                 document.getElementById('emailConfirmationText').innerHTML = 
-                  `A high-resolution print-ready PDF has also been sent to <strong>${document.getElementById('parentEmail').value}</strong>.`;
+                  `A high-resolution print-ready PDF has also been sent to <strong>${parentEmailVal}</strong>.`;
               }
             } else if (data.status === 'failed') {
               clearInterval(interval);
-              document.getElementById('progressHeading').textContent = 'Generation Error';
-              stepText.textContent = data.error || 'Something went wrong while painting the book.';
+              document.getElementById('progressSpinner').style.display = 'none';
+              document.getElementById('progressHeading').textContent = 'Generation Notice';
+              stepText.innerHTML = (data.error || 'Something went wrong while painting the book.') + 
+                `<br><button type="button" onclick="pollJobStatus('${jobId}')" class="secondary-btn" style="margin-top:14px;padding:8px 18px">Check Status Again</button>`;
+            }
+          } else {
+            consecutiveErrors++;
+            if (consecutiveErrors >= 5) {
+              stepText.innerHTML = `Still crafting your storybook (connecting)...<br><small style="color:#777">If this takes more than 2 minutes, your book is still being finalized and will be emailed directly to your inbox.</small>`;
             }
           }
         } catch (e) {
+          consecutiveErrors++;
           console.log('Polling notice:', e.message);
+          if (consecutiveErrors >= 6) {
+            stepText.textContent = 'Reconnecting to storybook engine...';
+          }
+        }
+
+        // Safety timeout safeguard (after 6 minutes of continuous polling)
+        if (totalPolls > 100) {
+          clearInterval(interval);
+          document.getElementById('progressSpinner').style.display = 'none';
+          document.getElementById('progressHeading').textContent = 'Order in Final Delivery';
+          stepText.innerHTML = `Your storybook is taking a few extra moments to bind into 4K print quality.<br>Please check your email inbox in a few minutes for the permanent download link.<br><button type="button" onclick="window.location.reload()" class="secondary-btn" style="margin-top:14px;padding:8px 18px">Refresh Page</button>`;
         }
       }, 3500);
     }

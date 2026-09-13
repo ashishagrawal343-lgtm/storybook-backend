@@ -129,7 +129,10 @@ if (process.env.BREVO_API_KEY && process.env.SENDER_EMAIL) {
                 to: [{ email: to }],
                 subject: subject,
                 htmlContent: html || `<p>${text}</p>`
-            }, { headers: { 'api-key': process.env.BREVO_API_KEY, 'Content-Type': 'application/json' } });
+            }, { 
+                headers: { 'api-key': process.env.BREVO_API_KEY, 'Content-Type': 'application/json' },
+                timeout: 8000
+            });
         }
     };
     console.log('📧 Email delivery: ON (Brevo HTTPS)');
@@ -203,12 +206,61 @@ function getSvgFontFaceStyle(lang = 'en', textSample = '') {
 const PAGE_W = 600, PAGE_H = 800;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const STYLE = 'Masterpiece children\'s storybook illustration, rich painterly storybook realism, soft digital gouache and fine oils texture, warm cinematic volumetric lighting, gentle golden hour rim light, adorable expressive child character with soulful sparkling dark eyes, natural soft dimensional skin tones with gentle peachy warmth, finely rendered silky hair catching the light, charming button nose and joyful smile, highly detailed enchanted surroundings with floating magical motes and glowing starlight, cinematic depth of field, art by Oliver Jeffers and Chris Van Allsburg, award-winning picture book, no text, no words, no letters, no watermark, not flat 2D cartoon, not 3D CGI plastic render: ';
-const PACING = 10000;
+const PACING = 0; // High-efficiency async dispatch (eliminates 40-90s of idle waiting)
 
 // Preview session cache, Job status tracking, and Replay-Attack Prevention
 const previewSessions = new Map();
 const activeJobs = new Map();
 const fulfilledPayments = new Map();
+
+// Durable Job & Session Store Helpers (survives Render restarts, cold starts, and memory recycling)
+function saveJob(jobId, jobData) {
+    if (!jobId) return;
+    activeJobs.set(jobId, jobData);
+    try {
+        fs.writeFileSync(path.join(booksFolder, `job_${jobId}.json`), JSON.stringify(jobData));
+    } catch (_) {}
+}
+
+function getJob(jobId) {
+    if (!jobId) return null;
+    let job = activeJobs.get(jobId);
+    if (!job) {
+        const jPath = path.join(booksFolder, `job_${jobId}.json`);
+        if (fs.existsSync(jPath)) {
+            try {
+                job = JSON.parse(fs.readFileSync(jPath, 'utf8'));
+                activeJobs.set(jobId, job);
+            } catch (_) {}
+        }
+    }
+    return job;
+}
+
+function saveSession(previewId, sessionData) {
+    if (!previewId) return;
+    previewSessions.set(previewId, sessionData);
+    try {
+        // Save session metadata without giant raw buffers to prevent disk bloat
+        const meta = { ...sessionData, coverBuffer: null, bgBuffer: null, vigBuffer: null };
+        fs.writeFileSync(path.join(booksFolder, `session_${previewId}.json`), JSON.stringify(meta));
+    } catch (_) {}
+}
+
+function getSession(previewId) {
+    if (!previewId) return null;
+    let session = previewSessions.get(previewId);
+    if (!session) {
+        const sPath = path.join(booksFolder, `session_${previewId}.json`);
+        if (fs.existsSync(sPath)) {
+            try {
+                session = JSON.parse(fs.readFileSync(sPath, 'utf8'));
+                previewSessions.set(previewId, session);
+            } catch (_) {}
+        }
+    }
+    return session;
+}
 
 setInterval(() => {
     const now = Date.now();
@@ -217,12 +269,20 @@ setInterval(() => {
             try {
                 const fPath = path.join(booksFolder, `preview_${id}_cover.png`);
                 if (fs.existsSync(fPath)) fs.unlinkSync(fPath);
+                const sPath = path.join(booksFolder, `session_${id}.json`);
+                if (fs.existsSync(sPath)) fs.unlinkSync(sPath);
             } catch (_) {}
             previewSessions.delete(id);
         }
     }
     for (const [id, item] of activeJobs.entries()) {
-        if (now - item.timestamp > 30 * 60 * 1000) activeJobs.delete(id);
+        if (now - (item.timestamp || 0) > 30 * 60 * 1000) {
+            try {
+                const jPath = path.join(booksFolder, `job_${id}.json`);
+                if (fs.existsSync(jPath)) fs.unlinkSync(jPath);
+            } catch (_) {}
+            activeJobs.delete(id);
+        }
     }
     for (const [id, timestamp] of fulfilledPayments.entries()) {
         if (now - timestamp > 48 * 3600 * 1000) fulfilledPayments.delete(id);
@@ -1398,7 +1458,7 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme") MUST
             }
         }
 
-        previewSessions.set(previewId, {
+        saveSession(previewId, {
             previewId,
             timestamp: Date.now(),
             childName, gender: genderClean, age: childAge, theme, language: lang,
@@ -1449,10 +1509,11 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme") MUST
 app.post('/api/create-order', rateLimiter, async (req, res) => {
     try {
         const { previewId, bookLength, email } = req.body;
-        let session = previewId ? previewSessions.get(previewId) : null;
+        let session = previewId ? getSession(previewId) : null;
         if (session) {
             // PRD FR-5: Refresh timestamp so session TTL does not expire during checkout
             session.timestamp = Date.now();
+            saveSession(previewId, session);
         }
         let effectivePreviewId = previewId;
 
@@ -1487,7 +1548,7 @@ app.post('/api/create-order', rateLimiter, async (req, res) => {
                 scenesData: [],
                 bookLength: isLong ? 'long' : 'short'
             };
-            previewSessions.set(effectivePreviewId, session);
+            saveSession(effectivePreviewId, session);
             console.log(`⚡ Direct checkout session created for ${session.childName} (id: ${effectivePreviewId})`);
         } else if (!session && !String(previewId || '').startsWith('test_')) {
             return res.status(404).json({ success: false, error: 'Preview session expired. Please preview your book again.' });
@@ -1546,7 +1607,7 @@ app.post('/api/verify-and-complete-book', rateLimiter, async (req, res) => {
             coverDataUrl
         } = req.body;
 
-        let session = previewSessions.get(previewId);
+        let session = getSession(previewId);
 
         // Bulletproof session recovery (in case Render worker recycled between preview and payment)
         if (!session) {
@@ -1660,7 +1721,7 @@ app.post('/api/verify-and-complete-book', rateLimiter, async (req, res) => {
         }
 
         const jobId = `job_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-        activeJobs.set(jobId, {
+        saveJob(jobId, {
             id: jobId,
             timestamp: Date.now(),
             status: 'generating',
@@ -1684,7 +1745,7 @@ app.post('/api/verify-and-complete-book', rateLimiter, async (req, res) => {
 // JOB STATUS POLLING
 // ====================================================================
 app.get('/api/job-status/:jobId', (req, res) => {
-    const job = activeJobs.get(req.params.jobId);
+    const job = getJob(req.params.jobId);
     if (!job) return res.status(404).json({ success: false, error: 'Job not found' });
     res.json({
         success: true,
@@ -1702,8 +1763,10 @@ app.get('/api/job-status/:jobId', (req, res) => {
 // ====================================================================
 async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, protocol, host) {
     const update = (progress, step) => {
-        const j = activeJobs.get(jobId);
-        if (j) { j.progress = progress; j.step = step; }
+        const j = getJob(jobId) || { id: jobId, timestamp: Date.now() };
+        j.progress = progress;
+        j.step = step;
+        saveJob(jobId, j);
     };
 
     try {
@@ -1747,10 +1810,21 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         const serif = await pdfDoc.embedFont('Times-Roman');
 
         update(20, 'Painting decorative chapter borders...');
-        const framePrompt = STYLE + `decorative rectangular border frame for a children's book page, repeating hand-painted motifs of ${pal.motifs} woven with ribbons and leaves around all four edges, wide plain warm cream empty center occupying seventy percent of the page, soft pastel palette, gentle textures`;
-        const frameImgBuffer = await withRetry('frame image', async () => fetchImageBuffer(await generateImage(framePrompt, null)));
+        const frameCachePath = path.join(booksFolder, `frame_cache_${base.replace(/[^a-zA-Z0-9]/g, '_')}.png`);
+        let frameImgBuffer = null;
+        if (fs.existsSync(frameCachePath)) {
+            try {
+                frameImgBuffer = fs.readFileSync(frameCachePath);
+                console.log(`🖼️ [FRAME CACHE] Loaded cached decorative frame for theme: ${base}`);
+            } catch (_) {}
+        }
+        if (!frameImgBuffer) {
+            const framePrompt = STYLE + `decorative rectangular border frame for a children's book page, repeating hand-painted motifs of ${pal.motifs} woven with ribbons and leaves around all four edges, wide plain warm cream empty center occupying seventy percent of the page, soft pastel palette, gentle textures`;
+            frameImgBuffer = await withRetry('frame image', async () => fetchImageBuffer(await generateImage(framePrompt, null)));
+            try { fs.writeFileSync(frameCachePath, frameImgBuffer); } catch (_) {}
+        }
         const frameImg = await embedImageBuffer(pdfDoc, frameImgBuffer, 'decorative frame');
-        await sleep(PACING);
+        if (PACING > 0) await sleep(PACING);
 
         // Dynamically analyze frame background luminance for guaranteed text readability
         const frameBgStats = await analyzeFrameBackground(frameImgBuffer);
@@ -1830,9 +1904,10 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
 
         if (session.coverIsComposited !== false && coverImgBuffer) {
             // Enhanced Cover Processing for Final Book (Ensures maximum print DPI & sharpness)
-            if (process.env.UPSCALE_IMAGES !== 'false' && session.coverUrl && session.coverUrl.startsWith('http') && !session.coverUrl.includes('localhost') && !session.coverUrl.includes('127.0.0.1')) {
+            // Preview cover is already 4K AI upscaled; only upscale if explicitly needed (e.g. fallback regeneration)
+            if (process.env.UPSCALE_IMAGES !== 'false' && session.needsCoverUpscale && session.coverUrl && session.coverUrl.startsWith('http') && !session.coverUrl.includes('localhost') && !session.coverUrl.includes('127.0.0.1')) {
                 try {
-                    console.log(`✨ [COVER ENHANCEMENT] Running final book cover through 4K AI upscaler: ${session.coverUrl}`);
+                    console.log(`✨ [COVER ENHANCEMENT] Running cover through 4K AI upscaler: ${session.coverUrl}`);
                     const upscaledCoverUrl = await upscaleImageWithFallback(session.coverUrl, true);
                     if (upscaledCoverUrl && upscaledCoverUrl !== session.coverUrl) {
                         coverImgBuffer = await fetchImageBuffer(upscaledCoverUrl);
@@ -2003,28 +2078,53 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
             }
         }
 
-        // ================= INTERIOR SPREADS: LEFT IMAGE + RIGHT TEXT =================
+        // ================= INTERIOR SPREADS: ILLUSTRATION GENERATION (BATCHES OF 2) =================
+        const sceneBuffers = new Array(scenes);
+        const batchSize = 2;
+
+        for (let b = 0; b < scenes; b += batchSize) {
+            const batchIndices = [];
+            for (let idx = b; idx < Math.min(b + batchSize, scenes); idx++) {
+                batchIndices.push(idx);
+            }
+            const currentSpreadStart = b + 1;
+            const currentSpreadEnd = Math.min(b + batchSize, scenes);
+            const pct = Math.round(35 + (b / scenes) * 55);
+            update(pct, `Illustrating story scenes ${currentSpreadStart} to ${currentSpreadEnd} of ${scenes}...`);
+            console.log(`  → Generating scenes ${currentSpreadStart} to ${currentSpreadEnd} of ${scenes} concurrently...`);
+
+            await Promise.all(batchIndices.map(async (i) => {
+                const scene = effectiveScenes[i];
+                let rawPrompt = scene.image_prompt || `${charAnchor} with a joyful smile in the scene: ${scene.scene_title}`;
+                if (childName && childName.length > 1) {
+                    const nameRegex = new RegExp(`\\b${childName}\\b`, 'gi');
+                    rawPrompt = rawPrompt.replace(nameRegex, (gender === 'little star') ? 'the child' : `the little ${gender || 'hero'}`);
+                }
+
+                const identityAnchor = (IS_V2 && referencePortrait)
+                    ? `whimsical picture book scene featuring the exact same child from the reference image, preserving 80-90% facial likeness and identity: identical facial structure, eye shape, eyebrows, nose, mouth, skin tone, hair color, hair texture, and joyful expression. In this scene: ${rawPrompt}`
+                    : rawPrompt;
+                const scenePrompt = STYLE + identityAnchor;
+
+                const rawBuf = await withRetry(`scene ${i + 1} image`, async () => fetchImageBuffer(await generateImage(scenePrompt, referencePortrait, { isFace: true })));
+                // Memory-optimized 1200x1600 JPEG compression for lean, print-sharp PDF embedding (<500KB per page)
+                const optimizedBuf = await sharp(rawBuf)
+                    .resize(1200, 1600, { fit: 'inside', withoutEnlargement: true })
+                    .jpeg({ quality: 90 })
+                    .toBuffer();
+                sceneBuffers[i] = optimizedBuf;
+            }));
+
+            if (PACING > 0 && b + batchSize < scenes) {
+                await sleep(PACING);
+            }
+        }
+
+        // ================= COMPILE SPREADS IN DETERMINISTIC ORDER =================
         let spreadIndex = 1;
         for (let i = 0; i < scenes; i++) {
             const scene = effectiveScenes[i];
-            const pct = Math.round(35 + (i / scenes) * 55);
-            update(pct, `Illustrating Spread ${i + 1} of ${scenes}: "${scene.scene_title}"...`);
-            console.log(`  → Scene ${i + 1}/${scenes}: ${scene.scene_title}`);
-
-            // Use DeepSeek bespoke 4K visual prompt if provided, ensuring child's name is never passed to diffusion model
-            let rawPrompt = scene.image_prompt || `${charAnchor} with a joyful smile in the scene: ${scene.scene_title}`;
-            if (childName && childName.length > 1) {
-                const nameRegex = new RegExp(`\\b${childName}\\b`, 'gi');
-                rawPrompt = rawPrompt.replace(nameRegex, (gender === 'little star') ? 'the child' : `the little ${gender || 'hero'}`);
-            }
-
-            // PRD FR-1 & FR-3: Identity anchor linking back to the reference portrait with 80-90% resemblance
-            const identityAnchor = (IS_V2 && referencePortrait)
-                ? `whimsical picture book scene featuring the exact same child from the reference image, preserving 80-90% facial likeness and identity: identical facial structure, eye shape, eyebrows, nose, mouth, skin tone, hair color, hair texture, and joyful expression. In this scene: ${rawPrompt}`
-                : rawPrompt;
-            const scenePrompt = STYLE + identityAnchor;
-
-            const sceneImgBuf = await withRetry(`scene ${i + 1} image`, async () => fetchImageBuffer(await generateImage(scenePrompt, referencePortrait, { isFace: true })));
+            const sceneImgBuf = sceneBuffers[i];
             const sceneImg = await embedImageBuffer(pdfDoc, sceneImgBuf, `scene ${i + 1}`);
 
             // LEFT PAGE: Full-bleed Scene Illustration
@@ -2074,11 +2174,6 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
             // Spread Number
             drawCentered(textPage, `— ${spreadIndex} —`, 100, 12, serif, textColors.subtextColor, 0.75);
             spreadIndex++;
-
-            if (i < scenes - 1) {
-                console.log("  ⏳ Pacing 10s...");
-                await sleep(PACING);
-            }
         }
 
         // ================= FINAL PAGE: ENDING KEEPSAKE PAGE =================
@@ -2204,26 +2299,25 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
             }
         }
 
-        const job = activeJobs.get(jobId);
-        if (job) {
-            job.status = 'completed';
-            job.progress = 100;
-            job.step = 'Your storybook is ready!';
-            job.pdfUrl = pdfUrl;
-            job.emailed = emailed;
-        }
+        const job = getJob(jobId) || { id: jobId, timestamp: Date.now() };
+        job.status = 'completed';
+        job.progress = 100;
+        job.step = 'Your storybook is ready!';
+        job.pdfUrl = pdfUrl;
+        job.emailed = emailed;
+        saveJob(jobId, job);
+
         const jobUpscales = bookUpscalesCount - startUpscales;
         const estUpscaleCost = (jobUpscales * 0.04).toFixed(2);
         console.log(`💰 Estimated upscale cost for Job ${jobId}: $${estUpscaleCost} (${jobUpscales} upscales used x ~$0.04)`);
         console.log(`🎉 Job ${jobId} Completed! Pages=${pdfDoc.getPageCount()} | PDF: ${pdfUrl}`);
     } catch (err) {
         console.error(`❌ Job ${jobId} Failed:`, err.message);
-        const job = activeJobs.get(jobId);
-        if (job) {
-            job.status = 'failed';
-            job.error = err.message;
-            job.step = 'Generation encountered an error';
-        }
+        const job = getJob(jobId) || { id: jobId, timestamp: Date.now() };
+        job.status = 'failed';
+        job.error = err.message;
+        job.step = 'Generation encountered an error';
+        saveJob(jobId, job);
     } finally {
         if (session) {
             session.photoData = null; // Ephemeral photo memory purged immediately for child privacy
