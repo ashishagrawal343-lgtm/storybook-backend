@@ -142,6 +142,17 @@ const PIPELINE_VERSION = process.env.GEN_PIPELINE_VERSION || 'v2';
 const IS_V2 = PIPELINE_VERSION !== 'v1';
 console.log(`🚀 Image Generation Pipeline: ${PIPELINE_VERSION.toUpperCase()} (v1 rollback available via GEN_PIPELINE_VERSION=v1)`);
 
+// Cover Pipeline Versioning (v2 reimagined default, with v1 instant rollback via COVER_PIPELINE_VERSION=v1)
+const { CoverDesignEngine } = require('./lib/cover/coverEngine');
+const COVER_PIPELINE_VERSION = process.env.COVER_PIPELINE_VERSION || 'v2';
+const IS_COVER_V2 = COVER_PIPELINE_VERSION !== 'v1';
+console.log(`🎨 Book Cover Pipeline: ${COVER_PIPELINE_VERSION.toUpperCase()} (v1 rollback available via COVER_PIPELINE_VERSION=v1)`);
+
+const coverEngine = new CoverDesignEngine({
+    generateImage: (prompt, photoData, options) => generateImage(prompt, photoData, options),
+    fetchImageBuffer: (url) => fetchImageBuffer(url)
+});
+
 const booksFolder = path.join(__dirname, 'books');
 if (!fs.existsSync(booksFolder)) fs.mkdirSync(booksFolder);
 
@@ -1199,27 +1210,49 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme", "sce
         const openingRhyme = storyJson.opening_rhyme || `Underneath the twinkling stars, where dreams begin to play,\nA special tale unfolds tonight, to softly guide your way.\nFor ${childName}, our little dreamer, so brave and kind and bright,\nA magical bedtime story starts before you sleep tonight.`;
         const scenesData = Array.isArray(storyJson.story_scenes) ? storyJson.story_scenes : [];
 
-        // Step 2: Generate Theme Border Background & Child Medallion Hero with rate pacing
-        console.log("  → Painting theme-relevant ornate border background...");
-        const bgUrlRaw = await withRetry('cover background', async () => generateCoverBackground(base, pal));
-        await sleep(PACING);
-
-        console.log("  → Painting child medallion hero...");
-        const vigUrlRaw = await withRetry('child medallion hero', async () => generateChildMedallion(charAnchor, base, pal, photoData));
-
-        const [bgBuffer, vigBuffer] = await Promise.all([
-            fetchImageBuffer(bgUrlRaw),
-            fetchImageBuffer(vigUrlRaw)
-        ]);
-
-        // Step 3: Composite into unified, non-overlapping high-resolution cover
-        console.log("  → Compositing theme-framed cover with non-overlapping typography...");
-        let coverBuffer = await renderCoverCompositePng(bgBuffer, vigBuffer, childName, bookTitle, pal, lang);
+        // Step 2: Generate Cover Artwork & Composite
+        let coverBuffer = null;
         let coverIsComposited = true;
-        if (!coverBuffer) {
-            console.warn("⚠️ Sharp cover composite notice, falling back to background buffer");
-            coverBuffer = bgBuffer;
-            coverIsComposited = false;
+        let vigUrlRaw = null;
+
+        if (IS_COVER_V2) {
+            console.log(`🎨 [Cover Reimagination] Generating full-bleed spotlight cover for ${childName} (60-65% hero area)...`);
+            const coverResult = await withRetry('reimagined cover generation', async () => {
+                return await coverEngine.generateCover({
+                    theme: base,
+                    childName,
+                    gender: genderClean,
+                    age: childAge,
+                    charAnchor,
+                    bookTitle,
+                    language: lang,
+                    photoData
+                });
+            }, 2, 3000);
+
+            coverBuffer = coverResult.coverBuffer;
+            vigUrlRaw = coverResult.rawArtUrl;
+        } else {
+            // Legacy v1 Medallion fallback
+            console.log("  → [V1 Fallback] Painting theme-relevant ornate border background...");
+            const bgUrlRaw = await withRetry('cover background', async () => generateCoverBackground(base, pal));
+            await sleep(PACING);
+
+            console.log("  → [V1 Fallback] Painting child medallion hero...");
+            vigUrlRaw = await withRetry('child medallion hero', async () => generateChildMedallion(charAnchor, base, pal, photoData));
+
+            const [bgBuffer, vigBuffer] = await Promise.all([
+                fetchImageBuffer(bgUrlRaw),
+                fetchImageBuffer(vigUrlRaw)
+            ]);
+
+            console.log("  → [V1 Fallback] Compositing theme-framed cover with non-overlapping typography...");
+            coverBuffer = await renderCoverCompositePng(bgBuffer, vigBuffer, childName, bookTitle, pal, lang);
+            if (!coverBuffer) {
+                console.warn("⚠️ Sharp cover composite notice, falling back to background buffer");
+                coverBuffer = bgBuffer;
+                coverIsComposited = false;
+            }
         }
 
         const previewId = `prev_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
@@ -1631,22 +1664,40 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
 
         if (!coverImgBuffer) {
             console.warn(`🚨 [CRITICAL PARITY WARNING] Cover regeneration triggered for session ${session.previewId || 'unknown'}. Preview cover could not be found.`);
-            console.log("  → Generating theme border & child medallion...");
-            const bgUrlRaw = await withRetry('cover background', async () => generateCoverBackground(base, pal));
-            await sleep(PACING);
-            const vigUrlRaw = await withRetry('child medallion hero', async () => generateChildMedallion(charAnchor, base, pal, photoData));
-            const [bgBuffer, vigBuffer] = await Promise.all([
-                fetchImageBuffer(bgUrlRaw),
-                fetchImageBuffer(vigUrlRaw)
-            ]);
-            coverImgBuffer = await renderCoverCompositePng(bgBuffer, vigBuffer, childName, session.bookTitle || title, pal, language);
-            if (!coverImgBuffer) {
-                coverImgBuffer = bgBuffer;
-                session.coverIsComposited = false;
-                session.bgBuffer = bgBuffer;
-                session.vigBuffer = vigBuffer;
-            } else {
+            if (IS_COVER_V2) {
+                console.log(`🎨 [Cover Reimagination Fallback] Regenerating full-bleed spotlight cover for ${childName}...`);
+                const coverResult = await withRetry('reimagined cover generation fallback', async () => {
+                    return await coverEngine.generateCover({
+                        theme: base,
+                        childName,
+                        gender: session.gender,
+                        age: session.age,
+                        charAnchor,
+                        bookTitle: session.bookTitle || title,
+                        language,
+                        photoData
+                    });
+                }, 2, 3000);
+                coverImgBuffer = coverResult.coverBuffer;
                 session.coverIsComposited = true;
+            } else {
+                console.log("  → [V1 Fallback] Generating theme border & child medallion...");
+                const bgUrlRaw = await withRetry('cover background', async () => generateCoverBackground(base, pal));
+                await sleep(PACING);
+                const vigUrlRaw = await withRetry('child medallion hero', async () => generateChildMedallion(charAnchor, base, pal, photoData));
+                const [bgBuffer, vigBuffer] = await Promise.all([
+                    fetchImageBuffer(bgUrlRaw),
+                    fetchImageBuffer(vigUrlRaw)
+                ]);
+                coverImgBuffer = await renderCoverCompositePng(bgBuffer, vigBuffer, childName, session.bookTitle || title, pal, language);
+                if (!coverImgBuffer) {
+                    coverImgBuffer = bgBuffer;
+                    session.coverIsComposited = false;
+                    session.bgBuffer = bgBuffer;
+                    session.vigBuffer = vigBuffer;
+                } else {
+                    session.coverIsComposited = true;
+                }
             }
         }
 
@@ -2070,21 +2121,42 @@ Write all scene text in ${lang} using its authentic script.`;
         let rawPages = Array.isArray(parsed) ? parsed : (parsed.scenes || parsed.story_scenes || []);
         const pages = (Array.isArray(rawPages) ? rawPages : []).slice(0, scenes);
 
-        console.log("  → Painting theme-relevant ornate border background...");
-        const bgUrlRaw = await withRetry('cover background', async () => generateCoverBackground(base, pal));
-        await sleep(PACING);
-        console.log("  → Painting child medallion hero...");
-        const vigUrlRaw = await withRetry('child medallion hero', async () => generateChildMedallion(charAnchor, base, pal, photoData));
-        const [bgBuffer, vigBuffer] = await Promise.all([
-            fetchImageBuffer(bgUrlRaw),
-            fetchImageBuffer(vigUrlRaw)
-        ]);
-
-        let coverBuffer = await renderCoverCompositePng(bgBuffer, vigBuffer, childName, title, pal, lang);
+        let coverBuffer = null;
         let coverIsComposited = true;
-        if (!coverBuffer) {
-            coverBuffer = bgBuffer;
-            coverIsComposited = false;
+        let vigUrlRaw = null;
+
+        if (IS_COVER_V2) {
+            console.log(`🎨 [Direct Book] Painting reimagined spotlight cover for ${childName} (60-65% hero area)...`);
+            const coverResult = await withRetry('reimagined cover generation', async () => {
+                return await coverEngine.generateCover({
+                    theme: base,
+                    childName,
+                    gender: genderClean,
+                    age: childAge,
+                    charAnchor,
+                    bookTitle: title,
+                    language: lang,
+                    photoData
+                });
+            }, 2, 3000);
+            coverBuffer = coverResult.coverBuffer;
+            vigUrlRaw = coverResult.rawArtUrl;
+        } else {
+            console.log("  → [V1 Fallback] Painting theme-relevant ornate border background...");
+            const bgUrlRaw = await withRetry('cover background', async () => generateCoverBackground(base, pal));
+            await sleep(PACING);
+            console.log("  → [V1 Fallback] Painting child medallion hero...");
+            vigUrlRaw = await withRetry('child medallion hero', async () => generateChildMedallion(charAnchor, base, pal, photoData));
+            const [bgBuffer, vigBuffer] = await Promise.all([
+                fetchImageBuffer(bgUrlRaw),
+                fetchImageBuffer(vigUrlRaw)
+            ]);
+
+            coverBuffer = await renderCoverCompositePng(bgBuffer, vigBuffer, childName, title, pal, lang);
+            if (!coverBuffer) {
+                coverBuffer = bgBuffer;
+                coverIsComposited = false;
+            }
         }
 
         const session = {
