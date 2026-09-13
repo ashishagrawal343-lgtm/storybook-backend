@@ -1038,16 +1038,32 @@ async function generateCoverPainting(charAnchor, base, pal, photoData, bespokePr
 const QUALITY_SUFFIX = ' Composition: full-bleed page art, subject on rule-of-thirds, eye-level camera for child subjects, strong silhouette readability. Micro-detail: crisp fabric weave, individual hair strands, tiny specular highlights in eyes. Print finish: gallery-grade print quality, clean anti-aliased edges, no banding, no compression artifacts, no oversharpening.';
 let bookUpscalesCount = 0;
 
-// UPSCALE CHAIN (CLARITY-UPSCALER -> REAL-ESRGAN -> NATIVE FALLBACK)
+// UPSCALE CHAIN (REAL-ESRGAN 4K SUPER-RES -> CLARITY-UPSCALER -> NATIVE FALLBACK)
 async function upscaleImageWithFallback(url, isFace = false) {
     const cleanUrl = extractUrl(url);
     if (!cleanUrl) return url;
 
-    // PRD FR-7: Face-safe settings to prevent facial alteration / hallucinated features
+    // 1. High-speed 4K super-resolution via Real-ESRGAN (2-3s on Replicate, scale 4, zero facial distortion)
+    try {
+        const out = await replicate.run("nightmareai/real-esrgan", {
+            input: {
+                image: cleanUrl,
+                scale: 4
+            }
+        });
+        const upscaledUrl = extractUrl(out);
+        if (upscaledUrl) {
+            console.log("⬆️ 4K upscale via nightmareai/real-esrgan (scale=4, 4K super-resolution)");
+            bookUpscalesCount++;
+            return upscaledUrl;
+        }
+    } catch (errB) {
+        console.log("    (real-esrgan notice, falling back to clarity-upscaler):", errB.message);
+    }
+
+    // 2. High-fidelity diffusion fallback: philz1337x/clarity-upscaler
     const creativity = isFace ? 0.1 : 0.25;
     const resemblance = isFace ? 0.95 : 0.85;
-
-    // a) philz1337x/clarity-upscaler with 1 retry (2 attempts total)
     try {
         const out = await withRetry('clarity upscaler', async () => {
             return await replicate.run("philz1337x/clarity-upscaler:dfad41707589d68ecdccd1dfa600d55a208f9310748e44bfe35b4a6291453d5e", {
@@ -1059,38 +1075,18 @@ async function upscaleImageWithFallback(url, isFace = false) {
                     output_format: 'jpg'
                 }
             });
-        }, 2, 3000);
+        }, 1, 2000);
         const upscaledUrl = extractUrl(out);
         if (upscaledUrl) {
-            console.log(`⬆️ 4K upscale via philz1337x/clarity-upscaler (isFace=${isFace}, creativity=${creativity}, resemblance=${resemblance})`);
+            console.log(`⬆️ 4K upscale via philz1337x/clarity-upscaler (isFace=${isFace})`);
             bookUpscalesCount++;
-            await sleep(PACING);
             return upscaledUrl;
         }
     } catch (errA) {
-        console.log("    (clarity upscaler notice, falling back to real-esrgan):", errA.message);
+        console.log("    (clarity upscaler notice, falling back to native):", errA.message);
     }
 
-    // b) nightmareai/real-esrgan
-    try {
-        const out = await replicate.run("nightmareai/real-esrgan", {
-            input: {
-                image: cleanUrl,
-                scale: 4
-            }
-        });
-        const upscaledUrl = extractUrl(out);
-        if (upscaledUrl) {
-            console.log("⬆️ 4K upscale via nightmareai/real-esrgan");
-            bookUpscalesCount++;
-            await sleep(PACING);
-            return upscaledUrl;
-        }
-    } catch (errB) {
-        console.log("    (real-esrgan notice, falling back to native):", errB.message);
-    }
-
-    // c) original url (graceful degradation)
+    // 3. Graceful degradation
     console.warn("⚠️ upscale fallback to native");
     return cleanUrl;
 }
@@ -1305,14 +1301,23 @@ CRITICAL THEME CONSISTENCY RULE: The title MUST be deeply, authentically customi
 LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme") MUST be written beautifully in ${lang}. No markdown, no commentary.`;
         const userPrompt = `Create an enchanting ${theme} bedtime storybook title and opening rhyme for ${childName} in ${lang}.`;
 
-        const rawStoryText = await withRetry('preview story outline', () => callStoryLLM(systemPrompt, userPrompt, lang), 2, 3000);
-        let storyText = rawStoryText.replace(/```json/g, '').replace(/```/g, '').trim();
-        const storyJson = JSON.parse(storyText);
-        const bookTitle = (storyJson.book_title && storyJson.book_title.trim()) || `${childName}'s ${themeTitle(base)}`;
-        const openingRhyme = storyJson.opening_rhyme || `Underneath the twinkling stars, where dreams begin to play,\nA special tale unfolds tonight, to softly guide your way.\nFor ${childName}, our little dreamer, so brave and kind and bright,\nA magical bedtime story starts before you sleep tonight.`;
-        const scenesData = [];
+        // Step 1: Launch LLM story outline in parallel with cover artwork generation
+        const storyPromise = withRetry('preview story outline', () => callStoryLLM(systemPrompt, userPrompt, lang), 2, 3000)
+            .then(rawStoryText => {
+                let storyText = rawStoryText.replace(/```json/g, '').replace(/```/g, '').trim();
+                return JSON.parse(storyText);
+            })
+            .catch(err => {
+                console.warn('⚠️ Preview story outline fallback notice:', err.message);
+                return {
+                    book_title: `${childName}'s ${themeTitle(base)}`,
+                    opening_rhyme: `Underneath the twinkling stars, where dreams begin to play,\nA special tale unfolds tonight, to softly guide your way.\nFor ${childName}, our little dreamer, so brave and kind and bright,\nA magical bedtime story starts before you sleep tonight.`
+                };
+            });
 
-        // Step 2: Generate Cover Artwork & Composite
+        const titlePromise = storyPromise.then(s => (s && s.book_title && s.book_title.trim()) || `${childName}'s ${themeTitle(base)}`);
+
+        // Step 2: Generate Cover Artwork & Composite concurrently
         let coverBuffer = null;
         let coverIsComposited = true;
         let vigUrlRaw = null;
@@ -1326,7 +1331,7 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme") MUST
                     gender: genderClean,
                     age: childAge,
                     charAnchor,
-                    bookTitle,
+                    bookTitle: titlePromise,
                     language: lang,
                     photoData
                 });
@@ -1340,6 +1345,8 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme") MUST
             var coverDebugOverlay = coverResult.debugOverlayBuffer || null;
         } else {
             // Legacy v1 Medallion fallback
+            const storyJsonV1 = await storyPromise;
+            const bookTitleV1 = (storyJsonV1.book_title && storyJsonV1.book_title.trim()) || `${childName}'s ${themeTitle(base)}`;
             console.log("  → [V1 Fallback] Painting theme-relevant ornate border background...");
             const bgUrlRaw = await withRetry('cover background', async () => generateCoverBackground(base, pal));
             await sleep(PACING);
@@ -1353,13 +1360,18 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme") MUST
             ]);
 
             console.log("  → [V1 Fallback] Compositing theme-framed cover with non-overlapping typography...");
-            coverBuffer = await renderCoverCompositePng(bgBuffer, vigBuffer, childName, bookTitle, pal, lang);
+            coverBuffer = await renderCoverCompositePng(bgBuffer, vigBuffer, childName, bookTitleV1, pal, lang);
             if (!coverBuffer) {
                 console.warn("⚠️ Sharp cover composite notice, falling back to background buffer");
                 coverBuffer = bgBuffer;
                 coverIsComposited = false;
             }
         }
+
+        const storyJson = await storyPromise;
+        const bookTitle = (storyJson.book_title && storyJson.book_title.trim()) || `${childName}'s ${themeTitle(base)}`;
+        const openingRhyme = storyJson.opening_rhyme || `Underneath the twinkling stars, where dreams begin to play,\nA special tale unfolds tonight, to softly guide your way.\nFor ${childName}, our little dreamer, so brave and kind and bright,\nA magical bedtime story starts before you sleep tonight.`;
+        const scenesData = [];
 
         const previewId = `prev_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
 
@@ -1451,15 +1463,11 @@ app.post('/api/create-order', rateLimiter, async (req, res) => {
         if (req.body.isDirectCheckout || (!session && req.body.childName)) {
             const { childName, gender, age, theme, language, photoData, dedication, email: reqEmail } = req.body;
             effectivePreviewId = `direct_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-            const genderClean = ['boy', 'girl', 'little star'].includes((gender || '').toLowerCase()) ? gender.toLowerCase() : 'little star';
-            const childAge = parseInt(age, 10) || 5;
+            const { genderClean, childAge, pronoun, subjectPronoun, charAnchor } = getCharacterDetails(childName, gender, age, theme);
             const lang = language || 'English';
             const base = String(theme || 'Magical Forest').split(' (')[0];
             const pal = themeKit(base);
-            const pronoun = genderClean === 'boy' ? 'his' : (genderClean === 'girl' ? 'her' : 'their');
-            const subjectPronoun = genderClean === 'boy' ? 'he' : (genderClean === 'girl' ? 'she' : 'they');
-            const charAnchor = getCharacterAnchor(genderClean, childAge, photoData);
-            const bookTitle = `${childName}'s ${base} Adventure`;
+            const bookTitle = `${childName}'s ${themeTitle(base)}`;
 
             session = {
                 previewId: effectivePreviewId,

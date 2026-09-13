@@ -2795,6 +2795,7 @@
           if (directBtn) { directBtn.disabled = false; directBtn.innerHTML = originalHtml; }
         });
         rzp.open();
+        if (directBtn) { directBtn.disabled = false; directBtn.innerHTML = originalHtml; }
 
       } catch (err) {
         alert(`Direct checkout initiation failed: ${err.message}`);
