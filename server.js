@@ -2090,14 +2090,20 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
 }
 
 // ====================================================================
-// DIRECT BOOK GENERATION (RESTRICTED TO ADMIN / DEV)
+// DIRECT BOOK GENERATION (STRICTLY GATED TO AUTHORIZED ADMIN / DEV)
 // ====================================================================
 app.post('/api/create-book', rateLimiter, async (req, res) => {
-    if (process.env.NODE_ENV === 'production') {
-        const adminToken = req.headers['x-admin-token'] || req.query.admin_token;
-        if (!process.env.ADMIN_TOKEN || adminToken !== process.env.ADMIN_TOKEN) {
-            return res.status(403).json({ success: false, error: 'Direct creation is restricted in production. Please use /api/create-preview and verified checkout.' });
-        }
+    // CRITICAL SECURITY GATE: Prevent unauthorized payment bypass & Replicate credit burning
+    const authHeader = req.headers['authorization'];
+    const bearerToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
+    const adminToken = req.headers['x-admin-token'] || req.query.admin_token || bearerToken;
+
+    if (!process.env.ADMIN_TOKEN || !adminToken || adminToken !== process.env.ADMIN_TOKEN) {
+        console.warn(`🚨 [SECURITY ALERT] Unauthorized /api/create-book attempt blocked from IP ${req.ip || 'unknown'}`);
+        return res.status(403).json({
+            success: false,
+            error: 'Direct book generation is strictly restricted. Please use /api/create-preview and verified checkout.'
+        });
     }
     const t0 = Date.now();
     try {
