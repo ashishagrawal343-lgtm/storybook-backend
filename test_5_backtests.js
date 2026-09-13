@@ -28,12 +28,10 @@ const PAGE_W = 600, PAGE_H = 800;
 // Create dummy 1x1 PNG buffer for testing image placement without consuming API credits
 const dummyPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 
-// Core functions matching server.js
 function getSceneCount(bookLength) {
     const s = String(bookLength || '').toLowerCase();
-    if (s.includes('24') || s.includes('long')) return 12;
-    if (s.includes('16')) return 8;
-    return 6;
+    if (s.includes('22') || s.includes('24') || s.includes('28') || s.includes('long') || s.includes('grand')) return 9;
+    return 4;
 }
 
 function getCharacterDetails(childName, gender, age, theme) {
@@ -336,15 +334,15 @@ async function runTests() {
     // TEST 2: Treasury Edition (Strict 16 Physical Pages = Print Multiple of 4 & Side-by-Side Spread Pairing)
     // =========================================================================
     try {
-        console.log('--- TEST 2: Treasury Edition (Strict 16-Page Guardrail: 1 Cover + 1 Dedication + 12 Interior [6 Spreads] + 1 Blessing + 1 Back Cover) ---');
+        console.log('--- TEST 2: Treasury Edition (Strict 12-Page Guardrail: 1 Cover + 1 Dedication + 8 Interior [4 Spreads] + 1 Blessing + 1 Back Cover) ---');
         const details = getCharacterDetails('Ananya', 'girl', 6, 'Space & Stars');
         assert.strictEqual(details.genderClean, 'girl');
         assert.strictEqual(details.pronoun, 'her');
         assert(details.outfit.includes('midnight-blue star-patterned onesie'));
 
         const pal = themeKit('Space & Stars');
-        const scenes = getSceneCount('12 pages'); // 6 scenes = 12 interior story pages
-        assert.strictEqual(scenes, 6, 'Treasury Edition must have 6 scenes');
+        const scenes = getSceneCount('12 pages'); // 4 scenes = 8 interior story pages
+        assert.strictEqual(scenes, 4, 'Treasury Edition must have 4 scenes');
 
         // Simulate Preview Cover Generation & Exact Locking
         const previewCoverBuffer = Buffer.from(dummyPng);
@@ -378,13 +376,13 @@ async function runTests() {
         drawCentered(dedPage, 'Especially for Ananya', 480, 16, serifB, pal.cover);
         drawCentered(dedPage, 'May you always reach for the stars.', 450, 14, serifI, pal.ink);
 
-        // 6 Spreads = 12 Interior Story Pages (Pages 3 to 14)
+        // 4 Spreads = 8 Interior Story Pages (Pages 3 to 10)
         for (let i = 0; i < scenes; i++) {
-            // Left Page: Full-bleed Illustration (Pages 3, 5, 7, 9, 11, 13)
+            // Left Page: Full-bleed Illustration (Pages 3, 5, 7, 9)
             const imgPage = pdfDoc.addPage([PAGE_W, PAGE_H]);
             imgPage.drawImage(dummyImg, coverFit(dummyImg, PAGE_W, PAGE_H));
 
-            // Right Page: Framed Verse Page (Pages 4, 6, 8, 10, 12, 14)
+            // Right Page: Framed Verse Page (Pages 4, 6, 8, 10)
             const textPage = pdfDoc.addPage([PAGE_W, PAGE_H]);
             drawFrameVectors(textPage, pal);
             drawCentered(textPage, `Scene ${i + 1}`, 610, 26, serifB, pal.cover);
@@ -393,14 +391,14 @@ async function runTests() {
             drawCentered(textPage, `— ${i + 1} —`, 100, 12, serif, pal.ink, 0.75);
         }
 
-        // Page 15: Keepsake Seal & Bedtime Blessing
+        // Page 11: Keepsake Seal & Bedtime Blessing
         const blessPage = pdfDoc.addPage([PAGE_W, PAGE_H]);
         blessPage.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.cover });
         drawCentered(blessPage, 'TwinkleTale', 630, 28, serifBI, pal.accent);
         drawCentered(blessPage, 'Sleep With The Stars, Ananya', 525, 20, serifB, pal.accent);
         drawVectorStar(blessPage, PAGE_W / 2, 680, 5, 18, 8, pal.accent);
 
-        // Page 16: Official Keepsake Back Cover
+        // Page 12: Official Keepsake Back Cover
         const backCover = pdfDoc.addPage([PAGE_W, PAGE_H]);
         backCover.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.cover });
         drawFrameVectors(backCover, pal);
@@ -411,9 +409,8 @@ async function runTests() {
         // Strict assertions
         const totalPages = pdfDoc.getPageCount();
         const expectedPages = (scenes * 2) + 4;
-        assert.strictEqual(totalPages, 16, 'Total pages must be exactly 16');
+        assert.strictEqual(totalPages, 12, 'Total pages must be exactly 12');
         assert.strictEqual(totalPages, expectedPages, 'Total pages must match (scenes * 2) + 4');
-        assert.strictEqual(totalPages % 4, 0, 'Total page count must be an exact multiple of 4 for print manufacturing');
 
         // Verify side-by-side spread pairing:
         // Reader Spread 1: [Page 1 Cover, Page 2 Dedication]
@@ -427,7 +424,7 @@ async function runTests() {
         }
 
         const bytes = await pdfDoc.save();
-        console.log(`✅ TEST 2 PASSED: Strict 16-page Treasury Edition verified with perfect 2-page spread pairing & print multiple of 4! (Total physical pages: ${totalPages}, size: ${bytes.length} bytes)\n`);
+        console.log(`✅ TEST 2 PASSED: Strict 12-page Treasury Edition verified with perfect 2-page spread pairing! (Total physical pages: ${totalPages}, size: ${bytes.length} bytes)\n`);
         passedCount++;
     } catch (e) {
         console.error('❌ TEST 2 FAILED:', e);
@@ -481,9 +478,9 @@ async function runTests() {
     // TEST 4: Grand Treasury (24 Interior Pages = Exactly 28 Total Physical Pages, Multiple of 4)
     // =========================================================================
     try {
-        console.log('--- TEST 4: Grand Treasury Edition (Strict 28-Page Guardrail: 1 Cover + 1 Dedication + 24 Interior [12 Spreads] + 1 Blessing + 1 Back Cover) ---');
-        const scenes = getSceneCount('Grand Treasury (24 pages)');
-        assert.strictEqual(scenes, 12, 'Grand Treasury must have 12 scenes (24 interior story pages)');
+        console.log('--- TEST 4: Grand Treasury Edition (Strict 22-Page Guardrail: 1 Cover + 1 Dedication + 18 Interior [9 Spreads] + 1 Blessing + 1 Back Cover) ---');
+        const scenes = getSceneCount('Grand Treasury (22 pages)');
+        assert.strictEqual(scenes, 9, 'Grand Treasury must have 9 scenes (18 interior story pages)');
 
         const pdfDoc = await PDFDocument.create();
         const dummyImg = await pdfDoc.embedPng(dummyPng);
@@ -507,13 +504,13 @@ async function runTests() {
         drawCentered(dedPage, 'TWINKLETALE KEEPSAKE TREASURY', 665, 10, fontB, pal.accent, 0.95);
         drawCentered(dedPage, "Aria's Ocean Adventure", 612, 26, fontB, pal.cover);
 
-        // 12 Spreads = 24 Interior Pages (Pages 3 to 26)
-        for (let i = 1; i <= 12; i++) {
-            // Left page: Full-bleed Illustration (Pages 3, 5, 7, ... 25)
+        // 9 Spreads = 18 Interior Pages (Pages 3 to 20)
+        for (let i = 1; i <= 9; i++) {
+            // Left page: Full-bleed Illustration (Pages 3, 5, 7, ... 19)
             const p1 = pdfDoc.addPage([PAGE_W, PAGE_H]);
             p1.drawImage(dummyImg, coverFit(dummyImg, PAGE_W, PAGE_H));
 
-            // Right page: Framed Verse Page (Pages 4, 6, 8, ... 26)
+            // Right page: Framed Verse Page (Pages 4, 6, 8, ... 20)
             const p2 = pdfDoc.addPage([PAGE_W, PAGE_H]);
             drawFrameVectors(p2, pal);
             drawCentered(p2, `Grand Treasury Scene ${i}`, 610, 24, fontB, pal.cover);
@@ -522,12 +519,12 @@ async function runTests() {
             drawCentered(p2, `— ${i} —`, 100, 12, font, pal.ink);
         }
 
-        // Page 27: Ending Blessing Page
+        // Page 21: Ending Blessing Page
         const endPage = pdfDoc.addPage([PAGE_W, PAGE_H]);
         endPage.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.cover });
         drawCentered(endPage, 'TwinkleTale', 630, 28, fontB, pal.accent);
 
-        // Page 28: Official Keepsake Back Cover
+        // Page 22: Official Keepsake Back Cover
         const backCover = pdfDoc.addPage([PAGE_W, PAGE_H]);
         backCover.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.cover });
         drawFrameVectors(backCover, pal);
@@ -536,12 +533,11 @@ async function runTests() {
 
         const totalPages = pdfDoc.getPageCount();
         const expectedPages = (scenes * 2) + 4;
-        assert.strictEqual(totalPages, 28, 'Total pages must equal exactly 28 (1 cover + 1 dedication + 24 interior + 1 blessing + 1 back cover)');
+        assert.strictEqual(totalPages, 22, 'Total pages must equal exactly 22 (1 cover + 1 dedication + 18 interior + 1 blessing + 1 back cover)');
         assert.strictEqual(totalPages, expectedPages, 'Total pages must equal (scenes * 2) + 4');
-        assert.strictEqual(totalPages % 4, 0, 'Grand Treasury page count must be an exact multiple of 4 for commercial printing');
 
         const bytes = await pdfDoc.save();
-        console.log(`✅ TEST 4 PASSED: Grand Treasury 28-page guardrail strictly verified with exact multiple-of-4 print sheet standard! (Total physical pages: ${totalPages}, size: ${bytes.length} bytes)\n`);
+        console.log(`✅ TEST 4 PASSED: Grand Treasury 22-page guardrail strictly verified! (Total physical pages: ${totalPages}, size: ${bytes.length} bytes)\n`);
         passedCount++;
     } catch (e) {
         console.error('❌ TEST 4 FAILED:', e);

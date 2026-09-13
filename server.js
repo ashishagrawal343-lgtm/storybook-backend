@@ -415,9 +415,10 @@ function themeTitle(base) {
 
 function getSceneCount(bookLength) {
     const s = String(bookLength || '').toLowerCase();
-    if (s.includes('24') || s.includes('long')) return 12; // 12 scenes = 24 interior pages
-    if (s.includes('16')) return 8;                       // 8 scenes = 16 interior pages
-    return 6;                                             // 6 scenes = 12 interior pages (Treasury standard)
+    if (s.includes('22') || s.includes('24') || s.includes('28') || s.includes('long') || s.includes('grand')) {
+        return 9; // 9 scenes = 18 interior story pages + 4 structural (cover, ded, seal, back) = 22 total pages
+    }
+    return 4; // 4 scenes = 8 interior story pages + 4 structural (cover, ded, seal, back) = 12 total pages (Treasury standard)
 }
 
 function getCharacterDetails(childName, gender, age, theme) {
@@ -969,8 +970,8 @@ async function generateAvatar(photoData, charAnchor) {
         const t0 = Date.now();
         const modelUsed = "black-forest-labs/flux-kontext-pro";
         try {
-            console.log("  → Transforming reference photo into rich painterly storybook avatar via flux-kontext-pro...");
-            const avatarPrompt = `Transform the child in this photo into an adorable, charming storybook hero in lush painterly storybook realism, soft digital gouache and fine oils texture, gentle cinematic golden lighting. Centered head-and-shoulders portrait of the child, eye level, face fully in frame with ample margin around hair and chin, portrait orientation. Soulful sparkling dark eyes with lifelike reflection, natural soft dimensional skin tones with warm peachy glow, sweet button nose, joyful happy smile, finely rendered silky hair strands catching the rim light. Capture the child's exact hairstyle, hair color, eye shape, and sweet expression faithfully, rendered with rich picture book artistry. Not flat 2D cartoon, not stiff 3D CGI, not plastic, no text, no watermark`;
+            console.log("  → Transforming reference photo into rich painterly storybook avatar via flux-kontext-pro (80-90% resemblance)...");
+            const avatarPrompt = `Transform the child in this photo into an adorable, charming storybook hero in lush painterly storybook realism, soft digital gouache and fine oils texture, gentle cinematic golden lighting. Preserve 80% to 90% facial likeness and exact identity of the child in the photo: accurately preserve their unique facial structure, exact eye shape, iris color, eyebrow shape, nose bridge and nose tip, mouth and lip shape, exact skin tone and complexion, hairstyle, hair texture, and natural hairline, while translating them seamlessly into rich picture-book painterly art. Centered head-and-shoulders portrait of the child, eye level, face fully in frame with generous margin around hair and chin, portrait orientation. Natural soft dimensional lighting, warm lifelike glow, authentic happy smile, finely rendered hair catching gentle rim light. Rich picture book artistry, digital gouache and fine oils. Not flat 2D cartoon, not stiff 3D CGI, not plastic, no text, no watermark`;
             const out = await withRetry('avatar transformation (flux-kontext-pro)', async () => {
                 return await replicate.run(modelUsed, {
                     input: {
@@ -1234,6 +1235,44 @@ async function callStoryLLM(systemPrompt, userPrompt, lang) {
     return deepseekRes.data?.choices?.[0]?.message?.content || '';
 }
 
+function getThemeTitleExample(theme, childName) {
+    const t = String(theme || '').toLowerCase();
+    if (t.includes('ocean') || t.includes('dolphin') || t.includes('mermaid')) {
+        return `"${childName} and the Whispering Waves" or "${childName}'s Ocean Adventure"`;
+    }
+    if (t.includes('forest') || t.includes('animal') || t.includes('wood')) {
+        return `"${childName} and the Whispering Woods" or "${childName}'s Secret Forest"`;
+    }
+    if (t.includes('dinosaur') || t.includes('dino')) {
+        return `"${childName} and the Gentle Giant" or "${childName}'s Dinosaur Wonder"`;
+    }
+    if (t.includes('space') || t.includes('star') || t.includes('galaxy')) {
+        return `"${childName} and the Cosmic Comet" or "${childName} and the Starlight Voyage"`;
+    }
+    if (t.includes('princess') || t.includes('castle') || t.includes('kingdom')) {
+        return `"${childName} and the Royal Secret" or "${childName}'s Golden Palace"`;
+    }
+    if (t.includes('super')) {
+        return `"${childName} the Brave Hero" or "${childName}'s Golden Cape"`;
+    }
+    if (t.includes('fairy') || t.includes('magic')) {
+        return `"${childName} and the Enchanted Sprout" or "${childName}'s Fairy Garden"`;
+    }
+    if (t.includes('safari') || t.includes('jungle')) {
+        return `"${childName}'s Jungle Adventure" or "${childName} and the Sunlit Safari"`;
+    }
+    if (t.includes('unicorn') || t.includes('rainbow')) {
+        return `"${childName} and the Rainbow Trail" or "${childName}'s Gentle Unicorn"`;
+    }
+    if (t.includes('train') || t.includes('vehicle')) {
+        return `"${childName} and the Whispering Train" or "${childName}'s Midnight Express"`;
+    }
+    if (t.includes('circus') || t.includes('carnival')) {
+        return `"${childName} and the Carousel Star" or "${childName}'s Grand Festival"`;
+    }
+    return `"${childName}'s Wondrous Journey" or "${childName} and the Golden Key"`;
+}
+
 // ====================================================================
 // FLOW B: STEP 1 - CREATE FREE TEASER PREVIEW (WITH LANGUAGE & GENDER)
 // ====================================================================
@@ -1252,26 +1291,26 @@ app.post('/api/create-preview', rateLimiter, async (req, res) => {
 
         console.log(`✨ Preview | ${childName} (${genderClean}, ${childAge}) | ${base} | Lang=${lang}`);
 
-        // Step 1: LLM story outline, unique title, opening rhyme & 4K bespoke visual prompts
+        // Step 1: LLM unique title & opening rhyme (streamlined for fast preview load)
         const genderGuidance = (genderClean === 'little star')
             ? `The child is non-binary / gender-neutral (Little Star). Use gentle, gender-inclusive wording, using they/them pronouns or referring warmly to ${childName}.`
             : `The child protagonist is ${childName}, a ${childAge}-year-old ${genderClean} (${pronoun}/${subjectPronoun}).`;
 
-        const systemPrompt = `You are an award-winning children's storybook author and visual art director for TwinkleTale. Output ONLY a valid JSON object with keys:
-"book_title": (a unique, poetic, charming 3-5 word storybook title in ${lang} specifically tailored to ${childName}'s bedtime adventure in ${theme}, e.g. "${childName} और जादुई डॉल्फ़िन" or "${childName} and the Starlight Voyage"),
-"opening_rhyme": (4 lines of lyrical, warm read-aloud rhyme welcoming ${childName} into their bedtime adventure in ${lang}),
-"cover_image_prompt": (a detailed 70-90 word visual art prompt in English describing the front cover painting in rich stylized painterly realism: describe ${charAnchor} as the cheerful hero actively interacting with a breathtaking, magical ${theme} world with ${pal.motifs}; child has soulful sparkling eyes and a warm joyful expression; upper third of scene has a wide open, tranquil, completely empty blank pastel sky with soft floating clouds and gentle starlight, pure background art with NO text, NO words, NO letters, NO name, NO typography; cinematic volumetric golden hour lighting, gentle rim light, rich digital gouache and fine oils texture),
-"story_scenes": (an array of 12 objects, each with "scene_title" [2-4 words in ${lang}], "page_text" [35-50 words in ${lang}], and "image_prompt" [an active, evocative 70-90 word visual art prompt in English describing ${charAnchor} actively interacting with the world in this scene (e.g., reaching out with wonder, holding glowing starlight motes in palms, exploring beside friendly companion creatures, gazing through portals, discovering hidden treasures); soulful sparkling eyes, natural dimensional skin tones with gentle peachy warmth, cinematic lighting, rich depth of field, atmospheric magical embers, painterly storybook realism; NEVER include any child's name in image_prompt]).
+        const themeExample = getThemeTitleExample(theme, childName);
+        const systemPrompt = `You are an award-winning children's storybook author for TwinkleTale. Output ONLY a valid JSON object with keys:
+"book_title": (a unique, poetic, charming 3-5 word storybook title in ${lang} specifically tailored to ${childName}'s bedtime adventure in ${theme}, e.g. ${themeExample}),
+"opening_rhyme": (4 lines of lyrical, warm read-aloud rhyme welcoming ${childName} into their bedtime adventure in ${lang}).
 ${genderGuidance}
-LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme", "scene_title", "page_text") MUST be written beautifully in ${lang} using its authentic script. All visual prompts ("cover_image_prompt", "image_prompt") MUST be in English. No markdown, no commentary.`;
-        const userPrompt = `Create an enchanting ${theme} bedtime storybook for ${childName} in ${lang}.`;
+CRITICAL THEME CONSISTENCY RULE: The title MUST be deeply, authentically customized to the chosen theme: "${theme}". DO NOT use the word "Starlight" or space-related terms unless the theme is specifically Space & Stars. For Ocean themes, use ocean/marine imagery (Ocean, Waves, Coral, Dolphin, Tide, Deep Blue). For Forest themes, use woodland imagery (Forest, Woods, Acorn, Meadow). For Dinosaur themes, use prehistoric/giant imagery. Make each title unique, imaginative, and evocative.
+LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme") MUST be written beautifully in ${lang}. No markdown, no commentary.`;
+        const userPrompt = `Create an enchanting ${theme} bedtime storybook title and opening rhyme for ${childName} in ${lang}.`;
 
         const rawStoryText = await withRetry('preview story outline', () => callStoryLLM(systemPrompt, userPrompt, lang), 2, 3000);
         let storyText = rawStoryText.replace(/```json/g, '').replace(/```/g, '').trim();
         const storyJson = JSON.parse(storyText);
         const bookTitle = (storyJson.book_title && storyJson.book_title.trim()) || `${childName}'s ${themeTitle(base)}`;
         const openingRhyme = storyJson.opening_rhyme || `Underneath the twinkling stars, where dreams begin to play,\nA special tale unfolds tonight, to softly guide your way.\nFor ${childName}, our little dreamer, so brave and kind and bright,\nA magical bedtime story starts before you sleep tonight.`;
-        const scenesData = Array.isArray(storyJson.story_scenes) ? storyJson.story_scenes : [];
+        const scenesData = [];
 
         // Step 2: Generate Cover Artwork & Composite
         let coverBuffer = null;
@@ -1405,7 +1444,7 @@ app.post('/api/create-order', rateLimiter, async (req, res) => {
         }
         let effectivePreviewId = previewId;
 
-        const isLong = String(bookLength || '').toLowerCase().includes('long') || String(bookLength || '').includes('24');
+        const isLong = String(bookLength || '').toLowerCase().includes('long') || String(bookLength || '').includes('24') || String(bookLength || '').includes('22') || String(bookLength || '').includes('28') || String(bookLength || '').includes('grand');
         const amountPaise = isLong ? 29900 : 19900;
 
         // Direct Checkout Support (instant payment without prior preview generation)
@@ -1453,7 +1492,7 @@ app.post('/api/create-order', rateLimiter, async (req, res) => {
                 receipt: (effectivePreviewId || `rcpt_${Date.now()}`).slice(0, 30),
                 notes: {
                     previewId: effectivePreviewId || '',
-                    bookLength: isLong ? '24 pages' : '12 pages',
+                    bookLength: isLong ? '22 pages' : '12 pages',
                     childName: session ? session.childName : 'Child',
                     email: email || (session ? session.email : '')
                 }
@@ -1591,7 +1630,7 @@ app.post('/api/verify-and-complete-book', rateLimiter, async (req, res) => {
                 if (payment.order_id !== razorpay_order_id) {
                     return res.status(400).json({ success: false, error: 'Payment order ID mismatch.' });
                 }
-                const isLong = String(bookLength || '').toLowerCase().includes('long') || String(bookLength || '').includes('24');
+                const isLong = String(bookLength || '').toLowerCase().includes('long') || String(bookLength || '').includes('24') || String(bookLength || '').includes('22') || String(bookLength || '').includes('28') || String(bookLength || '').includes('grand');
                 const minExpectedPaise = isLong ? 29900 : 19900;
                 if (payment.amount < minExpectedPaise) {
                     return res.status(400).json({ success: false, error: 'Paid amount is less than the required book edition price.' });
@@ -1971,9 +2010,9 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
                 rawPrompt = rawPrompt.replace(nameRegex, (gender === 'little star') ? 'the child' : `the little ${gender || 'hero'}`);
             }
 
-            // PRD FR-1 & FR-3: Identity anchor linking back to the reference portrait
+            // PRD FR-1 & FR-3: Identity anchor linking back to the reference portrait with 80-90% resemblance
             const identityAnchor = (IS_V2 && referencePortrait)
-                ? `whimsical picture book scene featuring the exact same child from the reference image, keeping facial structure, hair color, eye shape, and skin tone identical. In this scene: ${rawPrompt}`
+                ? `whimsical picture book scene featuring the exact same child from the reference image, preserving 80-90% facial likeness and identity: identical facial structure, eye shape, eyebrows, nose, mouth, skin tone, hair color, hair texture, and joyful expression. In this scene: ${rawPrompt}`
                 : rawPrompt;
             const scenePrompt = STYLE + identityAnchor;
 

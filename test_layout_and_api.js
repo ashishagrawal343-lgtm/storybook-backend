@@ -4,15 +4,15 @@ const assert = require('assert');
 // Test 1: Page & scene counts
 function getSceneCount(bookLength) {
     const s = String(bookLength || '').toLowerCase();
-    if (s.includes('24') || s.includes('long')) return 12;
-    if (s.includes('16')) return 8;
-    return 6;
+    if (s.includes('22') || s.includes('24') || s.includes('28') || s.includes('long') || s.includes('grand')) return 9;
+    return 4;
 }
 
-assert.strictEqual(getSceneCount('Short Book'), 6, 'Short Book should have 6 scenes (12 interior pages)');
-assert.strictEqual(getSceneCount('12 pages'), 6, '12 pages should have 6 scenes');
-assert.strictEqual(getSceneCount('Long Book'), 12, 'Long Book should have 12 scenes (24 interior pages)');
-assert.strictEqual(getSceneCount('24 pages'), 12, '24 pages should have 12 scenes');
+assert.strictEqual(getSceneCount('Short Book'), 4, 'Short Book should have 4 scenes (8 story pages + 4 structural = 12 total pages)');
+assert.strictEqual(getSceneCount('12 pages'), 4, '12 pages should have 4 scenes');
+assert.strictEqual(getSceneCount('Long Book'), 9, 'Long Book should have 9 scenes (18 story pages + 4 structural = 22 total pages)');
+assert.strictEqual(getSceneCount('22 pages'), 9, '22 pages should have 9 scenes');
+assert.strictEqual(getSceneCount('24 pages'), 9, '24 pages should map to 9 scenes');
 console.log('✅ Page & scene count tests passed');
 
 // Test 2: Guardrail zones
