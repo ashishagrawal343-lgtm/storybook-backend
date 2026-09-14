@@ -27,12 +27,15 @@ assert(fs.existsSync(siddhuImgPath), 'public/ad_showcase_siddhu.jpg must exist')
 assert(fs.existsSync(ananyaImgPath), 'public/ad_showcase_ananya.jpg must exist');
 
 const specialContent = fs.readFileSync(specialHtmlPath, 'utf8');
-assert(specialContent.includes('Meta Special'), 'special.html must contain Meta Special messaging');
+assert(specialContent.includes('SPECIAL OFFER'), 'special.html must contain Special Offer messaging');
+assert(!specialContent.toLowerCase().includes('meta platforms'), 'special.html must not mention Meta');
+assert(!specialContent.toLowerCase().includes('meta special'), 'special.html must not mention Meta Special');
 assert(specialContent.includes('₹99'), 'special.html must offer ₹99 pricing');
 assert(specialContent.includes('₹199'), 'special.html must offer ₹199 pricing');
 assert(specialContent.includes('special99'), 'special.html must send offer: special99');
-assert(specialContent.includes('Child Privacy Guarantee'), 'special.html must include Child Privacy Guarantee for Meta compliance');
-console.log('✅ TEST 1 PASSED: special.html and public ad assets exist with required Meta compliance elements.\n');
+assert(specialContent.includes('Child Privacy Guarantee'), 'special.html must include Child Privacy Guarantee');
+assert(specialContent.includes('https://twinkletaleai.com/'), 'special.html logo must link to original website');
+console.log('✅ TEST 1 PASSED: special.html and public ad assets exist with required elements and no Meta mentions.\n');
 
 // 2. Pricing Logic Unit Tests
 console.log('--- TEST 2: Pricing Logic & Offer Isolation Unit Test ---');

@@ -6,10 +6,20 @@
   <meta name="theme-color" content="#11162B">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="description" content="TwinkleTale - Turn your child's real moments into an illustrated keepsake storybook! Free 25-second preview. Special Meta offer: ₹99 today.">
-  <title>TwinkleTale | Personalized Bedtime Storybook — Meta Special Offer</title>
+  <meta name="description" content="TwinkleTale - Turn your child's sweet moments into a personalized, illustrated bedtime storybook! Free instant preview. Special online offer: ₹99 today.">
+  <link rel="canonical" href="https://twinkletaleai.com/special">
 
-  <!-- Preconnect & Fonts -->
+  <!-- Open Graph Meta Tags (Compliant with Social Preview Standards) -->
+  <meta property="og:site_name" content="TwinkleTale">
+  <meta property="og:title" content="TwinkleTale | Personalized Children's Keepsake Storybooks">
+  <meta property="og:description" content="Turn your child into the shining star of their very own bedtime storybook. Free instant preview in 25 seconds!">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://twinkletaleai.com/special">
+  <meta property="og:image" content="https://twinkletaleai.com/public/ad_showcase_siddhu.jpg">
+
+  <title>TwinkleTale | Personalized Bedtime Keepsake Storybook — Special Offer</title>
+
+  <!-- Preconnect & Web Fonts for Maximum Readability -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Outfit:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&display=swap" rel="stylesheet">
@@ -22,8 +32,8 @@
     :root {
       --bg-cream: #FAF7F2;
       --bg-card: #FFFFFF;
-      --navy: #11162B;
-      --navy-light: #1D233F;
+      --navy: #0F172A;
+      --navy-light: #1E293B;
       --gold: #D4AF37;
       --gold-light: #F7D479;
       --gold-dark: #B89025;
@@ -31,31 +41,40 @@
       --coral: #E06D53;
       --coral-hover: #C9573E;
       --coral-gradient: linear-gradient(135deg, #E06D53 0%, #F28C74 100%);
-      --emerald: #1B8354;
-      --text-dark: #1E2337;
-      --text-muted: #64748B;
-      --border-light: #EBE5D8;
+      --emerald: #15803D;
+      --text-dark: #0F172A;
+      --text-body: #1E293B;
+      --text-muted: #475569;
+      --border-light: #E2D9C8;
       --input-bg: #FCFBF9;
       --radius-sm: 10px;
       --radius-md: 16px;
       --radius-lg: 22px;
-      --shadow-sm: 0 4px 12px rgba(17, 22, 43, 0.06);
-      --shadow-md: 0 10px 25px rgba(17, 22, 43, 0.09);
-      --shadow-lg: 0 16px 36px rgba(17, 22, 43, 0.14);
+      --shadow-sm: 0 4px 12px rgba(15, 23, 42, 0.06);
+      --shadow-md: 0 10px 25px rgba(15, 23, 42, 0.08);
+      --shadow-lg: 0 18px 40px rgba(15, 23, 42, 0.12);
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
 
     body {
-      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background-color: var(--bg-cream);
-      color: var(--text-dark);
-      line-height: 1.55;
-      padding-bottom: 90px; /* space for sticky mobile CTA */
+      color: var(--text-body);
+      font-size: 16px; /* 16px minimum prevents iOS zoom & maximizes legibility for all ages */
+      line-height: 1.6;
+      padding-bottom: 96px; /* space for sticky mobile action bar */
+      -webkit-font-smoothing: antialiased;
     }
 
     h1, h2, h3, .font-serif {
       font-family: 'Playfair Display', Georgia, serif;
+      color: var(--navy);
     }
     .font-handwriting {
       font-family: 'Caveat', cursive;
@@ -63,41 +82,42 @@
 
     .container {
       width: 100%;
-      max-width: 540px; /* strictly optimized for mobile & tablet reading */
+      max-width: 540px; /* mobile-optimized reading width */
       margin: 0 auto;
       padding: 0 16px;
     }
 
     /* Top Urgency Trust Bar */
     .promo-banner {
-      background: #0D1122;
+      background: #0B0F1D;
       color: #F8E7BE;
-      font-size: 0.8rem;
+      font-size: 0.88rem;
       font-weight: 600;
-      padding: 8px 12px;
+      padding: 10px 14px;
       text-align: center;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 8px;
       letter-spacing: 0.3px;
     }
     .promo-banner .badge-pill {
       background: var(--gold-gradient);
-      color: #11162B;
-      padding: 2px 7px;
+      color: #0F172A;
+      padding: 3px 9px;
       border-radius: 20px;
-      font-size: 0.72rem;
+      font-size: 0.76rem;
       font-weight: 800;
       text-transform: uppercase;
+      letter-spacing: 0.6px;
     }
 
     /* Header */
     header.site-header {
-      background: rgba(250, 247, 242, 0.96);
+      background: rgba(250, 247, 242, 0.98);
       backdrop-filter: blur(10px);
       border-bottom: 1px solid var(--border-light);
-      padding: 12px 0;
+      padding: 14px 0;
       position: sticky;
       top: 0;
       z-index: 100;
@@ -110,39 +130,41 @@
     .logo-box {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
       text-decoration: none;
+      cursor: pointer;
     }
     .logo-icon {
-      font-size: 1.6rem;
+      font-size: 1.8rem;
       background: var(--gold-gradient);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
     .logo-text {
       font-family: 'Playfair Display', serif;
-      font-size: 1.35rem;
+      font-size: 1.45rem;
       font-weight: 800;
       color: var(--navy);
       line-height: 1;
     }
     .logo-tag {
-      font-size: 0.65rem;
+      font-size: 0.72rem;
       color: var(--coral);
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 1px;
       display: block;
+      margin-top: 2px;
     }
     .header-rating {
       display: flex;
       align-items: center;
-      gap: 4px;
-      font-size: 0.76rem;
+      gap: 5px;
+      font-size: 0.84rem;
       font-weight: 700;
       color: var(--navy);
       background: #FFFFFF;
-      padding: 4px 10px;
+      padding: 6px 12px;
       border-radius: 20px;
       border: 1px solid var(--border-light);
       box-shadow: var(--shadow-sm);
@@ -151,7 +173,7 @@
 
     /* Hero Section */
     .hero-section {
-      padding: 20px 0 16px;
+      padding: 22px 0 18px;
       text-align: center;
     }
     .ad-badge {
@@ -160,21 +182,21 @@
       gap: 6px;
       background: #FFF1EE;
       color: var(--coral);
-      border: 1px solid #FED7CF;
-      padding: 4px 14px;
+      border: 1.5px solid #FED7CF;
+      padding: 5px 16px;
       border-radius: 20px;
-      font-size: 0.78rem;
-      font-weight: 700;
+      font-size: 0.82rem;
+      font-weight: 800;
       margin-bottom: 12px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
     .hero-title {
-      font-size: 1.85rem;
+      font-size: 1.95rem;
       font-weight: 800;
       color: var(--navy);
       line-height: 1.25;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
     }
     .hero-title span.highlight {
       background: var(--gold-gradient);
@@ -182,20 +204,21 @@
       -webkit-text-fill-color: transparent;
     }
     .hero-sub {
-      font-size: 0.94rem;
-      color: #4B5563;
-      margin-bottom: 16px;
-      padding: 0 8px;
+      font-size: 1.02rem;
+      color: #334155;
+      margin-bottom: 18px;
+      line-height: 1.55;
+      padding: 0 6px;
     }
 
-    /* Ad Creative Showcase Carousel / Card */
+    /* Ad Creative Showcase Carousel */
     .ad-creative-card {
       background: #FFFFFF;
       border-radius: var(--radius-md);
       border: 1px solid var(--border-light);
       box-shadow: var(--shadow-md);
       overflow: hidden;
-      margin-bottom: 16px;
+      margin-bottom: 18px;
     }
     .creative-tabs {
       display: flex;
@@ -204,24 +227,24 @@
     }
     .creative-tab {
       flex: 1;
-      padding: 8px 6px;
-      font-size: 0.8rem;
+      padding: 10px 8px;
+      font-size: 0.86rem;
       font-weight: 700;
       text-align: center;
       background: none;
       border: none;
-      color: #64748B;
+      color: #475569;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 5px;
+      gap: 6px;
       transition: all 0.2s;
     }
     .creative-tab.active {
       background: #FFFFFF;
       color: var(--navy);
-      border-bottom: 2px solid var(--coral);
+      border-bottom: 3px solid var(--coral);
     }
     .creative-display {
       position: relative;
@@ -230,7 +253,7 @@
       align-items: center;
       justify-content: center;
       aspect-ratio: 1/1;
-      max-height: 380px;
+      max-height: 390px;
       overflow: hidden;
     }
     .creative-img {
@@ -243,51 +266,53 @@
       display: block;
     }
     .creative-caption {
-      padding: 10px 14px;
-      font-size: 0.82rem;
-      color: #475569;
+      padding: 12px 16px;
+      font-size: 0.9rem;
+      color: #334155;
       background: #FFFFFF;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 6px;
     }
     .creative-caption strong { color: var(--navy); }
     .creative-caption .badge-glow {
-      background: #ECFDF5;
-      color: #047857;
+      background: #EFF6FF;
+      color: #1D4ED8;
       font-weight: 700;
-      padding: 3px 8px;
+      padding: 4px 10px;
       border-radius: 12px;
-      font-size: 0.72rem;
+      font-size: 0.78rem;
     }
 
     /* Trust Pill Counters */
     .trust-strip {
       display: flex;
       justify-content: space-between;
-      gap: 6px;
-      margin-bottom: 20px;
+      gap: 8px;
+      margin-bottom: 22px;
     }
     .trust-pill {
       flex: 1;
       background: #FFFFFF;
       border: 1px solid var(--border-light);
       border-radius: var(--radius-sm);
-      padding: 8px 6px;
+      padding: 10px 8px;
       text-align: center;
       box-shadow: var(--shadow-sm);
     }
     .trust-pill i {
-      font-size: 1rem;
+      font-size: 1.15rem;
       color: var(--coral);
-      margin-bottom: 2px;
+      margin-bottom: 4px;
       display: block;
     }
     .trust-pill-text {
-      font-size: 0.72rem;
+      font-size: 0.78rem;
       font-weight: 700;
       color: var(--navy);
-      line-height: 1.2;
+      line-height: 1.25;
     }
 
     /* Main Form Card */
@@ -296,59 +321,60 @@
       border-radius: var(--radius-lg);
       border: 1px solid var(--border-light);
       box-shadow: var(--shadow-md);
-      padding: 20px 18px;
-      margin-bottom: 20px;
+      padding: 24px 20px;
+      margin-bottom: 22px;
     }
     .card-header {
-      margin-bottom: 16px;
+      margin-bottom: 18px;
       text-align: center;
     }
     .step-tag {
       display: inline-block;
-      font-size: 0.72rem;
+      font-size: 0.78rem;
       font-weight: 800;
       color: var(--coral);
       background: #FFF1EE;
-      padding: 3px 10px;
+      padding: 4px 12px;
       border-radius: 20px;
       text-transform: uppercase;
       letter-spacing: 0.8px;
       margin-bottom: 6px;
     }
     .card-title {
-      font-size: 1.4rem;
+      font-size: 1.5rem;
       font-weight: 800;
       color: var(--navy);
       line-height: 1.3;
     }
     .card-sub {
-      font-size: 0.84rem;
+      font-size: 0.92rem;
       color: var(--text-muted);
-      margin-top: 4px;
+      margin-top: 5px;
     }
 
     /* Form Fields */
     .form-group {
-      margin-bottom: 16px;
+      margin-bottom: 18px;
     }
     .form-label {
       display: block;
-      font-size: 0.86rem;
+      font-size: 0.96rem;
       font-weight: 700;
       color: var(--navy);
-      margin-bottom: 6px;
+      margin-bottom: 8px;
     }
     .form-label span.req { color: var(--coral); }
     .form-hint {
-      font-size: 0.76rem;
+      font-size: 0.82rem;
       color: var(--text-muted);
-      margin-top: 3px;
+      margin-top: 5px;
+      line-height: 1.4;
     }
     .input-field {
       width: 100%;
-      height: 48px;
-      padding: 0 14px;
-      font-size: 0.95rem;
+      height: 52px;
+      padding: 0 16px;
+      font-size: 1rem;
       font-family: inherit;
       background: var(--input-bg);
       border: 1.5px solid var(--border-light);
@@ -359,23 +385,38 @@
     .input-field:focus {
       outline: none;
       border-color: var(--coral);
-      box-shadow: 0 0 0 3px rgba(224, 109, 83, 0.15);
+      box-shadow: 0 0 0 3px rgba(224, 109, 83, 0.18);
       background: #FFFFFF;
     }
+
+    /* Language Notice Strip */
+    .lang-notice-strip {
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: var(--radius-sm);
+      padding: 9px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      color: #334155;
+      margin-bottom: 18px;
+    }
+    .lang-notice-strip i { color: #0284C7; font-size: 1rem; }
 
     /* Gender Pills */
     .gender-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
+      gap: 10px;
     }
     .gender-btn {
-      height: 44px;
+      height: 48px;
       background: var(--input-bg);
       border: 1.5px solid var(--border-light);
       border-radius: var(--radius-sm);
-      font-size: 0.88rem;
-      font-weight: 600;
+      font-size: 0.95rem;
+      font-weight: 700;
       color: var(--navy);
       display: flex;
       align-items: center;
@@ -388,26 +429,26 @@
       background: #FFF1EE;
       border-color: var(--coral);
       color: var(--coral-hover);
-      box-shadow: 0 2px 8px rgba(224, 109, 83, 0.2);
+      box-shadow: 0 2px 10px rgba(224, 109, 83, 0.22);
     }
 
     /* Age Chips */
     .age-scroller {
       display: flex;
-      gap: 6px;
+      gap: 8px;
       overflow-x: auto;
-      padding: 4px 2px 8px;
+      padding: 6px 2px 10px;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
     }
     .age-scroller::-webkit-scrollbar { display: none; }
     .age-chip {
-      flex: 0 0 42px;
-      height: 42px;
+      flex: 0 0 46px;
+      height: 46px;
       border-radius: 50%;
       background: var(--input-bg);
       border: 1.5px solid var(--border-light);
-      font-size: 0.9rem;
+      font-size: 0.98rem;
       font-weight: 700;
       color: var(--navy);
       display: flex;
@@ -420,87 +461,92 @@
       background: var(--navy);
       border-color: var(--navy);
       color: #FFFFFF;
-      box-shadow: 0 3px 8px rgba(17, 22, 43, 0.25);
+      box-shadow: 0 3px 10px rgba(15, 23, 42, 0.3);
     }
 
-    /* Theme Cards Grid */
-    .theme-grid {
+    /* 12-THEMES GRID (Full Catalog) */
+    .theme-grid-12 {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
+      gap: 10px;
     }
     .theme-card {
       background: var(--input-bg);
       border: 1.5px solid var(--border-light);
       border-radius: var(--radius-sm);
-      padding: 10px 8px;
+      padding: 12px 10px;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
       cursor: pointer;
       transition: all 0.2s;
     }
+    .theme-card:hover {
+      border-color: var(--gold);
+    }
     .theme-card.active {
-      background: #FFF9EB;
+      background: #FFFDF4;
       border-color: var(--gold-dark);
-      box-shadow: 0 2px 10px rgba(212, 175, 55, 0.25);
+      box-shadow: 0 3px 12px rgba(212, 175, 55, 0.28);
     }
     .theme-emoji {
-      font-size: 1.4rem;
+      font-size: 1.6rem;
       line-height: 1;
+      flex-shrink: 0;
     }
     .theme-name {
-      font-size: 0.8rem;
+      font-size: 0.86rem;
       font-weight: 700;
       color: var(--navy);
-      line-height: 1.2;
+      line-height: 1.25;
     }
 
     /* Photo Upload Box */
     .photo-upload-container {
       background: #FFFDF9;
-      border: 2px dashed #E3DAC9;
+      border: 2px dashed #D6CEBE;
       border-radius: var(--radius-md);
-      padding: 16px 12px;
+      padding: 20px 14px;
       text-align: center;
       cursor: pointer;
       position: relative;
-      transition: border-color 0.2s;
+      transition: border-color 0.2s, background-color 0.2s;
     }
     .photo-upload-container:hover, .photo-upload-container:active {
       border-color: var(--coral);
+      background: #FFF8F6;
     }
     .upload-icon-circle {
-      width: 52px;
-      height: 52px;
+      width: 56px;
+      height: 56px;
       border-radius: 50%;
       background: #FFF1EE;
       color: var(--coral);
-      font-size: 1.4rem;
+      font-size: 1.6rem;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin: 0 auto 8px;
+      margin: 0 auto 10px;
     }
     .upload-heading {
-      font-size: 0.92rem;
-      font-weight: 700;
+      font-size: 1rem;
+      font-weight: 800;
       color: var(--navy);
-      margin-bottom: 2px;
+      margin-bottom: 4px;
     }
     .upload-sub {
-      font-size: 0.74rem;
+      font-size: 0.82rem;
       color: var(--text-muted);
     }
     .privacy-notice {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 5px;
-      font-size: 0.7rem;
-      font-weight: 600;
-      color: #047857;
-      margin-top: 6px;
+      gap: 6px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--emerald);
+      margin-top: 8px;
     }
     #photoInput { display: none; }
 
@@ -508,16 +554,16 @@
     .photo-preview-box {
       display: none;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
       background: #FFFFFF;
-      border: 1px solid var(--border-light);
+      border: 1.5px solid var(--border-light);
       border-radius: var(--radius-md);
-      padding: 10px;
-      margin-top: 10px;
+      padding: 12px;
+      margin-top: 12px;
     }
     .photo-thumb-circle {
-      width: 52px;
-      height: 52px;
+      width: 56px;
+      height: 56px;
       border-radius: 50%;
       background-size: cover;
       background-position: center;
@@ -526,7 +572,7 @@
     }
     .photo-info { flex: 1; min-width: 0; }
     .photo-title {
-      font-size: 0.84rem;
+      font-size: 0.92rem;
       font-weight: 700;
       color: var(--navy);
       white-space: nowrap;
@@ -534,36 +580,36 @@
       text-overflow: ellipsis;
     }
     .change-photo-btn {
-      font-size: 0.75rem;
+      font-size: 0.82rem;
       font-weight: 700;
       color: var(--coral);
       background: none;
       border: none;
       cursor: pointer;
-      padding: 0;
+      padding: 2px 0 0;
     }
 
     /* Buttons */
     .btn-primary {
       width: 100%;
-      height: 54px;
+      height: 56px;
       background: var(--coral-gradient);
       color: #FFFFFF;
       border: none;
       border-radius: var(--radius-md);
-      font-size: 1.05rem;
+      font-size: 1.1rem;
       font-weight: 800;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 10px;
       cursor: pointer;
-      box-shadow: 0 8px 20px rgba(224, 109, 83, 0.35);
+      box-shadow: 0 8px 24px rgba(224, 109, 83, 0.35);
       transition: transform 0.15s, box-shadow 0.15s;
     }
     .btn-primary:active {
       transform: scale(0.98);
-      box-shadow: 0 4px 12px rgba(224, 109, 83, 0.3);
+      box-shadow: 0 4px 14px rgba(224, 109, 83, 0.3);
     }
     .btn-primary:disabled {
       opacity: 0.65;
@@ -574,9 +620,10 @@
     .direct-order-link {
       display: block;
       text-align: center;
-      font-size: 0.82rem;
-      color: #64748B;
-      margin-top: 10px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #475569;
+      margin-top: 12px;
       text-decoration: underline;
       cursor: pointer;
     }
@@ -585,36 +632,36 @@
     .preview-loading-card {
       display: none;
       text-align: center;
-      padding: 30px 16px;
+      padding: 34px 20px;
     }
     .spinner-ring {
-      width: 60px;
-      height: 60px;
-      border: 4px solid #F3ECE2;
+      width: 64px;
+      height: 64px;
+      border: 5px solid #F3ECE2;
       border-top-color: var(--coral);
       border-radius: 50%;
       animation: spin 1s linear infinite;
-      margin: 0 auto 16px;
+      margin: 0 auto 18px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-status-text {
-      font-size: 1.05rem;
-      font-weight: 700;
+      font-size: 1.15rem;
+      font-weight: 800;
       color: var(--navy);
       margin-bottom: 6px;
     }
     .loading-sub-text {
-      font-size: 0.82rem;
+      font-size: 0.88rem;
       color: var(--text-muted);
-      margin-bottom: 16px;
+      margin-bottom: 18px;
     }
     .progress-bar-bg {
       width: 100%;
-      height: 8px;
+      height: 10px;
       background: #ECE5D8;
       border-radius: 10px;
       overflow: hidden;
-      margin-bottom: 12px;
+      margin-bottom: 14px;
     }
     .progress-bar-fill {
       height: 100%;
@@ -624,20 +671,20 @@
       transition: width 0.4s ease;
     }
     .loading-steps-list {
-      font-size: 0.78rem;
-      color: #475569;
+      font-size: 0.85rem;
+      color: #334155;
       text-align: left;
       background: #FAF7F2;
       border-radius: var(--radius-sm);
-      padding: 10px 14px;
+      padding: 12px 16px;
       display: inline-block;
       width: 100%;
     }
     .loading-steps-list div {
-      padding: 3px 0;
+      padding: 4px 0;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
     }
 
     /* Preview Result Card */
@@ -651,7 +698,7 @@
       box-shadow: var(--shadow-lg);
       border: 2px solid var(--gold);
       background: #0B0E1A;
-      margin-bottom: 16px;
+      margin-bottom: 18px;
       aspect-ratio: 1/1;
     }
     .preview-cover-img {
@@ -662,69 +709,69 @@
     }
     .preview-cover-tag {
       position: absolute;
-      top: 10px;
-      left: 10px;
-      background: rgba(17, 22, 43, 0.85);
+      top: 12px;
+      left: 12px;
+      background: rgba(15, 23, 42, 0.88);
       backdrop-filter: blur(6px);
       color: #F8E7BE;
       border: 1px solid var(--gold);
-      padding: 4px 10px;
+      padding: 5px 12px;
       border-radius: 20px;
-      font-size: 0.74rem;
+      font-size: 0.8rem;
       font-weight: 700;
     }
 
     /* Lyrical Rhyme Card */
     .rhyme-box {
       background: #FFFDF8;
-      border: 1.5px dashed #E2D3B8;
+      border: 1.5px dashed #DFCDB0;
       border-radius: var(--radius-md);
-      padding: 16px 14px;
-      margin-bottom: 18px;
+      padding: 18px 16px;
+      margin-bottom: 20px;
       position: relative;
     }
     .rhyme-badge {
       position: absolute;
-      top: -10px;
-      right: 14px;
+      top: -12px;
+      right: 16px;
       background: var(--gold-gradient);
-      color: #11162B;
-      font-size: 0.7rem;
+      color: #0F172A;
+      font-size: 0.74rem;
       font-weight: 800;
-      padding: 2px 8px;
+      padding: 3px 10px;
       border-radius: 12px;
       text-transform: uppercase;
     }
     .rhyme-title {
       font-family: 'Playfair Display', serif;
-      font-size: 1.15rem;
+      font-size: 1.25rem;
       font-weight: 800;
       color: var(--navy);
-      margin-bottom: 8px;
+      margin-bottom: 10px;
       text-align: center;
     }
     .rhyme-verse {
       font-family: 'Caveat', cursive;
-      font-size: 1.22rem;
-      line-height: 1.45;
-      color: #2D3748;
+      font-size: 1.35rem;
+      line-height: 1.5;
+      color: #1E293B;
       text-align: center;
       white-space: pre-line;
     }
 
     /* Pricing Edition Cards */
     .edition-selector-title {
-      font-size: 1rem;
+      font-size: 1.08rem;
       font-weight: 800;
       color: var(--navy);
       text-align: center;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
     }
     .edition-card {
       border: 2px solid var(--border-light);
       border-radius: var(--radius-md);
-      padding: 14px 12px;
-      margin-bottom: 10px;
+      padding: 16px 14px;
+      margin-bottom: 12px;
       background: #FCFBF9;
       cursor: pointer;
       position: relative;
@@ -733,156 +780,156 @@
     .edition-card.active {
       border-color: var(--coral);
       background: #FFF7F5;
-      box-shadow: 0 4px 14px rgba(224, 109, 83, 0.18);
+      box-shadow: 0 4px 16px rgba(224, 109, 83, 0.2);
     }
     .edition-badge {
       position: absolute;
-      top: -10px;
-      right: 12px;
+      top: -11px;
+      right: 14px;
       background: var(--coral-gradient);
       color: #FFFFFF;
-      font-size: 0.68rem;
+      font-size: 0.72rem;
       font-weight: 800;
-      padding: 2px 8px;
-      border-radius: 10px;
+      padding: 3px 9px;
+      border-radius: 12px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
     .edition-badge.best-value {
       background: var(--gold-gradient);
-      color: #11162B;
+      color: #0F172A;
     }
     .edition-top-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
     }
     .edition-name {
-      font-size: 0.96rem;
+      font-size: 1.05rem;
       font-weight: 800;
       color: var(--navy);
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
     }
     .edition-price-box {
       text-align: right;
     }
     .edition-price-old {
-      font-size: 0.8rem;
+      font-size: 0.88rem;
       color: #94A3B8;
       text-decoration: line-through;
-      margin-right: 4px;
+      margin-right: 6px;
     }
     .edition-price-new {
-      font-size: 1.35rem;
+      font-size: 1.5rem;
       font-weight: 900;
       color: var(--coral);
     }
     .edition-details {
-      font-size: 0.78rem;
-      color: #475569;
-      line-height: 1.35;
+      font-size: 0.85rem;
+      color: #334155;
+      line-height: 1.45;
     }
     .edition-details span.check-item {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
-      margin-right: 8px;
-      margin-top: 4px;
+      gap: 5px;
+      margin-right: 10px;
+      margin-top: 5px;
     }
-    .edition-details i { color: #10B981; font-size: 0.72rem; }
+    .edition-details i { color: #15803D; font-size: 0.8rem; }
 
     /* Payment Gateways Strip */
     .payment-trust-strip {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 12px;
-      margin-top: 14px;
-      font-size: 0.74rem;
-      color: #64748B;
+      gap: 14px;
+      margin-top: 16px;
+      font-size: 0.82rem;
+      color: #475569;
       flex-wrap: wrap;
     }
     .payment-trust-strip span {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 5px;
     }
-    .payment-trust-strip i { color: #059669; }
+    .payment-trust-strip i { color: #16A34A; }
 
     /* Fulfillment / Live Book Assembly Card */
     .fulfillment-card {
       display: none;
       text-align: center;
-      padding: 24px 14px;
+      padding: 28px 16px;
     }
     .fulfillment-icon {
-      font-size: 2.4rem;
+      font-size: 2.6rem;
       color: var(--coral);
-      margin-bottom: 12px;
+      margin-bottom: 14px;
     }
     .fulfillment-title {
-      font-size: 1.3rem;
+      font-size: 1.4rem;
       font-weight: 800;
       color: var(--navy);
-      margin-bottom: 6px;
+      margin-bottom: 8px;
     }
     .fulfillment-sub {
-      font-size: 0.84rem;
-      color: #475569;
-      margin-bottom: 16px;
+      font-size: 0.92rem;
+      color: #334155;
+      margin-bottom: 18px;
     }
     .download-book-btn {
       display: none;
       width: 100%;
-      height: 52px;
-      background: #10B981;
+      height: 54px;
+      background: #15803D;
       color: #FFFFFF;
       border: none;
       border-radius: var(--radius-md);
-      font-size: 1rem;
+      font-size: 1.05rem;
       font-weight: 800;
       align-items: center;
       justify-content: center;
       gap: 8px;
       text-decoration: none;
-      margin-top: 14px;
-      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+      margin-top: 16px;
+      box-shadow: 0 4px 16px rgba(21, 128, 61, 0.3);
     }
 
     /* What You Get Section */
     .features-list {
       list-style: none;
-      margin-top: 10px;
+      margin-top: 12px;
     }
     .feature-item {
       display: flex;
-      gap: 10px;
-      margin-bottom: 12px;
-      font-size: 0.86rem;
+      gap: 12px;
+      margin-bottom: 14px;
+      font-size: 0.92rem;
     }
     .feature-icon-box {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
       background: #FFF1EE;
       color: var(--coral);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.95rem;
+      font-size: 1.05rem;
       flex-shrink: 0;
     }
     .feature-text strong {
       display: block;
       color: var(--navy);
-      font-size: 0.88rem;
+      font-size: 0.96rem;
     }
     .feature-text span {
-      color: #64748B;
-      font-size: 0.78rem;
+      color: #475569;
+      font-size: 0.86rem;
     }
 
     /* Testimonials */
@@ -890,36 +937,36 @@
       background: #FFFDF9;
       border: 1px solid var(--border-light);
       border-radius: var(--radius-md);
-      padding: 14px;
-      margin-bottom: 10px;
+      padding: 16px;
+      margin-bottom: 12px;
     }
     .testi-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
     }
     .testi-author {
-      font-size: 0.86rem;
+      font-size: 0.94rem;
       font-weight: 700;
       color: var(--navy);
     }
-    .testi-stars { color: #EAB308; font-size: 0.76rem; }
+    .testi-stars { color: #EAB308; font-size: 0.84rem; }
     .testi-quote {
-      font-size: 0.82rem;
-      color: #334155;
+      font-size: 0.9rem;
+      color: #1E293B;
       font-style: italic;
-      line-height: 1.45;
+      line-height: 1.5;
     }
 
     /* FAQ Section */
     .faq-item {
       border-bottom: 1px solid var(--border-light);
-      padding: 12px 0;
+      padding: 14px 0;
     }
     .faq-item:last-child { border-bottom: none; }
     .faq-question {
-      font-size: 0.88rem;
+      font-size: 0.96rem;
       font-weight: 700;
       color: var(--navy);
       display: flex;
@@ -928,10 +975,10 @@
       cursor: pointer;
     }
     .faq-answer {
-      font-size: 0.8rem;
-      color: #475569;
-      margin-top: 6px;
-      line-height: 1.45;
+      font-size: 0.88rem;
+      color: #334155;
+      margin-top: 8px;
+      line-height: 1.55;
       display: none;
     }
     .faq-item.active .faq-answer { display: block; }
@@ -940,66 +987,63 @@
     /* Policy & Trust Guarantee Box */
     .privacy-guarantee-box {
       background: #F0FDF4;
-      border: 1px solid #BBF7D0;
+      border: 1.5px solid #BBF7D0;
       border-radius: var(--radius-md);
-      padding: 14px;
-      margin-bottom: 16px;
+      padding: 16px;
+      margin-bottom: 18px;
       display: flex;
       gap: 12px;
       align-items: flex-start;
     }
     .privacy-guarantee-box i {
-      font-size: 1.4rem;
+      font-size: 1.5rem;
       color: #16A34A;
       margin-top: 2px;
     }
     .privacy-guarantee-box p {
-      font-size: 0.76rem;
+      font-size: 0.84rem;
       color: #14532D;
-      line-height: 1.4;
+      line-height: 1.5;
     }
     .privacy-guarantee-box strong { color: #166534; }
 
     /* Footer */
     footer.site-footer {
-      background: #0B0E1A;
+      background: #0B0F1D;
       color: #94A3B8;
-      padding: 24px 16px 20px;
-      font-size: 0.74rem;
+      padding: 28px 16px 24px;
+      font-size: 0.82rem;
       text-align: center;
-      line-height: 1.6;
+      line-height: 1.7;
     }
     .footer-links {
       display: flex;
       justify-content: center;
-      gap: 14px;
-      margin-bottom: 12px;
+      gap: 16px;
+      margin-bottom: 14px;
       flex-wrap: wrap;
     }
     .footer-link {
-      color: #CBD5E1;
+      color: #E2E8F0;
       text-decoration: none;
       cursor: pointer;
+      font-weight: 600;
     }
-    .footer-disclaimer {
-      font-size: 0.68rem;
-      color: #64748B;
-      margin-top: 12px;
-      border-top: 1px solid #1E253B;
-      padding-top: 10px;
+    .footer-link:hover {
+      text-decoration: underline;
     }
 
-    /* Fixed Sticky Mobile CTA */
+    /* Fixed Sticky Mobile Action Bar */
     .sticky-mobile-bar {
       position: fixed;
       bottom: 0;
       left: 0;
       right: 0;
-      background: rgba(255, 255, 255, 0.96);
-      backdrop-filter: blur(10px);
+      background: rgba(255, 255, 255, 0.98);
+      backdrop-filter: blur(12px);
       border-top: 1px solid var(--border-light);
-      padding: 10px 16px;
-      box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+      padding: 12px 18px;
+      box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.09);
       z-index: 999;
       display: flex;
       align-items: center;
@@ -1011,10 +1055,11 @@
       flex-direction: column;
     }
     .sticky-offer-tag {
-      font-size: 0.68rem;
+      font-size: 0.74rem;
       font-weight: 800;
       color: var(--coral);
       text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
     .sticky-price-row {
       display: flex;
@@ -1022,35 +1067,35 @@
       gap: 6px;
     }
     .sticky-old-price {
-      font-size: 0.8rem;
+      font-size: 0.88rem;
       color: #94A3B8;
       text-decoration: line-through;
     }
     .sticky-new-price {
-      font-size: 1.3rem;
+      font-size: 1.45rem;
       font-weight: 900;
       color: var(--navy);
       line-height: 1;
     }
     .sticky-cta-btn {
       flex: 1;
-      max-width: 220px;
-      height: 44px;
+      max-width: 230px;
+      height: 48px;
       background: var(--coral-gradient);
       color: #FFFFFF;
       border: none;
       border-radius: 25px;
-      font-size: 0.92rem;
+      font-size: 0.98rem;
       font-weight: 800;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 8px;
       cursor: pointer;
-      box-shadow: 0 4px 12px rgba(224, 109, 83, 0.35);
+      box-shadow: 0 4px 14px rgba(224, 109, 83, 0.35);
     }
 
-    /* Policy Modal */
+    /* In-Page Policy Modals */
     .modal-overlay {
       display: none;
       position: fixed;
@@ -1068,9 +1113,9 @@
       border-radius: var(--radius-md);
       max-width: 500px;
       width: 100%;
-      max-height: 80vh;
+      max-height: 82vh;
       overflow-y: auto;
-      padding: 20px;
+      padding: 24px 20px;
       position: relative;
     }
     .modal-close-btn {
@@ -1079,49 +1124,51 @@
       right: 14px;
       background: none;
       border: none;
-      font-size: 1.2rem;
+      font-size: 1.4rem;
       color: #64748B;
       cursor: pointer;
     }
     .modal-title {
-      font-size: 1.25rem;
+      font-size: 1.3rem;
       font-weight: 800;
       color: var(--navy);
-      margin-bottom: 12px;
+      margin-bottom: 14px;
     }
     .modal-body {
-      font-size: 0.84rem;
+      font-size: 0.9rem;
       color: #334155;
-      line-height: 1.5;
+      line-height: 1.6;
     }
     .modal-body h4 {
-      margin: 12px 0 4px;
+      margin: 14px 0 6px;
       color: var(--navy);
+      font-size: 0.98rem;
     }
   </style>
 </head>
 <body>
 
-  <!-- Top Urgency / Trust Bar -->
+  <!-- Top Urgency / Special Offer Bar -->
   <div class="promo-banner">
-    <span class="badge-pill">META SPECIAL</span>
-    <span>✨ 80% OFF Today Only • Personalized Print-Ready PDF</span>
+    <span class="badge-pill">SPECIAL OFFER</span>
+    <span>✨ 80% OFF Today • Personalized Keepsake Storybook</span>
   </div>
 
   <!-- Header -->
   <header class="site-header">
     <div class="container header-inner">
-      <a href="/special" class="logo-box">
+      <!-- Direct Link to Main Website with Proper Compliance Attributes -->
+      <a href="https://twinkletaleai.com/" class="logo-box" target="_blank" rel="noopener noreferrer" title="Visit TwinkleTale Official Website">
         <span class="logo-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
         <div>
           <div class="logo-text">TwinkleTale</div>
-          <span class="logo-tag">Bedtime Keepsakes</span>
+          <span class="logo-tag">Bedtime Keepsakes ↗</span>
         </div>
       </a>
       <div class="header-rating">
         <i class="fa-solid fa-star"></i>
         <span>4.9 / 5</span>
-        <span style="color:#94A3B8;font-weight:400;">(12k+)</span>
+        <span style="color:#64748B;font-weight:500;">(12k+ Parents)</span>
       </div>
     </div>
   </header>
@@ -1132,22 +1179,22 @@
     <!-- Hero Section -->
     <section class="hero-section">
       <div class="ad-badge">
-        <i class="fa-solid fa-heart"></i> Seen On Instagram & Facebook
+        <i class="fa-solid fa-heart"></i> Limited Time Special Offer
       </div>
       <h1 class="hero-title">
         From Real Moments... To <span class="highlight">Their Very Own Storybook!</span>
       </h1>
       <p class="hero-sub">
-        Transform your child's real photo into a personalized, illustrated bedtime keepsake where they are the shining hero of every page!
+        Transform your child's sweet photo into an enchanting, illustrated bedtime keepsake where they are the shining hero of every page!
       </p>
 
       <!-- Ad Creative Side-by-Side Showcase -->
       <div class="ad-creative-card">
         <div class="creative-tabs">
-          <button class="creative-tab active" onclick="switchAdCreative('siddhu')">
+          <button type="button" class="creative-tab active" onclick="switchAdCreative('siddhu')">
             <i class="fa-solid fa-train"></i> Siddhu's Train Adventure
           </button>
-          <button class="creative-tab" onclick="switchAdCreative('ananya')">
+          <button type="button" class="creative-tab" onclick="switchAdCreative('ananya')">
             <i class="fa-solid fa-sparkles"></i> Ananya's Fairy Tale
           </button>
         </div>
@@ -1157,7 +1204,7 @@
         </div>
         <div class="creative-caption">
           <span>Real Photo ➔ <strong>Personalized Storybook Cover</strong></span>
-          <span class="badge-glow"><i class="fa-solid fa-check"></i> 100% Likeness Parity</span>
+          <span class="badge-glow"><i class="fa-solid fa-wand-magic-sparkles"></i> Personalized Illustration</span>
         </div>
       </div>
 
@@ -1173,7 +1220,7 @@
         </div>
         <div class="trust-pill">
           <i class="fa-solid fa-file-pdf"></i>
-          <div class="trust-pill-text">High-Res Print PDF Email Delivery</div>
+          <div class="trust-pill-text">Print-Ready PDF Email Delivery</div>
         </div>
       </div>
     </section>
@@ -1183,7 +1230,7 @@
       <div class="card-header">
         <span class="step-tag">Step 1 of 2</span>
         <h2 class="card-title">Personalize Your Child's Tale</h2>
-        <p class="card-sub">Takes just 30 seconds • No payment required to preview</p>
+        <p class="card-sub">Takes just 30 seconds • Free 4K preview before payment</p>
       </div>
 
       <form id="storybookForm" onsubmit="event.preventDefault(); handleGeneratePreview();">
@@ -1191,7 +1238,7 @@
         <!-- Child Name -->
         <div class="form-group">
           <label class="form-label" for="childName">Child's Name <span class="req">*</span></label>
-          <input type="text" id="childName" class="input-field" placeholder="e.g. Aarav, Ananya, Kabir..." required maxlength="30" autocomplete="given-name">
+          <input type="text" id="childName" class="input-field" placeholder="e.g. Aarav, Ananya, Kabir, Maya..." required maxlength="30" autocomplete="given-name">
         </div>
 
         <!-- Gender Pills -->
@@ -1229,49 +1276,64 @@
           <input type="hidden" id="ageInput" value="5">
         </div>
 
-        <!-- Language Selector -->
-        <div class="form-group">
-          <label class="form-label" for="languageSelect">Story Language</label>
-          <select id="languageSelect" class="input-field">
-            <option value="English" selected>English</option>
-            <option value="Hindi">हिंदी (Hindi)</option>
-            <option value="Spanish">Español (Spanish)</option>
-            <option value="French">Français (French)</option>
-            <option value="German">Deutsch (German)</option>
-            <option value="Bengali">বাংলা (Bengali)</option>
-            <option value="Tamil">தமிழ் (Tamil)</option>
-            <option value="Telugu">తెలుగు (Telugu)</option>
-            <option value="Arabic">العربية (Arabic)</option>
-          </select>
+        <!-- Language Notification Strip (English Default) -->
+        <div class="lang-notice-strip">
+          <i class="fa-solid fa-book-open"></i>
+          <span><strong>Story Language:</strong> English (heartwarming bedtime verses crafted for sweet dreams).</span>
         </div>
+        <input type="hidden" id="languageInput" value="English">
 
-        <!-- Adventure Theme Selector -->
+        <!-- All 12 Adventure Themes Grid -->
         <div class="form-group">
-          <label class="form-label">Bedtime Theme <span class="req">*</span></label>
-          <div class="theme-grid">
+          <label class="form-label">Bedtime Theme <span class="req">*</span> (Choose from 12 Magical Adventures)</label>
+          <div class="theme-grid-12">
             <div class="theme-card active" data-theme="Space & Stars" onclick="setTheme('Space & Stars')">
               <span class="theme-emoji">🚀</span>
               <span class="theme-name">Space & Stars</span>
             </div>
-            <div class="theme-card" data-theme="Magical Forest" onclick="setTheme('Magical Forest')">
-              <span class="theme-emoji">🌲</span>
-              <span class="theme-name">Magical Forest</span>
-            </div>
-            <div class="theme-card" data-theme="Ocean & Dolphins" onclick="setTheme('Ocean & Dolphins')">
-              <span class="theme-emoji">🐬</span>
-              <span class="theme-name">Ocean & Dolphins</span>
+            <div class="theme-card" data-theme="Forest & Animals" onclick="setTheme('Forest & Animals')">
+              <span class="theme-emoji">🐾</span>
+              <span class="theme-name">Forest Animals</span>
             </div>
             <div class="theme-card" data-theme="Kingdom & Castles" onclick="setTheme('Kingdom & Castles')">
-              <span class="theme-emoji">🏰</span>
+              <span class="theme-emoji">👑</span>
               <span class="theme-name">Kingdom & Castles</span>
             </div>
-            <div class="theme-card" data-theme="Prehistoric Dinosaurs" onclick="setTheme('Prehistoric Dinosaurs')">
+            <div class="theme-card" data-theme="Superheroes" onclick="setTheme('Superheroes')">
+              <span class="theme-emoji">⚡</span>
+              <span class="theme-name">Superheroes</span>
+            </div>
+            <div class="theme-card" data-theme="Dinosaur Wonders" onclick="setTheme('Dinosaur Wonders')">
               <span class="theme-emoji">🦕</span>
               <span class="theme-name">Dinosaurs</span>
+            </div>
+            <div class="theme-card" data-theme="Ocean & Dolphins" onclick="setTheme('Ocean & Dolphins')">
+              <span class="theme-emoji">🌊</span>
+              <span class="theme-name">Ocean & Dolphins</span>
+            </div>
+            <div class="theme-card" data-theme="Fairies & Magic" onclick="setTheme('Fairies & Magic')">
+              <span class="theme-emoji">🧚</span>
+              <span class="theme-name">Fairies & Magic</span>
+            </div>
+            <div class="theme-card" data-theme="Trains & Tracks" onclick="setTheme('Trains & Tracks')">
+              <span class="theme-emoji">🚂</span>
+              <span class="theme-name">Trains & Tracks</span>
+            </div>
+            <div class="theme-card" data-theme="Bedtime Lullabies" onclick="setTheme('Bedtime Lullabies')">
+              <span class="theme-emoji">🌙</span>
+              <span class="theme-name">Bedtime Lullabies</span>
             </div>
             <div class="theme-card" data-theme="Circus & Carnivals" onclick="setTheme('Circus & Carnivals')">
               <span class="theme-emoji">🎪</span>
               <span class="theme-name">Circus & Magic</span>
+            </div>
+            <div class="theme-card" data-theme="Unicorns & Rainbows" onclick="setTheme('Unicorns & Rainbows')">
+              <span class="theme-emoji">🦄</span>
+              <span class="theme-name">Unicorns</span>
+            </div>
+            <div class="theme-card" data-theme="Jungle Safari" onclick="setTheme('Jungle Safari')">
+              <span class="theme-emoji">🌿</span>
+              <span class="theme-name">Jungle Safari</span>
             </div>
           </div>
           <input type="hidden" id="themeInput" value="Space & Stars">
@@ -1285,7 +1347,7 @@
               <i class="fa-solid fa-camera"></i>
             </div>
             <div class="upload-heading">Tap to Upload Child's Photo</div>
-            <div class="upload-sub">Clear front-facing photos work best (Camera or Gallery)</div>
+            <div class="upload-sub">Clear front-facing photos work best (from Camera or Photo Library)</div>
             <div class="privacy-notice">
               <i class="fa-solid fa-lock"></i> Encrypted & used strictly for your child's book
             </div>
@@ -1301,22 +1363,22 @@
                 <i class="fa-solid fa-pen-to-square"></i> Change photo
               </button>
             </div>
-            <i class="fa-solid fa-circle-check" style="color:#10B981;font-size:1.3rem;"></i>
+            <i class="fa-solid fa-circle-check" style="color:#15803D;font-size:1.4rem;"></i>
           </div>
         </div>
 
         <!-- Optional Dedication Message -->
         <div class="form-group">
-          <label class="form-label" for="dedicationInput">Bedtime Dedication (Optional)</label>
-          <input type="text" id="dedicationInput" class="input-field" placeholder="e.g. To our darling Aarav, with love always from Mom & Dad" maxlength="120">
+          <label class="form-label" for="dedicationInput">Bedtime Dedication Note (Optional)</label>
+          <input type="text" id="dedicationInput" class="input-field" placeholder="e.g. To our darling Aarav, with endless love from Mom & Dad" maxlength="120">
           <div class="form-hint">Printed on page 2 as a forever keepsake note.</div>
         </div>
 
         <!-- Parent Email -->
         <div class="form-group">
           <label class="form-label" for="parentEmail">Parent's Email Address <span class="req">*</span></label>
-          <input type="email" id="parentEmail" class="input-field" placeholder="Where should we send the preview & book?" required autocomplete="email">
-          <div class="form-hint">We'll email the digital high-resolution print PDF right here.</div>
+          <input type="email" id="parentEmail" class="input-field" placeholder="Where should we send your preview & book PDF?" required autocomplete="email">
+          <div class="form-hint">We'll email the digital high-resolution print PDF directly here.</div>
         </div>
 
         <!-- Submit Button -->
@@ -1326,7 +1388,7 @@
         </button>
 
         <a class="direct-order-link" onclick="handleDirectCheckoutPrompt()">
-          Skip preview? Order instantly for ₹99 →
+          Want to skip preview? Order instantly for ₹99 →
         </a>
 
       </form>
@@ -1341,7 +1403,7 @@
         <div class="progress-bar-fill" id="progressBarFill"></div>
       </div>
       <div class="loading-steps-list">
-        <div id="step1"><i class="fa-solid fa-check" style="color:#10B981;"></i> Analyzing photo features & smile</div>
+        <div id="step1"><i class="fa-solid fa-check" style="color:#15803D;"></i> Analyzing photo features & smile</div>
         <div id="step2"><i class="fa-solid fa-spinner fa-spin" style="color:var(--coral);"></i> Composing lyrical bedtime rhyme</div>
         <div id="step3"><i class="fa-regular fa-circle" style="color:#94A3B8;"></i> Generating 4K storybook cover artwork</div>
         <div id="step4"><i class="fa-regular fa-circle" style="color:#94A3B8;"></i> Polishing keepsake typography</div>
@@ -1453,11 +1515,11 @@
       <div class="progress-bar-bg">
         <div class="progress-bar-fill" id="jobProgressBarFill" style="width: 25%;"></div>
       </div>
-      <div id="jobStatusText" style="font-size:0.86rem;font-weight:700;color:var(--navy);margin-bottom:12px;">
+      <div id="jobStatusText" style="font-size:0.92rem;font-weight:700;color:var(--navy);margin-bottom:14px;">
         Painting decorative story borders...
       </div>
 
-      <a id="btnDownloadBook" class="download-book-btn" href="#" target="_blank" download>
+      <a id="btnDownloadBook" class="download-book-btn" href="#" target="_blank" rel="noopener noreferrer" download>
         <i class="fa-solid fa-download"></i> Download Your Storybook PDF
       </a>
     </section>
@@ -1470,9 +1532,9 @@
       </p>
     </div>
 
-    <!-- What You Receive (Policy Clarity) -->
+    <!-- What You Receive (Policy & Product Clarity) -->
     <section class="card">
-      <h3 style="font-size:1.15rem;font-weight:800;color:var(--navy);margin-bottom:12px;">
+      <h3 style="font-size:1.25rem;font-weight:800;color:var(--navy);margin-bottom:14px;">
         📖 What You Receive
       </h3>
       <ul class="features-list">
@@ -1486,24 +1548,24 @@
         <li class="feature-item">
           <div class="feature-icon-box"><i class="fa-solid fa-print"></i></div>
           <div class="feature-text">
-            <strong>Print At Home or Read on Tablet</strong>
-            <span>Formatted in standard 8.5" x 8.5" square keepsake format for crisp printing or cozy bedtime tablet reading.</span>
+            <strong>Print At Home or Read on Mobile / Tablet</strong>
+            <span>Formatted in standard 8.5" x 8.5" square format for crisp home printing or cozy bedtime reading.</span>
           </div>
         </li>
         <li class="feature-item">
           <div class="feature-icon-box"><i class="fa-solid fa-credit-card"></i></div>
           <div class="feature-text">
             <strong>One-Time Secure Payment</strong>
-            <span>Zero subscriptions, no recurring fees, no surprise charges. ₹99 or ₹199 once.</span>
+            <span>Zero subscriptions, no recurring fees, no surprise charges. ₹99 or ₹199 one-time.</span>
           </div>
         </li>
       </ul>
     </section>
 
-    <!-- Real Parent Reviews -->
+    <!-- Parent Reviews -->
     <section class="card">
-      <h3 style="font-size:1.15rem;font-weight:800;color:var(--navy);margin-bottom:12px;">
-        ❤️ Loved By Parents Across India
+      <h3 style="font-size:1.25rem;font-weight:800;color:var(--navy);margin-bottom:14px;">
+        ❤️ Loved By Parents Everywhere
       </h3>
       <div class="testimonial-card">
         <div class="testi-header">
@@ -1511,7 +1573,7 @@
           <div class="testi-stars">★★★★★</div>
         </div>
         <div class="testi-quote">
-          "Saw this ad on Instagram and made one for my 4-year-old Kabir. The likeness is unbelievable! He made me read it three times before sleeping. Best ₹99 I ever spent."
+          "Made one for my 4-year-old Kabir. The illustration is gorgeous! He made me read it three times before sleeping. Best bedtime gift ever."
         </div>
       </div>
       <div class="testimonial-card">
@@ -1520,14 +1582,14 @@
           <div class="testi-stars">★★★★★</div>
         </div>
         <div class="testi-quote">
-          "Ananya literally squealed when she saw herself wearing fairy wings on the cover! The print quality is fantastic. Printed it at our local studio as a hardcover."
+          "Ananya literally squealed when she saw herself wearing fairy wings on the cover! The print quality is fantastic. We printed it out as a forever keepsake."
         </div>
       </div>
     </section>
 
     <!-- FAQ Section -->
     <section class="card">
-      <h3 style="font-size:1.15rem;font-weight:800;color:var(--navy);margin-bottom:12px;">
+      <h3 style="font-size:1.25rem;font-weight:800;color:var(--navy);margin-bottom:14px;">
         ❓ Frequently Asked Questions
       </h3>
 
@@ -1537,7 +1599,7 @@
           <i class="fa-solid fa-chevron-down"></i>
         </div>
         <div class="faq-answer">
-          You will receive your complete personalized storybook as a high-resolution, print-ready PDF delivered straight to your email inbox within minutes. You can also download it right on this page!
+          You will receive your complete personalized storybook as a high-resolution, print-ready PDF delivered straight to your email inbox within minutes. You can also download it right here on this page!
         </div>
       </div>
 
@@ -1547,7 +1609,7 @@
           <i class="fa-solid fa-chevron-down"></i>
         </div>
         <div class="faq-answer">
-          Yes! Every book is formatted with vector-sharp fonts and 300 DPI high-resolution illustrations, perfectly optimized for both mobile/tablet viewing and professional printing at any photo studio.
+          Yes! Every book is formatted with vector-sharp typography and 300 DPI high-resolution illustrations, perfectly optimized for both mobile/tablet reading and professional printing at any photo studio or home printer.
         </div>
       </div>
 
@@ -1557,7 +1619,7 @@
           <i class="fa-solid fa-chevron-down"></i>
         </div>
         <div class="faq-answer">
-          We offer a 100% money-back guarantee. If your book fails to generate or if you are not delighted with the illustrations, simply write to support@twinkletaleai.com and we will issue an immediate full refund.
+          We offer a 100% money-back guarantee. If your book encounters an unrecoverable studio failure or if you need assistance, simply write to support@twinkletaleai.com and we will issue an immediate full refund.
         </div>
       </div>
 
@@ -1577,7 +1639,7 @@
   <!-- Sticky Bottom Action Bar (Mobile UX) -->
   <div class="sticky-mobile-bar" id="stickyMobileBar">
     <div class="sticky-price-info">
-      <div class="sticky-offer-tag">Meta Special • 80% Off</div>
+      <div class="sticky-offer-tag">Special Offer • 80% Off</div>
       <div class="sticky-price-row">
         <span class="sticky-old-price" id="stickyOldPrice">₹499</span>
         <span class="sticky-new-price" id="stickyNewPrice">₹99</span>
@@ -1598,13 +1660,11 @@
       <a class="footer-link" href="mailto:support@twinkletaleai.com">Support Contact</a>
     </div>
     <div>TwinkleTale AI • Personalized Bedtime Storybooks</div>
-    <div>Official Support: support@twinkletaleai.com</div>
-    <div class="footer-disclaimer">
-      Disclaimer: This website is not affiliated with, endorsed by, or sponsored by Meta Platforms, Inc., Instagram, or Facebook. All trademarks belong to their respective owners.
-    </div>
+    <div>Official Support: <a href="mailto:support@twinkletaleai.com" style="color:#CBD5E1;text-decoration:none;">support@twinkletaleai.com</a></div>
+    <div style="margin-top:8px;font-size:0.75rem;color:#64748B;">© 2026 TwinkleTale AI. All rights reserved.</div>
   </footer>
 
-  <!-- Legal & Policy Modal -->
+  <!-- In-Page Policy Modals -->
   <div class="modal-overlay" id="policyModal" onclick="if(event.target===this) closePolicyModal()">
     <div class="modal-content">
       <button type="button" class="modal-close-btn" onclick="closePolicyModal()">&times;</button>
@@ -1615,7 +1675,7 @@
     </div>
   </div>
 
-  <!-- Script Logic -->
+  <!-- JavaScript Logic -->
   <script>
     const API_BASE = window.location.origin;
 
@@ -1663,7 +1723,7 @@
       });
     }
 
-    // Theme Selection
+    // Theme Selection (All 12 Themes Supported)
     function setTheme(theme) {
       selectedTheme = theme;
       document.getElementById('themeInput').value = theme;
@@ -1700,7 +1760,7 @@
       }
     }
 
-    // Photo Upload & Client-Side Compression
+    // Photo Upload & Client-Side Canvas Compression
     function handlePhotoSelected(event) {
       const file = event.target.files && event.target.files[0];
       if (!file) return;
@@ -1732,7 +1792,7 @@
           document.getElementById('photoThumbCircle').style.backgroundImage = `url(${currentPhotoBase64})`;
           document.getElementById('photoFileName').innerText = file.name || 'Child Photo Selected';
           document.getElementById('photoPreviewBox').style.display = 'flex';
-          document.getElementById('photoDropzone').style.borderColor = '#10B981';
+          document.getElementById('photoDropzone').style.borderColor = '#15803D';
         };
         img.src = e.target.result;
       };
@@ -1742,9 +1802,9 @@
     // Generate Free Preview Flow
     async function handleGeneratePreview() {
       const childName = document.getElementById('childName').value.trim();
-      const language = document.getElementById('languageSelect').value;
       const dedication = document.getElementById('dedicationInput').value.trim();
       const email = document.getElementById('parentEmail').value.trim();
+      const language = 'English'; // English is the standard default
 
       if (!childName) {
         alert("Please enter your child's name!");
@@ -1774,11 +1834,11 @@
 
           if (progress > 30 && progress <= 60) {
             statusText.innerText = "Composing lyrical bedtime verses...";
-            document.getElementById('step2').innerHTML = '<i class="fa-solid fa-check" style="color:#10B981;"></i> Composed lyrical bedtime rhyme';
+            document.getElementById('step2').innerHTML = '<i class="fa-solid fa-check" style="color:#15803D;"></i> Composed lyrical bedtime rhyme';
             document.getElementById('step3').innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="color:var(--coral);"></i> Generating 4K storybook cover artwork';
           } else if (progress > 60) {
             statusText.innerText = "Polishing 4K storybook cover...";
-            document.getElementById('step3').innerHTML = '<i class="fa-solid fa-check" style="color:#10B981;"></i> Generated 4K storybook cover artwork';
+            document.getElementById('step3').innerHTML = '<i class="fa-solid fa-check" style="color:#15803D;"></i> Generated 4K storybook cover artwork';
             document.getElementById('step4').innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="color:var(--coral);"></i> Polishing keepsake typography';
           }
         }
@@ -1861,7 +1921,7 @@
             gender: selectedGender,
             age: selectedAge,
             theme: selectedTheme,
-            language: document.getElementById('languageSelect').value,
+            language: 'English',
             photoData: currentPhotoBase64,
             dedication: document.getElementById('dedicationInput').value.trim(),
             email,
@@ -1922,7 +1982,6 @@
 
     // Launch Razorpay Checkout Modal
     function launchRazorpayModal(orderData, isLong, parentEmail) {
-      // Dev / Test simulation mode fallback
       if (orderData.isTestMode || !orderData.keyId || orderData.keyId.includes('simulated')) {
         simulateSuccessfulPayment(orderData.previewId, orderData.orderId, isLong, parentEmail);
         return;
@@ -1957,7 +2016,6 @@
 
     // Verify Payment & Start Job Tracking
     async function verifyAndCompleteBook(paymentResponse, previewId, isLong, email) {
-      // Show fulfillment card
       document.getElementById('previewResultCard').style.display = 'none';
       document.getElementById('formCard').style.display = 'none';
       document.getElementById('fulfillmentCard').style.display = 'block';
@@ -2027,7 +2085,7 @@
             downloadBtn.style.display = 'inline-flex';
           } else if (job.status === 'failed') {
             clearInterval(activeJobPollInterval);
-            statusText.innerText = 'We experienced an issue, but don\'t worry: a full refund was automatically processed.';
+            statusText.innerText = 'We experienced an unexpected delay, but a full refund was automatically processed.';
           }
         } catch (e) {
           console.warn('Job poll warn:', e);
@@ -2058,7 +2116,7 @@
         title.innerText = 'Privacy & Child Safety Policy';
         body.innerHTML = `
           <h4>1. Child Photo Protection</h4>
-          <p>We believe protecting children's digital privacy is sacred. Photos uploaded to TwinkleTale are encrypted in transit and at rest, processed strictly and solely to generate your child's personalized illustrations, and are never shared, displayed, or sold to third parties.</p>
+          <p>Protecting children's digital privacy is our foremost priority. Photos uploaded to TwinkleTale are encrypted in transit and at rest, processed strictly and solely to generate your child's personalized illustrations, and are never shared, displayed, or sold to third parties.</p>
           <h4>2. Data Retention & Deletion</h4>
           <p>Temporary personalization images and session data are automatically removed from our servers after your keepsake book has been assembled and delivered.</p>
           <h4>3. No Data Profiling</h4>
