@@ -9,7 +9,7 @@
   <meta name="description" content="TwinkleTale - Turn your child's sweet moments into a personalized, illustrated bedtime storybook! Free instant preview. Special online offer: ₹99 today.">
   <link rel="canonical" href="https://twinkletaleai.com/special">
 
-  <!-- Open Graph Meta Tags (Compliant with Social Preview Standards) -->
+  <!-- Open Graph Meta Tags -->
   <meta property="og:site_name" content="TwinkleTale">
   <meta property="og:title" content="TwinkleTale | Personalized Children's Keepsake Storybooks">
   <meta property="og:description" content="Turn your child into the shining star of their very own bedtime storybook. Free instant preview in 25 seconds!">
@@ -66,9 +66,9 @@
       font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background-color: var(--bg-cream);
       color: var(--text-body);
-      font-size: 16px; /* 16px minimum prevents iOS zoom & maximizes legibility for all ages */
+      font-size: 16px;
       line-height: 1.6;
-      padding-bottom: 96px; /* space for sticky mobile action bar */
+      padding-bottom: 96px;
       -webkit-font-smoothing: antialiased;
     }
 
@@ -82,7 +82,7 @@
 
     .container {
       width: 100%;
-      max-width: 540px; /* mobile-optimized reading width */
+      max-width: 540px;
       margin: 0 auto;
       padding: 0 16px;
     }
@@ -286,7 +286,7 @@
       font-size: 0.78rem;
     }
 
-    /* Trust Pill Counters */
+    /* Trust Strip */
     .trust-strip {
       display: flex;
       justify-content: space-between;
@@ -464,7 +464,7 @@
       box-shadow: 0 3px 10px rgba(15, 23, 42, 0.3);
     }
 
-    /* 12-THEMES GRID (Full Catalog) */
+    /* 12-THEMES GRID */
     .theme-grid-12 {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -589,6 +589,88 @@
       padding: 2px 0 0;
     }
 
+    /* Edition Selector Cards */
+    .edition-selector-title {
+      font-size: 1.08rem;
+      font-weight: 800;
+      color: var(--navy);
+      text-align: center;
+      margin-bottom: 12px;
+    }
+    .edition-card {
+      border: 2px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 16px 14px;
+      margin-bottom: 12px;
+      background: #FCFBF9;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.2s;
+    }
+    .edition-card.active {
+      border-color: var(--coral);
+      background: #FFF7F5;
+      box-shadow: 0 4px 16px rgba(224, 109, 83, 0.2);
+    }
+    .edition-badge {
+      position: absolute;
+      top: -11px;
+      right: 14px;
+      background: var(--coral-gradient);
+      color: #FFFFFF;
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 3px 9px;
+      border-radius: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .edition-badge.best-value {
+      background: var(--gold-gradient);
+      color: #0F172A;
+    }
+    .edition-top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .edition-name {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--navy);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .edition-price-box {
+      text-align: right;
+    }
+    .edition-price-old {
+      font-size: 0.88rem;
+      color: #94A3B8;
+      text-decoration: line-through;
+      margin-right: 6px;
+    }
+    .edition-price-new {
+      font-size: 1.5rem;
+      font-weight: 900;
+      color: var(--coral);
+    }
+    .edition-details {
+      font-size: 0.85rem;
+      color: #334155;
+      line-height: 1.45;
+    }
+    .edition-details span.check-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-right: 10px;
+      margin-top: 5px;
+    }
+    .edition-details i { color: #15803D; font-size: 0.8rem; }
+
     /* Buttons */
     .btn-primary {
       width: 100%;
@@ -612,23 +694,32 @@
       box-shadow: 0 4px 14px rgba(224, 109, 83, 0.3);
     }
     .btn-primary:disabled {
-      opacity: 0.65;
-      cursor: not-allowed;
+      opacity: 0.75;
+      cursor: wait;
       box-shadow: none;
     }
 
-    .direct-order-link {
+    .direct-order-btn {
       display: block;
+      width: 100%;
       text-align: center;
-      font-size: 0.88rem;
-      font-weight: 600;
-      color: #475569;
-      margin-top: 12px;
-      text-decoration: underline;
+      font-size: 0.94rem;
+      font-weight: 700;
+      color: var(--coral);
+      background: #FFF1EE;
+      border: 1.5px solid #FED7CF;
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      margin-top: 14px;
+      text-decoration: none;
       cursor: pointer;
+      transition: all 0.2s;
+    }
+    .direct-order-btn:hover {
+      background: #FFE4DE;
     }
 
-    /* Preview Generation Loading State */
+    /* Preview Loading Card */
     .preview-loading-card {
       display: none;
       text-align: center;
@@ -759,88 +850,6 @@
       white-space: pre-line;
     }
 
-    /* Pricing Edition Cards */
-    .edition-selector-title {
-      font-size: 1.08rem;
-      font-weight: 800;
-      color: var(--navy);
-      text-align: center;
-      margin-bottom: 12px;
-    }
-    .edition-card {
-      border: 2px solid var(--border-light);
-      border-radius: var(--radius-md);
-      padding: 16px 14px;
-      margin-bottom: 12px;
-      background: #FCFBF9;
-      cursor: pointer;
-      position: relative;
-      transition: all 0.2s;
-    }
-    .edition-card.active {
-      border-color: var(--coral);
-      background: #FFF7F5;
-      box-shadow: 0 4px 16px rgba(224, 109, 83, 0.2);
-    }
-    .edition-badge {
-      position: absolute;
-      top: -11px;
-      right: 14px;
-      background: var(--coral-gradient);
-      color: #FFFFFF;
-      font-size: 0.72rem;
-      font-weight: 800;
-      padding: 3px 9px;
-      border-radius: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .edition-badge.best-value {
-      background: var(--gold-gradient);
-      color: #0F172A;
-    }
-    .edition-top-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 8px;
-    }
-    .edition-name {
-      font-size: 1.05rem;
-      font-weight: 800;
-      color: var(--navy);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .edition-price-box {
-      text-align: right;
-    }
-    .edition-price-old {
-      font-size: 0.88rem;
-      color: #94A3B8;
-      text-decoration: line-through;
-      margin-right: 6px;
-    }
-    .edition-price-new {
-      font-size: 1.5rem;
-      font-weight: 900;
-      color: var(--coral);
-    }
-    .edition-details {
-      font-size: 0.85rem;
-      color: #334155;
-      line-height: 1.45;
-    }
-    .edition-details span.check-item {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      margin-right: 10px;
-      margin-top: 5px;
-    }
-    .edition-details i { color: #15803D; font-size: 0.8rem; }
-
     /* Payment Gateways Strip */
     .payment-trust-strip {
       display: flex;
@@ -899,7 +908,7 @@
       box-shadow: 0 4px 16px rgba(21, 128, 61, 0.3);
     }
 
-    /* What You Get Section */
+    /* Features List */
     .features-list {
       list-style: none;
       margin-top: 12px;
@@ -984,7 +993,7 @@
     .faq-item.active .faq-answer { display: block; }
     .faq-item.active .faq-question i { transform: rotate(180deg); }
 
-    /* Policy & Trust Guarantee Box */
+    /* Policy Box */
     .privacy-guarantee-box {
       background: #F0FDF4;
       border: 1.5px solid #BBF7D0;
@@ -1157,7 +1166,6 @@
   <!-- Header -->
   <header class="site-header">
     <div class="container header-inner">
-      <!-- Direct Link to Main Website with Proper Compliance Attributes -->
       <a href="https://twinkletaleai.com/" class="logo-box" target="_blank" rel="noopener noreferrer" title="Visit TwinkleTale Official Website">
         <span class="logo-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
         <div>
@@ -1381,15 +1389,62 @@
           <div class="form-hint">We'll email the digital high-resolution print PDF directly here.</div>
         </div>
 
-        <!-- Submit Button -->
+        <!-- Preferred Edition Selection in Form (Synced with Step 2) -->
+        <div class="form-group">
+          <label class="form-label">Choose Keepsake Edition (Special Online Price)</label>
+          <div class="edition-card edition-card-short active" onclick="selectEdition('short')">
+            <div class="edition-badge">80% OFF • Most Popular</div>
+            <div class="edition-top-row">
+              <div class="edition-name">
+                <input type="radio" name="editionRadioForm" checked style="accent-color:var(--coral);">
+                <span>Treasury Edition (12 Pages)</span>
+              </div>
+              <div class="edition-price-box">
+                <span class="edition-price-old">₹499</span>
+                <span class="edition-price-new">₹99</span>
+              </div>
+            </div>
+            <div class="edition-details">
+              <span class="check-item"><i class="fa-solid fa-check"></i> 1 Cover Page</span>
+              <span class="check-item"><i class="fa-solid fa-check"></i> 1 Dedication</span>
+              <span class="check-item"><i class="fa-solid fa-check"></i> 8 Story Pages (4 Spreads)</span>
+              <span class="check-item"><i class="fa-solid fa-check"></i> 1 Bedtime Blessing</span>
+              <span class="check-item"><i class="fa-solid fa-check"></i> 1 Back Cover</span>
+            </div>
+          </div>
+
+          <div class="edition-card edition-card-long" onclick="selectEdition('long')">
+            <div class="edition-badge best-value">80% OFF • Best Value</div>
+            <div class="edition-top-row">
+              <div class="edition-name">
+                <input type="radio" name="editionRadioForm" style="accent-color:var(--coral);">
+                <span>Grand Treasury (22 Pages)</span>
+              </div>
+              <div class="edition-price-box">
+                <span class="edition-price-old">₹999</span>
+                <span class="edition-price-new">₹199</span>
+              </div>
+            </div>
+            <div class="edition-details">
+              <span class="check-item"><i class="fa-solid fa-check"></i> 1 Cover Page</span>
+              <span class="check-item"><i class="fa-solid fa-check"></i> 1 Dedication</span>
+              <span class="check-item"><i class="fa-solid fa-check"></i> 18 Story Pages (9 Spreads)</span>
+              <span class="check-item"><i class="fa-solid fa-check"></i> 1 Bedtime Blessing</span>
+              <span class="check-item"><i class="fa-solid fa-check"></i> 1 Back Cover</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Primary Preview Submit Button -->
         <button type="submit" class="btn-primary" id="btnGeneratePreview">
           <span>✨ Create Free 4K Preview (25s)</span>
           <i class="fa-solid fa-arrow-right"></i>
         </button>
 
-        <a class="direct-order-link" onclick="handleDirectCheckoutPrompt()">
-          Want to skip preview? Order instantly for ₹99 →
-        </a>
+        <!-- Direct Instant Checkout Button -->
+        <button type="button" class="direct-order-btn" id="directOrderLink" onclick="handleDirectCheckoutPrompt()">
+          ⚡️ Skip preview & order directly for ₹99 →
+        </button>
 
       </form>
     </section>
@@ -1438,17 +1493,17 @@
         </div>
       </div>
 
-      <!-- Promotional Edition Selector -->
+      <!-- Edition Selector in Preview Card -->
       <div class="edition-selector-title">
         Select Your Keepsake Edition:
       </div>
 
       <!-- Edition 1: 12-Page Treasury (₹99) -->
-      <div class="edition-card active" id="editionShort" onclick="selectEdition('short')">
+      <div class="edition-card edition-card-short active" onclick="selectEdition('short')">
         <div class="edition-badge">80% OFF • Most Popular</div>
         <div class="edition-top-row">
           <div class="edition-name">
-            <input type="radio" name="editionRadio" checked style="accent-color:var(--coral);">
+            <input type="radio" name="editionRadioPreview" checked style="accent-color:var(--coral);">
             <span>Treasury Edition (12 Pages)</span>
           </div>
           <div class="edition-price-box">
@@ -1466,11 +1521,11 @@
       </div>
 
       <!-- Edition 2: 22-Page Grand Treasury (₹199) -->
-      <div class="edition-card" id="editionLong" onclick="selectEdition('long')">
+      <div class="edition-card edition-card-long" onclick="selectEdition('long')">
         <div class="edition-badge best-value">80% OFF • Best Value</div>
         <div class="edition-top-row">
           <div class="edition-name">
-            <input type="radio" name="editionRadio" style="accent-color:var(--coral);">
+            <input type="radio" name="editionRadioPreview" style="accent-color:var(--coral);">
             <span>Grand Treasury (22 Pages)</span>
           </div>
           <div class="edition-price-box">
@@ -1487,10 +1542,11 @@
         </div>
       </div>
 
-      <!-- Primary Unlock Button -->
+      <!-- Primary Unlock Button with Dedicated Spinner -->
       <button type="button" class="btn-primary" id="btnUnlockBook" onclick="handleCheckout()">
+        <span id="btnUnlockSpinner" style="display:none;"><i class="fa-solid fa-spinner fa-spin"></i></span>
         <span id="btnUnlockText">🎁 Unlock Full Storybook (₹99)</span>
-        <i class="fa-solid fa-arrow-right"></i>
+        <i class="fa-solid fa-arrow-right" id="btnUnlockArrow"></i>
       </button>
 
       <!-- Trust Badges Under Checkout -->
@@ -1532,7 +1588,7 @@
       </p>
     </div>
 
-    <!-- What You Receive (Policy & Product Clarity) -->
+    <!-- What You Receive -->
     <section class="card">
       <h3 style="font-size:1.25rem;font-weight:800;color:var(--navy);margin-bottom:14px;">
         📖 What You Receive
@@ -1636,7 +1692,7 @@
 
   </main>
 
-  <!-- Sticky Bottom Action Bar (Mobile UX) -->
+  <!-- Sticky Bottom Action Bar -->
   <div class="sticky-mobile-bar" id="stickyMobileBar">
     <div class="sticky-price-info">
       <div class="sticky-offer-tag">Special Offer • 80% Off</div>
@@ -1677,7 +1733,10 @@
 
   <!-- JavaScript Logic -->
   <script>
-    const API_BASE = window.location.origin;
+    // Universal API base: works on localhost, Render, and custom domains
+    const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      ? window.location.origin
+      : (window.location.origin.includes('onrender.com') ? window.location.origin : 'https://storybook-backend-85eh.onrender.com');
 
     // State Variables
     let selectedGender = 'boy';
@@ -1688,6 +1747,47 @@
     let currentCoverUrl = null;
     let selectedEdition = 'short'; // 'short' (₹99 / 12p) or 'long' (₹199 / 22p)
     let activeJobPollInterval = null;
+
+    // Resilient Fetch with Retry
+    async function fetchWithRetry(url, options = {}, maxRetries = 2, delayMs = 2500) {
+      for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+        try {
+          const res = await fetch(url, options);
+          return res;
+        } catch (err) {
+          if (attempt <= maxRetries) {
+            console.warn(`Fetch retry (${attempt}/${maxRetries}): ${err.message}`);
+            await new Promise(r => setTimeout(r, delayMs));
+          } else {
+            throw err;
+          }
+        }
+      }
+    }
+
+    // Dynamic Razorpay SDK Guard
+    function ensureRazorpayLoaded() {
+      return new Promise((resolve, reject) => {
+        if (typeof window.Razorpay !== 'undefined') {
+          return resolve(window.Razorpay);
+        }
+        const existing = document.querySelector('script[src*="checkout.razorpay.com"]');
+        if (existing) {
+          existing.addEventListener('load', () => resolve(window.Razorpay));
+          setTimeout(() => {
+            if (typeof window.Razorpay !== 'undefined') resolve(window.Razorpay);
+            else reject(new Error('Payment gateway is loading. Please tap once more.'));
+          }, 3000);
+          return;
+        }
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.async = true;
+        script.onload = () => resolve(window.Razorpay);
+        script.onerror = () => reject(new Error('Failed to load secure payment gateway. Please check connection.'));
+        document.head.appendChild(script);
+      });
+    }
 
     // Switch Ad Creative Visuals
     function switchAdCreative(name) {
@@ -1732,31 +1832,77 @@
       });
     }
 
-    // Edition Selection (Short vs Long)
+    // Unified Edition Selection (₹99 vs ₹199)
     function selectEdition(type) {
       selectedEdition = type;
-      const shortCard = document.getElementById('editionShort');
-      const longCard = document.getElementById('editionLong');
-      const btnText = document.getElementById('btnUnlockText');
+      const isLong = (type === 'long');
+
+      // Sync all short and long cards across the page
+      document.querySelectorAll('.edition-card-short').forEach(c => {
+        c.classList.toggle('active', !isLong);
+        const r = c.querySelector('input[type="radio"]');
+        if (r) r.checked = !isLong;
+      });
+
+      document.querySelectorAll('.edition-card-long').forEach(c => {
+        c.classList.toggle('active', isLong);
+        const r = c.querySelector('input[type="radio"]');
+        if (r) r.checked = isLong;
+      });
+
+      // Update sticky bottom prices
       const stickyNewPrice = document.getElementById('stickyNewPrice');
       const stickyOldPrice = document.getElementById('stickyOldPrice');
+      if (stickyNewPrice) stickyNewPrice.textContent = isLong ? '₹199' : '₹99';
+      if (stickyOldPrice) stickyOldPrice.textContent = isLong ? '₹999' : '₹499';
 
-      if (type === 'long') {
-        shortCard.classList.remove('active');
-        shortCard.querySelector('input').checked = false;
-        longCard.classList.add('active');
-        longCard.querySelector('input').checked = true;
-        btnText.innerText = '🎁 Unlock Grand Edition (₹199)';
-        stickyNewPrice.innerText = '₹199';
-        stickyOldPrice.innerText = '₹999';
+      // Update preview unlock button text
+      const btnText = document.getElementById('btnUnlockText');
+      if (btnText) {
+        btnText.textContent = isLong ? '🎁 Unlock Grand Edition (₹199)' : '🎁 Unlock Full Storybook (₹99)';
+      }
+
+      // Update direct checkout skip button text
+      const directLink = document.getElementById('directOrderLink');
+      if (directLink) {
+        directLink.textContent = `⚡️ Skip preview & order directly for ${isLong ? '₹199' : '₹99'} →`;
+      }
+    }
+
+    // Button Loading State Helpers (Preserve DOM nodes & prevents null exceptions)
+    function setUnlockLoading(isLoading) {
+      const btn = document.getElementById('btnUnlockBook');
+      const spinner = document.getElementById('btnUnlockSpinner');
+      const text = document.getElementById('btnUnlockText');
+      const arrow = document.getElementById('btnUnlockArrow');
+      if (!btn) return;
+
+      btn.disabled = isLoading;
+      if (isLoading) {
+        if (spinner) spinner.style.display = 'inline-block';
+        if (arrow) arrow.style.display = 'none';
+        if (text) text.textContent = 'Securing Special Price...';
       } else {
-        longCard.classList.remove('active');
-        longCard.querySelector('input').checked = false;
-        shortCard.classList.add('active');
-        shortCard.querySelector('input').checked = true;
-        btnText.innerText = '🎁 Unlock Full Storybook (₹99)';
-        stickyNewPrice.innerText = '₹99';
-        stickyOldPrice.innerText = '₹499';
+        if (spinner) spinner.style.display = 'none';
+        if (arrow) arrow.style.display = 'inline-block';
+        if (text) {
+          text.textContent = selectedEdition === 'long' ? '🎁 Unlock Grand Edition (₹199)' : '🎁 Unlock Full Storybook (₹99)';
+        }
+      }
+    }
+
+    function setDirectLoading(isLoading) {
+      const link = document.getElementById('directOrderLink');
+      if (!link) return;
+      const isLong = (selectedEdition === 'long');
+      if (isLoading) {
+        link.disabled = true;
+        link.style.opacity = '0.75';
+        link.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Securing Special Price (${isLong ? '₹199' : '₹99'})...`;
+      } else {
+        link.disabled = false;
+        link.style.opacity = '1';
+        link.textContent = `⚡️ Skip preview & order directly for ${isLong ? '₹199' : '₹99'} →`;
       }
     }
 
@@ -1804,7 +1950,7 @@
       const childName = document.getElementById('childName').value.trim();
       const dedication = document.getElementById('dedicationInput').value.trim();
       const email = document.getElementById('parentEmail').value.trim();
-      const language = 'English'; // English is the standard default
+      const language = 'English';
 
       if (!childName) {
         alert("Please enter your child's name!");
@@ -1845,7 +1991,7 @@
       }, 1800);
 
       try {
-        const response = await fetch(`${API_BASE}/api/create-preview`, {
+        const response = await fetchWithRetry(`${API_BASE}/api/create-preview`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1859,7 +2005,7 @@
             email,
             offer: 'special99'
           })
-        });
+        }, 2, 2500);
 
         clearInterval(progressTimer);
         const data = await response.json();
@@ -1884,7 +2030,7 @@
           window.scrollTo({ top: document.getElementById('previewResultCard').offsetTop - 30, behavior: 'smooth' });
 
           // Update sticky CTA button
-          document.getElementById('stickyCtaLabel').innerText = 'Unlock Now (₹99)';
+          document.getElementById('stickyCtaLabel').innerText = (selectedEdition === 'long' ? 'Unlock Now (₹199)' : 'Unlock Now (₹99)');
         }, 500);
 
       } catch (err) {
@@ -1895,7 +2041,7 @@
       }
     }
 
-    // Direct Checkout (for parents who click skip preview)
+    // Direct Instant Checkout (for parents who click Skip Preview)
     async function handleDirectCheckoutPrompt() {
       const childName = document.getElementById('childName').value.trim();
       const email = document.getElementById('parentEmail').value.trim();
@@ -1910,9 +2056,11 @@
         return;
       }
 
-      const isLong = selectedEdition === 'long';
+      const isLong = (selectedEdition === 'long');
+      setDirectLoading(true);
+
       try {
-        const orderRes = await fetch(`${API_BASE}/api/create-order`, {
+        const orderRes = await fetchWithRetry(`${API_BASE}/api/create-order`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1928,13 +2076,17 @@
             bookLength: isLong ? '22 pages' : '12 pages',
             offer: 'special99'
           })
-        });
+        }, 2, 2500);
+
         const orderData = await orderRes.json();
-        if (!orderRes.ok || !orderData.success) throw new Error(orderData.error || 'Could not initiate checkout');
+        if (!orderRes.ok || !orderData.success) {
+          throw new Error(orderData.error || 'Could not initiate checkout');
+        }
 
         currentPreviewId = orderData.previewId;
-        launchRazorpayModal(orderData, isLong, email);
+        await launchRazorpayModal(orderData, isLong, email);
       } catch (e) {
+        setDirectLoading(false);
         alert('Checkout error: ' + e.message);
       }
     }
@@ -1942,18 +2094,16 @@
     // Regular Checkout after Preview
     async function handleCheckout() {
       if (!currentPreviewId) {
-        alert("Please generate a free preview first!");
+        alert("Please generate a free preview first or tap the Direct Order button!");
         return;
       }
 
       const email = document.getElementById('parentEmail').value.trim();
-      const isLong = selectedEdition === 'long';
-      const btn = document.getElementById('btnUnlockBook');
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Securing Special Price...';
+      const isLong = (selectedEdition === 'long');
+      setUnlockLoading(true);
 
       try {
-        const orderRes = await fetch(`${API_BASE}/api/create-order`, {
+        const orderRes = await fetchWithRetry(`${API_BASE}/api/create-order`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1962,56 +2112,85 @@
             email,
             offer: 'special99'
           })
-        });
+        }, 2, 2500);
 
         const orderData = await orderRes.json();
-        btn.disabled = false;
-        selectEdition(selectedEdition); // reset button text
 
         if (!orderRes.ok || !orderData.success) {
           throw new Error(orderData.error || 'Failed to create payment order');
         }
 
-        launchRazorpayModal(orderData, isLong, email);
+        await launchRazorpayModal(orderData, isLong, email);
       } catch (err) {
-        btn.disabled = false;
-        selectEdition(selectedEdition);
+        setUnlockLoading(false);
         alert('Order creation failed: ' + err.message);
       }
     }
 
-    // Launch Razorpay Checkout Modal
-    function launchRazorpayModal(orderData, isLong, parentEmail) {
-      if (orderData.isTestMode || !orderData.keyId || orderData.keyId.includes('simulated')) {
-        simulateSuccessfulPayment(orderData.previewId, orderData.orderId, isLong, parentEmail);
-        return;
-      }
-
-      const options = {
-        key: orderData.keyId,
-        amount: orderData.amount,
-        currency: 'INR',
-        name: 'TwinkleTale AI',
-        description: isLong ? '22-Page Grand Treasury Edition' : '12-Page Treasury Edition',
-        order_id: orderData.orderId,
-        image: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
-        prefill: {
-          email: parentEmail,
-          contact: ''
-        },
-        theme: {
-          color: '#E06D53'
-        },
-        handler: async function (paymentResponse) {
-          await verifyAndCompleteBook(paymentResponse, orderData.previewId, isLong, parentEmail);
+    // Launch Razorpay Checkout Modal (Ultra-Optimized & Hack-Proof)
+    async function launchRazorpayModal(orderData, isLong, parentEmail) {
+      try {
+        // Fallback for simulation mode in dev
+        if (orderData.isTestMode || !orderData.keyId || orderData.keyId.includes('simulated') || orderData.keyId.includes('YOUR_')) {
+          setUnlockLoading(false);
+          setDirectLoading(false);
+          simulateSuccessfulPayment(orderData.previewId, orderData.orderId, isLong, parentEmail);
+          return;
         }
-      };
 
-      const rzp = new Razorpay(options);
-      rzp.on('payment.failed', function (response) {
-        alert('Payment was not completed: ' + (response.error ? response.error.description : 'Transaction cancelled'));
-      });
-      rzp.open();
+        // Guarantee Razorpay SDK is ready
+        await ensureRazorpayLoaded();
+
+        const childName = document.getElementById('childName')?.value?.trim() || 'Your Child';
+        const editionName = isLong ? '22-Page Grand Treasury Edition (₹199)' : '12-Page Treasury Edition (₹99)';
+
+        const options = {
+          key: orderData.keyId,
+          amount: orderData.amount,
+          currency: orderData.currency || 'INR',
+          name: 'TwinkleTale',
+          description: `${childName}'s Keepsake Storybook — ${editionName}`,
+          order_id: orderData.orderId,
+          image: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
+          prefill: {
+            email: parentEmail,
+            name: childName
+          },
+          theme: {
+            color: '#E06D53'
+          },
+          modal: {
+            ondismiss: function () {
+              setUnlockLoading(false);
+              setDirectLoading(false);
+            }
+          },
+          handler: async function (paymentResponse) {
+            setUnlockLoading(false);
+            setDirectLoading(false);
+            await verifyAndCompleteBook(paymentResponse, orderData.previewId, isLong, parentEmail);
+          }
+        };
+
+        const rzp = new Razorpay(options);
+        rzp.on('payment.failed', function (response) {
+          setUnlockLoading(false);
+          setDirectLoading(false);
+          alert('Payment was not completed: ' + (response.error ? response.error.description : 'Transaction cancelled'));
+        });
+
+        rzp.open();
+        // Reset loading states once the modal appears on screen
+        setTimeout(() => {
+          setUnlockLoading(false);
+          setDirectLoading(false);
+        }, 800);
+
+      } catch (err) {
+        setUnlockLoading(false);
+        setDirectLoading(false);
+        alert('Could not launch payment gateway: ' + err.message);
+      }
     }
 
     // Verify Payment & Start Job Tracking
@@ -2022,7 +2201,7 @@
       window.scrollTo({ top: document.getElementById('fulfillmentCard').offsetTop - 30, behavior: 'smooth' });
 
       try {
-        const verifyRes = await fetch(`${API_BASE}/api/verify-and-complete-book`, {
+        const verifyRes = await fetchWithRetry(`${API_BASE}/api/verify-and-complete-book`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -2035,7 +2214,7 @@
             coverDataUrl: currentCoverUrl,
             offer: 'special99'
           })
-        });
+        }, 2, 2500);
 
         const verifyData = await verifyRes.json();
         if (!verifyRes.ok || !verifyData.success) {
