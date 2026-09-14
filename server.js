@@ -1786,7 +1786,9 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         if (activeScenes.length === 0) {
             update(10, 'Authoring personalized bedtime story...');
             try {
-                const sysPrompt = `You are an award-winning children's author. Write a charming ${scenes}-scene bedtime story for a child named ${childName} (${gender}, age ${age}) about ${theme}. Language: ${language}. Return JSON with scenes array containing { scene_title, page_text, image_prompt }.`;
+                const charDetails = getCharacterDetails(childName, gender, age, theme);
+                const activeOutfit = charDetails.outfit;
+                const sysPrompt = `You are an award-winning children's author. Write a charming ${scenes}-scene bedtime story for a child named ${childName} (${gender}, age ${age}) about ${theme}. Character signature outfit: ${activeOutfit}. Language: ${language}. Return JSON with scenes array containing { scene_title, page_text, image_prompt }. Each image_prompt should describe the child's action in this scene while maintaining their signature appearance.`;
                 const userPrompt = `Generate a ${scenes}-scene bedtime story for ${childName} in ${language}.`;
                 const rawStory = await callStoryLLM(sysPrompt, userPrompt, language);
                 const parsed = JSON.parse(rawStory.replace(/```json/g, '').replace(/```/g, '').trim());
@@ -2055,6 +2057,11 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         // Keepsake footer
         drawCentered(dedPage, 'TwinkleTale Studios • Keepsake Treasury Edition', 70, 9, serif, textColors.subtextColor, 0.7);
 
+        // Character Traits & Consistent Wardrobe Anchors
+        const charDetails = getCharacterDetails(childName, gender, age, theme);
+        const activeCharAnchor = charAnchor || charDetails.charAnchor;
+        const activeOutfit = charDetails.outfit;
+
         // Validate or fallback scenes
         const effectiveScenes = (activeScenes || []).slice(0, scenes);
         while (effectiveScenes.length < scenes) {
@@ -2062,21 +2069,28 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
             effectiveScenes.push({
                 scene_title: `Magical Wonder ${idx}`,
                 page_text: `Under the soft glow of twilight, ${childName} discovered a world full of kindness and starlight, smiling as their adventure continued with wonder and joy.`,
-                image_prompt: `whimsical storybook scene of ${charAnchor} exploring magical glowing landscapes full of wonder`
+                image_prompt: `whimsical storybook scene of ${activeCharAnchor} exploring magical glowing landscapes full of wonder`
             });
         }
 
         // PRD FR-1 & FR-3: Identity Anchor setup
-        let referencePortrait = session.referencePortraitUrl || photoData;
-        if (!session.referencePortraitUrl && photoData) {
+        // CRITICAL IDENTITY PARITY:
+        // Always prioritize the original uploaded child photo (photoData / session.photoData) as the visualCondition
+        // for flux-kontext-pro across all interior scenes. Conditioning directly on the child's photo ensures
+        // identical facial contours, eye shape, smile, skin tone, and hair across the entire book.
+        let visualCondition = photoData || session.photoData || null;
+        if (!visualCondition && session.referencePortraitUrl) {
+            visualCondition = session.referencePortraitUrl;
+        } else if (!visualCondition) {
             try {
-                console.log("🎨 Generating locked reference portrait for book session...");
-                session.referencePortraitUrl = await generateAvatar(photoData, charAnchor);
-                referencePortrait = session.referencePortraitUrl;
+                console.log("🎨 Generating locked reference portrait for text-only book session...");
+                session.referencePortraitUrl = await generateAvatar(null, activeCharAnchor);
+                visualCondition = session.referencePortraitUrl;
             } catch (err) {
-                console.warn("⚠️ Could not generate locked reference portrait, using photoData directly:", err.message);
+                console.warn("⚠️ Could not generate locked reference portrait:", err.message);
             }
         }
+        let referencePortrait = visualCondition;
 
         // ================= INTERIOR SPREADS: ILLUSTRATION GENERATION (BATCHES OF 2) =================
         const sceneBuffers = new Array(scenes);
@@ -2091,22 +2105,22 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
             const currentSpreadEnd = Math.min(b + batchSize, scenes);
             const pct = Math.round(35 + (b / scenes) * 55);
             update(pct, `Illustrating story scenes ${currentSpreadStart} to ${currentSpreadEnd} of ${scenes}...`);
-            console.log(`  → Generating scenes ${currentSpreadStart} to ${currentSpreadEnd} of ${scenes} concurrently...`);
+            console.log(`  → Generating scenes ${currentSpreadStart} to ${currentSpreadEnd} of ${scenes} concurrently (Condition: ${visualCondition ? (String(visualCondition).startsWith('data:') ? 'direct-uploaded-photo' : 'reference-anchor') : 'text-to-image'})...`);
 
             await Promise.all(batchIndices.map(async (i) => {
                 const scene = effectiveScenes[i];
-                let rawPrompt = scene.image_prompt || `${charAnchor} with a joyful smile in the scene: ${scene.scene_title}`;
+                let rawPrompt = scene.image_prompt || `${activeCharAnchor} with a joyful smile in the scene: ${scene.scene_title}`;
                 if (childName && childName.length > 1) {
                     const nameRegex = new RegExp(`\\b${childName}\\b`, 'gi');
-                    rawPrompt = rawPrompt.replace(nameRegex, (gender === 'little star') ? 'the child' : `the little ${gender || 'hero'}`);
+                    rawPrompt = rawPrompt.replace(nameRegex, (gender === 'little star') ? 'the child' : `the little ${charDetails.genderClean || 'hero'}`);
                 }
 
-                const identityAnchor = (IS_V2 && referencePortrait)
-                    ? `whimsical picture book scene featuring the exact same child from the reference image, preserving 80-90% facial likeness and identity: identical facial structure, eye shape, eyebrows, nose, mouth, skin tone, hair color, hair texture, and joyful expression. In this scene: ${rawPrompt}`
-                    : rawPrompt;
-                const scenePrompt = STYLE + identityAnchor;
+                const identityDirective = (IS_V2 && visualCondition)
+                    ? `Masterpiece modern children's picture book illustration in award-winning painterly realism, fine digital gouache and soft luminous artisan oils: featuring the exact same ${charDetails.genderClean || 'hero'} from the reference photo (${activeCharAnchor}), preserving 80-90% facial likeness and identity: identical facial structure, eye shape, eyebrows, nose, mouth, authentic cheerful smile, natural skin tone, hair texture, and consistently ${activeOutfit}. In this scene: ${rawPrompt}`
+                    : `Masterpiece modern children's picture book illustration in award-winning painterly realism, fine digital gouache and soft luminous artisan oils: featuring ${activeCharAnchor}, consistently ${activeOutfit}. In this scene: ${rawPrompt}`;
+                const scenePrompt = STYLE + identityDirective;
 
-                const rawBuf = await withRetry(`scene ${i + 1} image`, async () => fetchImageBuffer(await generateImage(scenePrompt, referencePortrait, { isFace: true })));
+                const rawBuf = await withRetry(`scene ${i + 1} image`, async () => fetchImageBuffer(await generateImage(scenePrompt, visualCondition, { isFace: true })));
                 // Memory-optimized 1200x1600 JPEG compression for lean, print-sharp PDF embedding (<500KB per page)
                 const optimizedBuf = await sharp(rawBuf)
                     .resize(1200, 1600, { fit: 'inside', withoutEnlargement: true })
