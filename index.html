@@ -2951,9 +2951,19 @@
             } else if (data.status === 'failed') {
               clearInterval(interval);
               document.getElementById('progressSpinner').style.display = 'none';
-              document.getElementById('progressHeading').textContent = 'Generation Notice';
-              stepText.innerHTML = (data.error || 'Something went wrong while painting the book.') + 
-                `<br><button type="button" onclick="pollJobStatus('${jobId}')" class="secondary-btn" style="margin-top:14px;padding:8px 18px">Check Status Again</button>`;
+              document.getElementById('progressHeading').textContent = 'Order Protection Notice';
+              if (data.refundId) {
+                stepText.innerHTML = `<div style="background:#FFF3CD;color:#664D03;padding:16px;border-radius:8px;border:1px solid #FFECB5;text-align:left;font-size:14px;line-height:1.5">
+                  <strong>Technical Delay & Full Refund Initiated:</strong><br>
+                  Our studio encountered an unexpected delay while rendering high-resolution spreads. To ensure your complete peace of mind, a <strong>full 100% refund has been automatically initiated</strong> to your payment method (Refund ID: <code>${data.refundId}</code>).<br>
+                  <span style="font-size:12px;color:#856404">A detailed confirmation has been sent to your email.</span>
+                </div>`;
+              } else {
+                stepText.innerHTML = `<div style="background:#F8D7DA;color:#842029;padding:14px;border-radius:8px;border:1px solid #F5C2C7;font-size:14px">
+                  ${data.error || 'Something went wrong while rendering the book.'}
+                  <br><small>If payment was completed, your order is protected and our support team has been notified.</small>
+                </div><br><button type="button" onclick="pollJobStatus('${jobId}')" class="secondary-btn" style="margin-top:10px;padding:8px 18px">Check Status Again</button>`;
+              }
             }
           } else {
             consecutiveErrors++;
