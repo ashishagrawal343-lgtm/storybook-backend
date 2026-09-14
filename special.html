@@ -24,6 +24,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Outfit:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Preload & Prefetch Critical Ad Visuals for Sub-Second Load -->
+  <link rel="preload" as="image" href="/public/ad_showcase_siddhu.webp" type="image/webp" fetchpriority="high">
+  <link rel="prefetch" as="image" href="/public/ad_showcase_ananya.webp" type="image/webp">
 
   <!-- Razorpay Checkout SDK -->
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
@@ -219,27 +222,30 @@
       box-shadow: var(--shadow-md);
       overflow: hidden;
       margin-bottom: 18px;
+      width: 100%;
     }
     .creative-tabs {
       display: flex;
       background: #F3ECE2;
-      border-bottom: 1px solid var(--border-light);
+      border-bottom: 2px solid var(--border-light);
     }
     .creative-tab {
       flex: 1;
-      padding: 10px 8px;
-      font-size: 0.86rem;
+      padding: 12px 8px;
+      font-size: 0.88rem;
       font-weight: 700;
       text-align: center;
-      background: none;
+      background: #F3ECE2;
       border: none;
-      color: #475569;
+      border-bottom: 3px solid transparent;
+      color: #64748B;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
-      transition: all 0.2s;
+      transition: all 0.2s ease;
+      margin-bottom: -2px;
     }
     .creative-tab.active {
       background: #FFFFFF;
@@ -248,21 +254,23 @@
     }
     .creative-display {
       position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
       background: #0B0E1A;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      aspect-ratio: 1/1;
-      max-height: 390px;
       overflow: hidden;
+    }
+    .creative-pic {
+      width: 100%;
+      height: 100%;
+      display: none;
+    }
+    .creative-pic.active {
+      display: block;
     }
     .creative-img {
       width: 100%;
       height: 100%;
       object-fit: cover;
-      display: none;
-    }
-    .creative-img.active {
       display: block;
     }
     .creative-caption {
@@ -275,6 +283,7 @@
       justify-content: space-between;
       flex-wrap: wrap;
       gap: 6px;
+      border-top: 1px solid var(--border-light);
     }
     .creative-caption strong { color: var(--navy); }
     .creative-caption .badge-glow {
@@ -1199,16 +1208,22 @@
       <!-- Ad Creative Side-by-Side Showcase -->
       <div class="ad-creative-card">
         <div class="creative-tabs">
-          <button type="button" class="creative-tab active" onclick="switchAdCreative('siddhu')">
+          <button type="button" class="creative-tab active" id="tabSiddhu" onclick="switchAdCreative('siddhu')">
             <i class="fa-solid fa-train"></i> Siddhu's Train Adventure
           </button>
-          <button type="button" class="creative-tab" onclick="switchAdCreative('ananya')">
-            <i class="fa-solid fa-sparkles"></i> Ananya's Fairy Tale
+          <button type="button" class="creative-tab" id="tabAnanya" onclick="switchAdCreative('ananya')">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Ananya's Fairy Tale
           </button>
         </div>
         <div class="creative-display">
-          <img id="imgSiddhu" class="creative-img active" src="/public/ad_showcase_siddhu.jpg" alt="Siddhu personalized storybook example" fetchpriority="high">
-          <img id="imgAnanya" class="creative-img" src="/public/ad_showcase_ananya.jpg" alt="Ananya personalized storybook example">
+          <picture id="picSiddhu" class="creative-pic active">
+            <source srcset="/public/ad_showcase_siddhu.webp" type="image/webp">
+            <img id="imgSiddhu" class="creative-img" src="/public/ad_showcase_siddhu.jpg" alt="Siddhu personalized storybook example" fetchpriority="high" width="800" height="800">
+          </picture>
+          <picture id="picAnanya" class="creative-pic">
+            <source srcset="/public/ad_showcase_ananya.webp" type="image/webp">
+            <img id="imgAnanya" class="creative-img" src="/public/ad_showcase_ananya.jpg" alt="Ananya personalized storybook example" loading="lazy" width="800" height="800">
+          </picture>
         </div>
         <div class="creative-caption">
           <span>Real Photo ➔ <strong>Personalized Storybook Cover</strong></span>
@@ -1246,7 +1261,7 @@
         <!-- Child Name -->
         <div class="form-group">
           <label class="form-label" for="childName">Child's Name <span class="req">*</span></label>
-          <input type="text" id="childName" class="input-field" placeholder="e.g. Aarav, Ananya, Kabir, Maya..." required maxlength="30" autocomplete="given-name">
+          <input type="text" id="childName" class="input-field" placeholder="e.g. Aarav, Ananya, Kabir, Maya..." required maxlength="30" autocomplete="given-name" oninput="updatePreviewButtonText()">
         </div>
 
         <!-- Gender Pills -->
@@ -1437,7 +1452,7 @@
 
         <!-- Primary Preview Submit Button -->
         <button type="submit" class="btn-primary" id="btnGeneratePreview">
-          <span>✨ Create Free 4K Preview (25s)</span>
+          <span id="btnGeneratePreviewText">✨ See My Child's Free Preview (25s)</span>
           <i class="fa-solid fa-arrow-right"></i>
         </button>
 
@@ -1791,17 +1806,38 @@
 
     // Switch Ad Creative Visuals
     function switchAdCreative(name) {
-      const tabs = document.querySelectorAll('.creative-tab');
-      tabs.forEach(t => t.classList.remove('active'));
-      document.getElementById('imgSiddhu').classList.remove('active');
-      document.getElementById('imgAnanya').classList.remove('active');
+      const tabSiddhu = document.getElementById('tabSiddhu') || document.querySelectorAll('.creative-tab')[0];
+      const tabAnanya = document.getElementById('tabAnanya') || document.querySelectorAll('.creative-tab')[1];
+      const picSiddhu = document.getElementById('picSiddhu');
+      const picAnanya = document.getElementById('picAnanya');
 
       if (name === 'siddhu') {
-        tabs[0].classList.add('active');
-        document.getElementById('imgSiddhu').classList.add('active');
+        if (tabSiddhu) tabSiddhu.classList.add('active');
+        if (tabAnanya) tabAnanya.classList.remove('active');
+        if (picSiddhu) picSiddhu.classList.add('active');
+        if (picAnanya) picAnanya.classList.remove('active');
       } else {
-        tabs[1].classList.add('active');
-        document.getElementById('imgAnanya').classList.add('active');
+        if (tabSiddhu) tabSiddhu.classList.remove('active');
+        if (tabAnanya) tabAnanya.classList.add('active');
+        if (picSiddhu) picSiddhu.classList.remove('active');
+        if (picAnanya) picAnanya.classList.add('active');
+      }
+    }
+
+    // Real-time button text personalization as user types child's name
+    function updatePreviewButtonText() {
+      const nameInput = document.getElementById('childName');
+      const btnSpan = document.getElementById('btnGeneratePreviewText');
+      if (!btnSpan) return;
+      const raw = nameInput ? nameInput.value.trim() : '';
+      if (raw) {
+        const cleanName = raw.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        const possessive = cleanName.endsWith("'s") || cleanName.endsWith("’s")
+          ? cleanName
+          : (cleanName.endsWith('s') || cleanName.endsWith('S') ? `${cleanName}'s` : `${cleanName}'s`);
+        btnSpan.textContent = `✨ See My ${possessive} Free Preview (25s)`;
+      } else {
+        btnSpan.textContent = `✨ See My Child's Free Preview (25s)`;
       }
     }
 

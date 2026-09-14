@@ -2670,7 +2670,10 @@ app.get('/api/test-email', async (req, res) => {
 });
 
 app.use('/books', express.static(path.join(__dirname, 'books')));
-app.use('/public', express.static(path.join(__dirname, 'public')));
+app.use('/public', express.static(path.join(__dirname, 'public'), {
+    maxAge: '7d',
+    etag: true
+}));
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
