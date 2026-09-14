@@ -2035,7 +2035,8 @@
 
       } catch (err) {
         clearInterval(progressTimer);
-        alert('Could not generate preview: ' + err.message);
+        const errMsg = err.message || 'Server error';
+        alert(errMsg.includes('Please') ? errMsg : `Could not generate preview: ${errMsg}. Please try again.`);
         document.getElementById('loadingCard').style.display = 'none';
         document.getElementById('formCard').style.display = 'block';
       }

@@ -2490,7 +2490,8 @@
           stage.style.display = 'block';
           stage.scrollIntoView({ behavior: 'smooth' });
         } else {
-          alert(`Could not create preview: ${data.error || 'Server error'}. Please try again.`);
+          const errMsg = data.error || 'Server error';
+          alert(errMsg.includes('Please') ? errMsg : `Could not create preview: ${errMsg}. Please try again.`);
         }
       } catch (err) {
         previewBtn.disabled = false;
