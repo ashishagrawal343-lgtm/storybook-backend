@@ -1336,7 +1336,7 @@ function getThemeTitleExample(theme, childName) {
 app.post('/api/create-preview', rateLimiter, async (req, res) => {
     const t0 = Date.now();
     try {
-        const { childName, gender, age, theme, language, photoData, dedication, email } = req.body;
+        const { childName, gender, age, theme, language, photoData, dedication, email, offer } = req.body;
         if (!childName) return res.status(400).json({ success: false, error: 'Child name is required' });
 
         const lang = String(language || 'English').trim();
@@ -1476,7 +1476,8 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme") MUST
             coverBuffer: null,
             bgUrl: coverPublicUrl, vigUrl: coverPublicUrl,
             scenesData, openingRhyme,
-            coverImagePrompt: storyJson.cover_image_prompt
+            coverImagePrompt: storyJson.cover_image_prompt,
+            offer: offer || req.body.offer || null
         });
 
         console.log(`✅ Preview created in ${((Date.now() - t0) / 1000).toFixed(1)}s (id: ${previewId}, title: "${bookTitle}", url: ${coverPublicUrl})`);
@@ -1492,6 +1493,7 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme") MUST
             openingRhyme,
             coverDataUrl: coverPublicUrl,
             coverUrl: coverPublicUrl,
+            offer: offer || req.body.offer || null,
             // Backwards compatibility fields
             vignetteDataUrl: coverPublicUrl,
             coverBgDataUrl: coverPublicUrl,
@@ -1509,17 +1511,19 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme") MUST
 // ====================================================================
 app.post('/api/create-order', rateLimiter, async (req, res) => {
     try {
-        const { previewId, bookLength, email } = req.body;
+        const { previewId, bookLength, email, offer } = req.body;
         let session = previewId ? getSession(previewId) : null;
         if (session) {
             // PRD FR-5: Refresh timestamp so session TTL does not expire during checkout
             session.timestamp = Date.now();
+            if (offer) session.offer = offer;
             saveSession(previewId, session);
         }
         let effectivePreviewId = previewId;
 
         const isLong = String(bookLength || '').toLowerCase().includes('long') || String(bookLength || '').includes('24') || String(bookLength || '').includes('22') || String(bookLength || '').includes('28') || String(bookLength || '').includes('grand');
-        const amountPaise = isLong ? 29900 : 19900;
+        const isOffer = (offer === 'special99') || (req.body.offer === 'special99') || (session && session.offer === 'special99');
+        const amountPaise = isOffer ? (isLong ? 19900 : 9900) : (isLong ? 29900 : 19900);
 
         // Direct Checkout Support (instant payment without prior preview generation)
         if (req.body.isDirectCheckout || (!session && req.body.childName)) {
@@ -1543,6 +1547,7 @@ app.post('/api/create-order', rateLimiter, async (req, res) => {
                 photoData: photoData || null,
                 dedication: dedication || '',
                 email: email || reqEmail || '',
+                offer: isOffer ? 'special99' : null,
                 charAnchor, pronoun, subjectPronoun, pal,
                 title: bookTitle, bookTitle,
                 coverBuffer: null,
@@ -1550,7 +1555,7 @@ app.post('/api/create-order', rateLimiter, async (req, res) => {
                 bookLength: isLong ? 'long' : 'short'
             };
             saveSession(effectivePreviewId, session);
-            console.log(`⚡ Direct checkout session created for ${session.childName} (id: ${effectivePreviewId})`);
+            console.log(`⚡ Direct checkout session created for ${session.childName} (id: ${effectivePreviewId}, offer: ${session.offer || 'none'})`);
         } else if (!session && !String(previewId || '').startsWith('test_')) {
             return res.status(404).json({ success: false, error: 'Preview session expired. Please preview your book again.' });
         }
@@ -1564,7 +1569,8 @@ app.post('/api/create-order', rateLimiter, async (req, res) => {
                     previewId: effectivePreviewId || '',
                     bookLength: isLong ? '22 pages' : '12 pages',
                     childName: session ? session.childName : 'Child',
-                    email: email || (session ? session.email : '')
+                    email: email || (session ? session.email : ''),
+                    offer: isOffer ? 'special99' : 'standard'
                 }
             });
             return res.json({
@@ -1666,6 +1672,10 @@ app.post('/api/verify-and-complete-book', rateLimiter, async (req, res) => {
             console.log('🔒 Exact approved preview cover locked for final book!');
         }
 
+        const isLong = String(bookLength || '').toLowerCase().includes('long') || String(bookLength || '').includes('24') || String(bookLength || '').includes('22') || String(bookLength || '').includes('28') || String(bookLength || '').includes('grand');
+        const isOffer = (session && session.offer === 'special99') || req.body.offer === 'special99';
+        const minExpectedPaise = isOffer ? (isLong ? 19900 : 9900) : (isLong ? 29900 : 19900);
+
         // =========================================================
         // HACK-PROOF RAZORPAY VERIFICATION & ANTI-REPLAY CHECK
         // =========================================================
@@ -1700,8 +1710,6 @@ app.post('/api/verify-and-complete-book', rateLimiter, async (req, res) => {
                 if (payment.order_id !== razorpay_order_id) {
                     return res.status(400).json({ success: false, error: 'Payment order ID mismatch.' });
                 }
-                const isLong = String(bookLength || '').toLowerCase().includes('long') || String(bookLength || '').includes('24') || String(bookLength || '').includes('22') || String(bookLength || '').includes('28') || String(bookLength || '').includes('grand');
-                const minExpectedPaise = isLong ? 29900 : 19900;
                 if (payment.amount < minExpectedPaise) {
                     return res.status(400).json({ success: false, error: 'Paid amount is less than the required book edition price.' });
                 }
@@ -1734,7 +1742,7 @@ app.post('/api/verify-and-complete-book', rateLimiter, async (req, res) => {
             previewId: session.previewId,
             orderId: razorpay_order_id || null,
             paymentId: razorpay_payment_id || null,
-            amountPaise: (typeof minExpectedPaise !== 'undefined') ? minExpectedPaise : 19900,
+            amountPaise: minExpectedPaise,
             email: email || session.email || null,
             bookLength
         });
@@ -2553,9 +2561,18 @@ app.get('/api/test-email', async (req, res) => {
 });
 
 app.use('/books', express.static(path.join(__dirname, 'books')));
+app.use('/public', express.static(path.join(__dirname, 'public')));
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.get('/special', (req, res) => {
+    res.sendFile(path.join(__dirname, 'special.html'));
+});
+
+app.get('/offer', (req, res) => {
+    res.sendFile(path.join(__dirname, 'special.html'));
 });
 
 // ====================================================================
