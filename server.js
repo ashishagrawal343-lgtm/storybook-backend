@@ -13,9 +13,11 @@ const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
 const Razorpay = require('razorpay');
 const sharp = require('sharp');
-// Strictly disable sharp cache and cap concurrency to 1 to guarantee memory stays <150MB
+// Strictly disable sharp cache, cap concurrency to 1, and disable simd to guarantee memory stays <150MB
 sharp.cache(false);
 sharp.concurrency(1);
+sharp.simd(false);
+console.log(`🚀 Process Memory Limits: max-old-space-size=280MB | global.gc=${typeof global.gc === 'function' ? 'enabled' : 'disabled'}`);
 
 // ====================================================================
 // CRITICAL PATCH: fontkit GPOS null anchor bug fix for Indic/Arabic fonts
@@ -286,6 +288,10 @@ function getJob(jobId) {
 
 function saveSession(previewId, sessionData) {
     if (!previewId) return;
+    // Strip giant raw image buffers from memory to keep session cache lean (<5MB)
+    if (sessionData.coverBuffer) sessionData.coverBuffer = null;
+    if (sessionData.bgBuffer) sessionData.bgBuffer = null;
+    if (sessionData.vigBuffer) sessionData.vigBuffer = null;
     previewSessions.set(previewId, sessionData);
     try {
         // Save session metadata without giant raw buffers to prevent disk bloat
@@ -1396,8 +1402,15 @@ async function fetchImageBuffer(url) {
 
 async function embedImageBuffer(pdfDoc, buf, label = 'image') {
     let img;
-    try { img = await pdfDoc.embedPng(buf); }
-    catch (e) { img = await pdfDoc.embedJpg(buf); }
+    // Fast magic byte check: PNG starts with 0x89 0x50 0x4E 0x47
+    const isPng = buf && buf.length > 4 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47;
+    if (isPng) {
+        try { img = await pdfDoc.embedPng(buf); }
+        catch (e) { img = await pdfDoc.embedJpg(buf); }
+    } else {
+        try { img = await pdfDoc.embedJpg(buf); }
+        catch (e) { img = await pdfDoc.embedPng(buf); }
+    }
 
     if (img && img.width) {
         const dpi = Math.round(img.width / 8.333);
@@ -2049,9 +2062,45 @@ class BookGenerationQueue {
             }
         }
     }
+
+    recoverPendingJobs() {
+        try {
+            if (!fs.existsSync(booksFolder)) return;
+            const files = fs.readdirSync(booksFolder);
+            const queueFiles = files.filter(f => f.startsWith('queue_') && f.endsWith('.json'));
+            if (queueFiles.length === 0) return;
+
+            console.log(`🔄 [QUEUE RECOVERY] Found ${queueFiles.length} pending job(s) from prior session. Recovering...`);
+            for (const file of queueFiles) {
+                try {
+                    const filePath = path.join(booksFolder, file);
+                    const raw = fs.readFileSync(filePath, 'utf8');
+                    const item = JSON.parse(raw);
+                    const job = getJob(item.jobId);
+                    if (job && job.status === 'completed') {
+                        try { fs.unlinkSync(filePath); } catch (_) {}
+                        continue;
+                    }
+                    const session = getSession(item.previewId);
+                    if (session) {
+                        item.session = session;
+                        console.log(`📥 [QUEUE RECOVERY] Auto-recovering interrupted job ${item.jobId} for ${(session && session.childName) || 'child'} (${item.parentEmail || (session && session.email)})`);
+                        this.enqueue(item);
+                    } else {
+                        console.warn(`⚠️ [QUEUE RECOVERY] Session data missing for queued job ${item.jobId} (previewId: ${item.previewId})`);
+                    }
+                } catch (err) {
+                    console.warn(`⚠️ [QUEUE RECOVERY] Error processing ${file}:`, err.message);
+                }
+            }
+        } catch (e) {
+            console.warn(`⚠️ [QUEUE RECOVERY] Error scanning for pending jobs:`, e.message);
+        }
+    }
 }
 
 const bookQueue = new BookGenerationQueue();
+bookQueue.recoverPendingJobs();
 
 // ====================================================================
 // FLOW B: STEP 3 - VERIFY PAYMENT & DISPATCH GENERATION JOB
@@ -2229,6 +2278,136 @@ app.post('/api/verify-and-complete-book', rateLimiter, async (req, res) => {
         res.status(500).json({ success: false, error: err.message });
     }
 });
+
+// ====================================================================
+// RECOVERY: MANUAL / AUTOMATED FULFILLMENT OF UNRECEIVED ORDERS
+// ====================================================================
+async function handleOrderFulfillment(req, res) {
+    try {
+        const paymentId = req.body.paymentId || req.query.paymentId;
+        const orderId = req.body.orderId || req.query.orderId;
+        const previewId = req.body.previewId || req.query.previewId;
+        let targetEmail = req.body.email || req.query.email;
+
+        console.log(`🔧 [ORDER FULFILLMENT] Request received: paymentId=${paymentId || 'none'}, orderId=${orderId || 'none'}, previewId=${previewId || 'none'}, email=${targetEmail || 'none'}`);
+
+        let effectivePreviewId = previewId;
+        let bookLength = '12 pages';
+        let childName = 'Child';
+        let paymentRecord = null;
+
+        // 1. If Razorpay paymentId provided, fetch payment details and notes
+        if (razorpay && paymentId) {
+            try {
+                paymentRecord = await razorpay.payments.fetch(paymentId);
+                if (paymentRecord) {
+                    if (paymentRecord.notes) {
+                        if (paymentRecord.notes.previewId) effectivePreviewId = paymentRecord.notes.previewId;
+                        if (paymentRecord.notes.email && !targetEmail) targetEmail = paymentRecord.notes.email;
+                        if (paymentRecord.notes.bookLength) bookLength = paymentRecord.notes.bookLength;
+                        if (paymentRecord.notes.childName) childName = paymentRecord.notes.childName;
+                    }
+                    if (paymentRecord.email && !targetEmail) targetEmail = paymentRecord.email;
+                }
+            } catch (err) {
+                console.warn(`⚠️ [ORDER FULFILLMENT] Razorpay payment fetch notice:`, err.message);
+            }
+        } else if (razorpay && orderId) {
+            try {
+                const payments = await razorpay.orders.fetchPayments(orderId);
+                if (payments && payments.items && payments.items.length > 0) {
+                    paymentRecord = payments.items.find(p => p.status === 'captured') || payments.items[0];
+                    if (paymentRecord) {
+                        if (paymentRecord.notes) {
+                            if (paymentRecord.notes.previewId) effectivePreviewId = paymentRecord.notes.previewId;
+                            if (paymentRecord.notes.email && !targetEmail) targetEmail = paymentRecord.notes.email;
+                            if (paymentRecord.notes.bookLength) bookLength = paymentRecord.notes.bookLength;
+                            if (paymentRecord.notes.childName) childName = paymentRecord.notes.childName;
+                        }
+                        if (paymentRecord.email && !targetEmail) targetEmail = paymentRecord.email;
+                    }
+                }
+            } catch (err) {
+                console.warn(`⚠️ [ORDER FULFILLMENT] Razorpay order fetch notice:`, err.message);
+            }
+        }
+
+        // 2. Load or reconstruct session
+        let session = effectivePreviewId ? getSession(effectivePreviewId) : null;
+        if (!session && effectivePreviewId) {
+            const diskCoverPath = path.join(booksFolder, `preview_${effectivePreviewId}_cover.png`);
+            if (fs.existsSync(diskCoverPath)) {
+                session = {
+                    previewId: effectivePreviewId,
+                    childName,
+                    gender: 'hero',
+                    age: 5,
+                    theme: 'Magical Forest',
+                    language: 'English',
+                    email: targetEmail || '',
+                    coverBuffer: fs.readFileSync(diskCoverPath),
+                    charAnchor: 'adorable child hero in luminous painterly picture book art',
+                    pal: themeKit('Magical Forest'),
+                    title: `${childName}'s Adventure`,
+                    bookTitle: `${childName}'s Adventure`,
+                    scenesData: []
+                };
+            }
+        }
+
+        if (!session) {
+            return res.status(404).json({
+                success: false,
+                error: 'Could not find preview session data for this order. Please provide your previewId, childName, or payment details.',
+                details: { paymentId, orderId, effectivePreviewId, targetEmail }
+            });
+        }
+
+        // 3. Create fresh Job and enqueue
+        const jobId = `job_fulfill_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+        const emailToDeliver = targetEmail || session.email;
+        saveJob(jobId, {
+            id: jobId,
+            timestamp: Date.now(),
+            status: 'queued',
+            progress: 15,
+            step: 'Assembling and rendering high-resolution storybook...',
+            pdfUrl: null,
+            emailed: false,
+            error: null,
+            previewId: session.previewId,
+            orderId: orderId || null,
+            paymentId: paymentId || (paymentRecord && paymentRecord.id) || null,
+            email: emailToDeliver,
+            bookLength
+        });
+
+        bookQueue.enqueue({
+            jobId,
+            session,
+            bookLength,
+            parentEmail: emailToDeliver,
+            protocol: req.protocol,
+            host: req.get('host')
+        });
+
+        return res.json({
+            success: true,
+            message: `Fulfillment job started! Your storybook is generating and will be sent directly to ${emailToDeliver}.`,
+            jobId,
+            statusUrl: `/api/download/${jobId}`,
+            email: emailToDeliver
+        });
+    } catch (err) {
+        console.error('❌ [ORDER FULFILLMENT] Error:', err.message);
+        return res.status(500).json({ success: false, error: err.message });
+    }
+}
+
+app.post('/api/admin/fulfill-order', handleOrderFulfillment);
+app.get('/api/admin/fulfill-order', handleOrderFulfillment);
+app.post('/api/fulfill-order', handleOrderFulfillment);
+app.get('/api/fulfill-order', handleOrderFulfillment);
 
 // ====================================================================
 // JOB STATUS POLLING
@@ -2415,7 +2594,7 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
             }
         }
 
-        const pdfDoc = await PDFDocument.create();
+        let pdfDoc = await PDFDocument.create();
         pdfDoc.setTitle(`${childName}'s ${title}`);
         pdfDoc.setAuthor('TwinkleTale');
         pdfDoc.setSubject(`A personalized keepsake bedtime storybook for ${childName}`);
@@ -2536,17 +2715,17 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
                 }
             }
 
-            // High-fidelity print enhancement: upscale to 1800x2400 (300 DPI for 600x800 pt page)
+            // High-fidelity print enhancement: 1200x1600 (200 DPI print-fidelity for 600x800 pt page)
+            // Uses JPEG with 4:4:4 chroma subsampling at 92 quality, cutting RAM by ~80MB vs uncompressed PNG
             try {
                 coverImgBuffer = await sharp(coverImgBuffer)
-                    .resize(1800, 2400, {
-                        kernel: sharp.kernel.lanczos3,
+                    .resize(1200, 1600, {
                         fit: 'cover'
                     })
                     .sharpen({ sigma: 1.0, m1: 0.5, m2: 0.5 })
-                    .png({ quality: 100, compressionLevel: 6 })
+                    .jpeg({ quality: 92, chromaSubsampling: '4:4:4' })
                     .toBuffer();
-                console.log(`✅ [COVER PRINT ENHANCEMENT] Final book cover enhanced to 1800x2400 (300 DPI) for print perfection.`);
+                console.log(`✅ [COVER PRINT ENHANCEMENT] Final book cover enhanced to 1200x1600 (JPEG 92 4:4:4) for crisp print perfection & minimal RAM.`);
             } catch (sharpErr) {
                 console.warn(`⚠️ [COVER PRINT ENHANCEMENT] Sharp enhancement notice:`, sharpErr.message);
             }
@@ -2554,6 +2733,8 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
             // High-resolution unified cover composite (identical to approved preview)
             const coverImg = await embedImageBuffer(pdfDoc, coverImgBuffer, 'cover');
             cover.drawImage(coverImg, coverFit(coverImg, PAGE_W, PAGE_H));
+            coverImgBuffer = null;
+            if (global.gc) global.gc();
         } else {
             // Fallback: draw theme border, child medallion, and non-overlapping typography via pdf-lib
             if (session.bgBuffer) {
@@ -2760,7 +2941,7 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
                 const fallbackPrompt = STYLE + `Masterpiece modern children's picture book illustration in award-winning painterly realism, fine digital gouache: featuring a cheerful young ${charDetails.genderClean || 'hero'} in ${activeOutfit}, smiling happily in this scene: ${rawPrompt}`;
                 rawUrl = await generateImage(fallbackPrompt, session.referencePortraitUrl || null, { isFace: true, upscale: false });
             }
-            const rawBuf = await fetchImageBuffer(rawUrl);
+            let rawBuf = await fetchImageBuffer(rawUrl);
 
             // Memory-optimized 1200x1600 JPEG compression for 300 DPI print quality (<400KB per page on disk)
             const sceneDiskPath = path.join(booksFolder, `temp_scene_${jobId}_${i}.jpg`);
@@ -2768,6 +2949,8 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
                 .resize(1200, 1600, { fit: 'inside', withoutEnlargement: true })
                 .jpeg({ quality: 90 })
                 .toFile(sceneDiskPath);
+            rawBuf = null;
+            if (global.gc) global.gc();
 
             sceneFilePaths[i] = sceneDiskPath;
 
@@ -2789,9 +2972,11 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
                 throw new Error(`Scene image file missing for scene ${i + 1}`);
             }
             const sceneImg = await embedImageBuffer(pdfDoc, sceneImgBuf, `scene ${i + 1}`);
+            sceneImgBuf = null;
 
             // Clean up temporary disk file immediately after embedding to keep disk lean
             try { fs.unlinkSync(sceneFilePath); } catch (_) {}
+            if (global.gc) global.gc();
 
             // LEFT PAGE: Full-bleed Scene Illustration
             const imgPage = pdfDoc.addPage([PAGE_W, PAGE_H]);
@@ -2911,13 +3096,16 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
 
         // ================= STRICT PAGE COUNT GUARDRAIL (PRINT-SHOP MULTIPLES OF 4) =================
         const expectedPages = (scenes * 2) + 4;
-        if (pdfDoc.getPageCount() !== expectedPages) {
-            throw new Error(`PAGE COUNT GUARDRAIL VIOLATION: Expected exactly ${expectedPages} pages but generated ${pdfDoc.getPageCount()}`);
+        const finalPageCount = pdfDoc.getPageCount();
+        if (finalPageCount !== expectedPages) {
+            throw new Error(`PAGE COUNT GUARDRAIL VIOLATION: Expected exactly ${expectedPages} pages but generated ${finalPageCount}`);
         }
 
         // ================= SAVE & UPLOAD =================
         update(97, 'Saving print-ready PDF...');
         const pdfBytes = await pdfDoc.save();
+        pdfDoc = null; // Release full PDF Document and embedded page objects from heap
+        if (global.gc) global.gc();
         const safeName = String(childName).replace(/[^a-zA-Z0-9_-]/g, '_');
         const cryptToken = crypto.randomBytes(16).toString('hex');
         const fileName = `twinkletale_${safeName}_${cryptToken}.pdf`;
