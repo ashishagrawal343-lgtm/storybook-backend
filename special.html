@@ -1343,6 +1343,29 @@
             </div>
             <i class="fa-solid fa-circle-check" style="color:#15803D;font-size:1.4rem;"></i>
           </div>
+
+          <!-- Distinctive Cultural & Personal Features (Optional) -->
+          <div style="margin-top:10px;background:#F8FAFC;border:1px solid var(--border-light);border-radius:var(--radius-sm);padding:10px 14px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="toggleFeatureOptions()">
+              <span style="font-size:0.84rem;font-weight:700;color:var(--navy);">
+                ✨ Distinctive Features (Optional)
+              </span>
+              <span id="featureToggleIcon" style="font-size:0.75rem;color:var(--text-muted);"><i class="fa-solid fa-chevron-down"></i></span>
+            </div>
+            <div id="featureOptionsBox" style="display:none;margin-top:10px;padding-top:8px;border-top:1px dashed #E2E8F0;">
+              <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:8px;">
+                Our AI automatically detects features from the photo, but you can also select them below to guarantee 100% preservation:
+              </p>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                <label style="display:inline-flex;align-items:center;gap:6px;background:#FFFFFF;border:1px solid var(--border-light);border-radius:20px;padding:6px 14px;font-size:0.82rem;font-weight:600;color:var(--navy);cursor:pointer;">
+                  <input type="checkbox" id="featureTurban"> 👳 Turban / Patka
+                </label>
+                <label style="display:inline-flex;align-items:center;gap:6px;background:#FFFFFF;border:1px solid var(--border-light);border-radius:20px;padding:6px 14px;font-size:0.82rem;font-weight:600;color:var(--navy);cursor:pointer;">
+                  <input type="checkbox" id="featureGlasses"> 👓 Glasses / Spectacles
+                </label>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Optional Dedication Message -->
@@ -1917,6 +1940,30 @@
       reader.readAsDataURL(file);
     }
 
+    // Distinctive Features Helpers
+    function toggleFeatureOptions() {
+      const box = document.getElementById('featureOptionsBox');
+      const icon = document.getElementById('featureToggleIcon');
+      if (!box) return;
+      const isOpen = box.style.display !== 'none';
+      box.style.display = isOpen ? 'none' : 'block';
+      if (icon) icon.innerHTML = isOpen ? '<i class="fa-solid fa-chevron-down"></i>' : '<i class="fa-solid fa-chevron-up"></i>';
+    }
+
+    function getSelectedAttributes() {
+      const turban = document.getElementById('featureTurban')?.checked;
+      const glasses = document.getElementById('featureGlasses')?.checked;
+      const attrs = {};
+      if (turban) {
+        attrs.hasHeadwear = true;
+        attrs.headwearType = 'turban';
+      }
+      if (glasses) {
+        attrs.hasGlasses = true;
+      }
+      return attrs;
+    }
+
     // Generate Free Preview Flow
     async function handleGeneratePreview() {
       const childName = document.getElementById('childName').value.trim();
@@ -1973,6 +2020,7 @@
             theme: selectedTheme,
             language,
             photoData: currentPhotoBase64,
+            attributes: getSelectedAttributes(),
             dedication,
             email,
             offer: 'special99'
@@ -2000,7 +2048,7 @@
           document.getElementById('loadingCard').style.display = 'none';
           document.getElementById('previewResultCard').style.display = 'block';
           window.scrollTo({ top: document.getElementById('previewResultCard').offsetTop - 30, behavior: 'smooth' });
-        }, 500);
+        }, 400);
 
       } catch (err) {
         clearInterval(progressTimer);
@@ -2041,6 +2089,7 @@
             theme: selectedTheme,
             language: 'English',
             photoData: currentPhotoBase64,
+            attributes: getSelectedAttributes(),
             dedication: document.getElementById('dedicationInput').value.trim(),
             email,
             bookLength: isLong ? '22 pages' : '12 pages',

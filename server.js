@@ -148,13 +148,14 @@ console.log(`🚀 Image Generation Pipeline: ${PIPELINE_VERSION.toUpperCase()} (
 
 // Cover Pipeline Versioning (v2 reimagined default, with v1 instant rollback via COVER_PIPELINE_VERSION=v1)
 const { CoverDesignEngine } = require('./lib/cover/coverEngine');
+const { extractPhotoVisualAttributes } = require('./lib/vision/attributeExtractor');
 const COVER_PIPELINE_VERSION = process.env.COVER_PIPELINE_VERSION || 'v2';
 const IS_COVER_V2 = COVER_PIPELINE_VERSION !== 'v1';
 console.log(`🎨 Book Cover Pipeline: ${COVER_PIPELINE_VERSION.toUpperCase()} (v1 rollback available via COVER_PIPELINE_VERSION=v1)`);
 
 const coverEngine = new CoverDesignEngine({
     generateImage: (prompt, photoData, options) => generateImage(prompt, photoData, options),
-    generateAvatar: (photoData, charAnchor) => generateAvatar(photoData, charAnchor),
+    generateAvatar: (photoData, charAnchor, attributes) => generateAvatar(photoData, charAnchor, attributes),
     fetchImageBuffer: (url) => fetchImageBuffer(url)
 });
 
@@ -487,7 +488,7 @@ function getSceneCount(bookLength) {
     return 4; // 4 scenes = 8 interior story pages + 4 structural (cover, ded, seal, back) = 12 total pages (Treasury standard)
 }
 
-function getCharacterDetails(childName, gender, age, theme) {
+function getCharacterDetails(childName, gender, age, theme, attributes = {}) {
     const g = String(gender || '').toLowerCase().trim();
     let genderClean = 'boy';
     let pronoun = 'his';
@@ -526,15 +527,30 @@ function getCharacterDetails(childName, gender, age, theme) {
         outfit = 'wearing warm fluffy cloud-white bedtime pajamas sprinkled with tiny golden stars';
     }
 
+    let headAndHairDesc = 'finely rendered hair with golden rim lighting';
+    if (attributes && attributes.hasHeadwear) {
+        const headwearDesc = attributes.headwearDescription || (attributes.headwearType !== 'none' ? `authentic ${attributes.headwearType}` : 'authentic turban');
+        headAndHairDesc = `wearing an authentic ${headwearDesc} with golden rim lighting`;
+    }
+
+    const extraFeatures = [];
+    if (attributes && attributes.hasGlasses) {
+        extraFeatures.push(`wearing ${attributes.glassesDescription || 'spectacles'}`);
+    }
+    if (attributes && attributes.skinTone) {
+        extraFeatures.push(`authentic ${attributes.skinTone} skin`);
+    }
+    const extraFeaturesStr = extraFeatures.length > 0 ? `, ${extraFeatures.join(', ')}` : '';
+
     const charAnchorText = (genderClean === 'little star')
-        ? `a cheerful young child hero named ${childName} with soulful sparkling dark eyes, charming button nose, joyful warm smile, finely rendered hair with golden rim lighting, painterly storybook realism, ${outfit}`
-        : `a cheerful young ${genderClean} named ${childName} with soulful sparkling dark eyes, charming button nose, joyful warm smile, finely rendered hair with golden rim lighting, painterly storybook realism, ${outfit}`;
+        ? `a cheerful young child hero named ${childName} with soulful sparkling dark eyes, charming button nose, joyful warm smile, ${headAndHairDesc}${extraFeaturesStr}, painterly storybook realism, ${outfit}`
+        : `a cheerful young ${genderClean} named ${childName} with soulful sparkling dark eyes, charming button nose, joyful warm smile, ${headAndHairDesc}${extraFeaturesStr}, painterly storybook realism, ${outfit}`;
 
     const charAnchorVisual = (genderClean === 'little star')
-        ? `a cheerful young child hero with soulful sparkling dark eyes, charming button nose, joyful warm smile, finely rendered hair with golden rim lighting, painterly storybook realism, ${outfit}`
-        : `a cheerful young ${genderClean} hero with soulful sparkling dark eyes, charming button nose, joyful warm smile, finely rendered hair with golden rim lighting, painterly storybook realism, ${outfit}`;
+        ? `a cheerful young child hero with soulful sparkling dark eyes, charming button nose, joyful warm smile, ${headAndHairDesc}${extraFeaturesStr}, painterly storybook realism, ${outfit}`
+        : `a cheerful young ${genderClean} hero with soulful sparkling dark eyes, charming button nose, joyful warm smile, ${headAndHairDesc}${extraFeaturesStr}, painterly storybook realism, ${outfit}`;
 
-    return { genderClean, childAge, pronoun, subjectPronoun, charAnchor: charAnchorVisual, charAnchorVisual, charAnchorText, outfit };
+    return { genderClean, childAge, pronoun, subjectPronoun, charAnchor: charAnchorVisual, charAnchorVisual, charAnchorText, outfit, attributes };
 }
 
 // Helper to safely extract string URL from Replicate output
@@ -1031,13 +1047,19 @@ async function renderDedicationBlockPng(title, rhyme, forLabel, dedMsg, options 
 }
 
 // WHIMSICAL STORYBOOK AVATAR (GHIBLI / WATERCOLOR PICTURE BOOK STYLE)
-async function generateAvatar(photoData, charAnchor) {
+async function generateAvatar(photoData, charAnchor, attributes = {}) {
     if (photoData) {
         const t0 = Date.now();
         const modelUsed = "black-forest-labs/flux-kontext-pro";
         try {
-            console.log("  → Transforming reference photo into rich painterly storybook avatar via flux-kontext-pro (80-90% resemblance)...");
-            const rawAvatarPrompt = `Transform the child in this photo into an adorable, charming storybook hero in lush painterly storybook realism, soft digital gouache and fine oils texture, gentle cinematic golden lighting. Preserve 80% to 90% facial likeness and exact identity of the child in the photo: accurately preserve their unique facial structure, exact eye shape, iris color, eyebrow shape, nose bridge and nose tip, mouth and lip shape, warm dimensional glow, hairstyle, hair texture, and natural hairline, while translating them seamlessly into rich picture-book painterly art. Centered head-and-shoulders portrait of the child in a cozy storybook adventure outfit, eye level, face fully in frame with generous margin around hair and chin, portrait orientation. Natural soft dimensional lighting, warm lifelike glow, authentic happy smile, finely rendered hair catching gentle rim light. Rich picture book artistry, digital gouache and fine oils. Not flat 2D cartoon, not stiff 3D CGI, not plastic, no text, no watermark`;
+            console.log("  → Transforming reference photo into rich painterly storybook avatar via flux-kontext-pro (90-95% likeness)...");
+            const headwearDirective = (attributes && attributes.hasHeadwear)
+                ? `[CRITICAL CULTURAL ACCURACY: The child is wearing an authentic ${attributes.headwearDescription || 'turban'}; faithfully preserve this exact headwear; do NOT replace the headwear with any cap, hat, or bare hair.] `
+                : '';
+            const glassesDirective = (attributes && attributes.hasGlasses)
+                ? `[CRITICAL VISUAL FEATURE: The child is wearing ${attributes.glassesDescription || 'spectacles'}; preserve the spectacles on their face.] `
+                : '';
+            const rawAvatarPrompt = `Transform the child in this photo into an adorable, charming storybook hero in lush painterly storybook realism, soft digital gouache and fine oils texture, gentle cinematic golden lighting. ${headwearDirective}${glassesDirective}Preserve 90% to 95% facial likeness and exact identity of the child in the photo: accurately preserve their unique facial structure, exact eye shape, iris color, eyebrow shape, nose bridge and nose tip, mouth and lip contour, natural skin tone, hairstyle, hair texture, and natural hairline, while translating them seamlessly into rich picture-book painterly art. Centered head-and-shoulders portrait of the child in a cozy storybook adventure outfit, eye level, face fully in frame with generous margin around hair and chin, portrait orientation. Natural soft dimensional lighting, warm lifelike glow, authentic happy smile, finely rendered hair catching gentle rim light. Rich picture book artistry, digital gouache and fine oils. Not flat 2D cartoon, not stiff 3D CGI, not plastic, no text, no watermark`;
             const avatarPrompt = sanitizePromptForSafety(rawAvatarPrompt);
             const out = await withRetry('avatar transformation (flux-kontext-pro)', async () => {
                 return await replicate.run(modelUsed, {
@@ -1046,7 +1068,8 @@ async function generateAvatar(photoData, charAnchor) {
                         prompt: avatarPrompt,
                         aspect_ratio: "1:1",
                         output_format: "png",
-                        safety_tolerance: 2
+                        safety_tolerance: 2,
+                        prompt_upsampling: false
                     }
                 });
             }, 2, 3000);
@@ -1060,14 +1083,15 @@ async function generateAvatar(photoData, charAnchor) {
             if (isSensitiveError) {
                 console.warn("⚠️ [AVATAR] Content moderation notice on photo, retrying with sanitized storybook portrait prompt...");
                 try {
-                    const safeAvatarPrompt = `Transform the child in this photo into a charming, cheerful storybook hero in lush painterly storybook realism, soft digital gouache, gentle golden lighting. Accurately preserve facial likeness, eye shape, and authentic happy smile. Centered head-and-shoulders portrait of the child in a cozy storybook adventure outfit. Rich picture book art, no text, no watermark`;
+                    const safeAvatarPrompt = `Transform the child in this photo into a charming, cheerful storybook hero in lush painterly storybook realism, soft digital gouache, gentle golden lighting. Accurately preserve 90-95% facial likeness, eye shape, and authentic happy smile. Centered head-and-shoulders portrait of the child in a cozy storybook adventure outfit. Rich picture book art, no text, no watermark`;
                     const safeOut = await replicate.run(modelUsed, {
                         input: {
                             input_image: photoData,
                             prompt: safeAvatarPrompt,
                             aspect_ratio: "1:1",
                             output_format: "png",
-                            safety_tolerance: 2
+                            safety_tolerance: 2,
+                            prompt_upsampling: false
                         }
                     });
                     const safeUrl = extractUrl(safeOut);
@@ -1224,15 +1248,15 @@ async function generateImage(prompt, photoData, options = {}) {
         const modelUsed = "black-forest-labs/flux-kontext-pro";
         try {
             const out = await withRetry('scene generation (flux-kontext-pro)', async () => {
-                return await replicate.run(modelUsed, {
-                    input: {
-                        input_image: photoData,
-                        prompt: finalPrompt,
-                        aspect_ratio: options.aspect_ratio || "3:4",
-                        output_format: "png",
-                        safety_tolerance: 2
-                    }
-                });
+                const inputPayload = {
+                    input_image: photoData,
+                    prompt: finalPrompt,
+                    aspect_ratio: options.aspect_ratio || "3:4",
+                    output_format: "png",
+                    safety_tolerance: 2,
+                    prompt_upsampling: options.prompt_upsampling !== undefined ? options.prompt_upsampling : false
+                };
+                return await replicate.run(modelUsed, { input: inputPayload });
             }, 2, 3000);
             rawUrl = extractUrl(out);
             if (rawUrl) {
@@ -1254,7 +1278,8 @@ async function generateImage(prompt, photoData, options = {}) {
                             prompt: safeCleanPrompt,
                             aspect_ratio: options.aspect_ratio || "3:4",
                             output_format: "png",
-                            safety_tolerance: 2
+                            safety_tolerance: 2,
+                            prompt_upsampling: false
                         }
                     });
                     rawUrl = extractUrl(safeOut);
@@ -1431,17 +1456,20 @@ function getThemeTitleExample(theme, childName) {
 app.post('/api/create-preview', rateLimiter, async (req, res) => {
     const t0 = Date.now();
     try {
-        const { childName, gender, age, theme, language, photoData, dedication, email, offer } = req.body;
+        const { childName, gender, age, theme, language, photoData, dedication, email, offer, attributes: clientAttributes } = req.body;
         if (!childName) return res.status(400).json({ success: false, error: 'Child name is required' });
 
         const lang = String(language || 'English').trim();
-        const { genderClean, childAge, pronoun, subjectPronoun, charAnchor } = getCharacterDetails(childName, gender, age, theme);
+
+        // Step 0: Extract or merge visual & cultural attributes from reference photo
+        const visualAttributes = await extractPhotoVisualAttributes(photoData, clientAttributes);
+        const { genderClean, childAge, pronoun, subjectPronoun, charAnchor } = getCharacterDetails(childName, gender, age, theme, visualAttributes);
 
         const base = String(theme || 'Story').split(' (')[0];
         const pal = themeKit(base);
         assertZones();
 
-        console.log(`✨ Preview | ${childName} (${genderClean}, ${childAge}) | ${base} | Lang=${lang}`);
+        console.log(`✨ Preview | ${childName} (${genderClean}, ${childAge}) | ${base} | Lang=${lang}${visualAttributes.hasHeadwear ? ` | Headwear=${visualAttributes.headwearDescription}` : ''}${visualAttributes.hasGlasses ? ` | Glasses=yes` : ''}`);
 
         // Step 1: LLM unique title & opening rhyme (streamlined for fast preview load)
         const genderGuidance = (genderClean === 'little star')
@@ -1489,7 +1517,8 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme") MUST
                     charAnchor,
                     bookTitle: titlePromise,
                     language: lang,
-                    photoData
+                    photoData,
+                    attributes: visualAttributes
                 });
             }, 2, 3000);
 
@@ -1559,6 +1588,7 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme") MUST
             timestamp: Date.now(),
             childName, gender: genderClean, age: childAge, theme, language: lang,
             photoData, dedication, email,
+            attributes: visualAttributes,
             charAnchor, pronoun, subjectPronoun, pal,
             title: bookTitle, bookTitle,
             coverUrl: coverPublicUrl,
@@ -1589,6 +1619,7 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme") MUST
             coverDataUrl: coverPublicUrl,
             coverUrl: coverPublicUrl,
             offer: offer || req.body.offer || null,
+            attributes: visualAttributes,
             // Backwards compatibility fields
             vignetteDataUrl: coverPublicUrl,
             coverBgDataUrl: coverPublicUrl,
@@ -1626,9 +1657,10 @@ app.post('/api/create-order', rateLimiter, async (req, res) => {
 
         // Direct Checkout Support (instant payment without prior preview generation)
         if (req.body.isDirectCheckout || (!session && req.body.childName)) {
-            const { childName, gender, age, theme, language, photoData, dedication, email: reqEmail } = req.body;
+            const { childName, gender, age, theme, language, photoData, dedication, email: reqEmail, attributes: clientAttributes } = req.body;
             effectivePreviewId = `direct_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-            const { genderClean, childAge, pronoun, subjectPronoun, charAnchor } = getCharacterDetails(childName, gender, age, theme);
+            const visualAttributes = await extractPhotoVisualAttributes(photoData, clientAttributes);
+            const { genderClean, childAge, pronoun, subjectPronoun, charAnchor } = getCharacterDetails(childName, gender, age, theme, visualAttributes);
             const lang = language || 'English';
             const base = String(theme || 'Magical Forest').split(' (')[0];
             const pal = themeKit(base);
@@ -1644,6 +1676,7 @@ app.post('/api/create-order', rateLimiter, async (req, res) => {
                 theme: base,
                 language: lang,
                 photoData: photoData || null,
+                attributes: visualAttributes,
                 dedication: dedication || '',
                 email: email || reqEmail || '',
                 offer: isOffer ? 'special99' : null,
@@ -2554,6 +2587,10 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
 
         // Character Traits & Consistent Wardrobe Anchors
         const charDetails = getCharacterDetails(childName, gender, age, theme);
+        const bookAttributes = session.attributes || (photoData ? await extractPhotoVisualAttributes(photoData) : {});
+        if (bookAttributes && (bookAttributes.hasHeadwear || bookAttributes.hasGlasses || bookAttributes.skinTone)) {
+            Object.assign(charDetails, getCharacterDetails(childName, gender, age, theme, bookAttributes));
+        }
         const activeCharAnchor = charAnchor || charDetails.charAnchor;
         const activeOutfit = charDetails.outfit;
 
@@ -2579,7 +2616,7 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         } else if (!visualCondition) {
             try {
                 console.log("🎨 Generating locked reference portrait for text-only book session...");
-                session.referencePortraitUrl = await generateAvatar(null, activeCharAnchor);
+                session.referencePortraitUrl = await generateAvatar(null, activeCharAnchor, bookAttributes);
                 visualCondition = session.referencePortraitUrl;
             } catch (err) {
                 console.warn("⚠️ Could not generate locked reference portrait:", err.message);
@@ -2604,8 +2641,22 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
                 rawPrompt = rawPrompt.replace(nameRegex, (gender === 'little star') ? 'the child' : `the little ${charDetails.genderClean || 'hero'}`);
             }
 
+            let attributePrefix = '';
+            let attributeNegative = '';
+            if (bookAttributes && bookAttributes.hasHeadwear) {
+                const headwearName = bookAttributes.headwearDescription || (bookAttributes.headwearType !== 'none' ? `authentic ${bookAttributes.headwearType}` : 'authentic turban');
+                attributePrefix += `(wearing an authentic ${headwearName}:1.35), `;
+                attributeNegative = `Strict cultural requirement: Preserve the child's authentic ${headwearName} in this scene; do NOT add any hat, cap, or generic headwear. `;
+            }
+            if (bookAttributes && bookAttributes.hasGlasses) {
+                attributePrefix += `(wearing ${bookAttributes.glassesDescription || 'spectacles'}:1.3), `;
+            }
+            if (bookAttributes && bookAttributes.skinTone) {
+                attributePrefix += `(authentic ${bookAttributes.skinTone} skin:1.2), `;
+            }
+
             const identityDirective = (IS_V2 && visualCondition)
-                ? `Masterpiece modern children's picture book illustration in award-winning painterly realism, fine digital gouache and soft luminous artisan oils: featuring the exact same ${charDetails.genderClean || 'hero'} from the reference photo (${activeCharAnchor}), preserving 80-90% facial likeness and identity: identical facial structure, eye shape, eyebrows, nose, mouth, authentic cheerful smile, natural skin tone, hair texture, and consistently ${activeOutfit}. In this scene: ${rawPrompt}`
+                ? `${attributePrefix}Masterpiece modern children's picture book illustration in award-winning painterly realism, fine digital gouache and soft luminous artisan oils: featuring the exact same ${charDetails.genderClean || 'hero'} from the reference photo (${activeCharAnchor}), ${attributeNegative}preserving 80-90% facial likeness and identity: identical facial structure, eye shape, eyebrows, nose, mouth, authentic cheerful smile, natural skin tone, hair texture, and consistently ${activeOutfit}. In this scene: ${rawPrompt}`
                 : `Masterpiece modern children's picture book illustration in award-winning painterly realism, fine digital gouache and soft luminous artisan oils: featuring ${activeCharAnchor}, consistently ${activeOutfit}. In this scene: ${rawPrompt}`;
             const scenePrompt = STYLE + identityDirective;
 
