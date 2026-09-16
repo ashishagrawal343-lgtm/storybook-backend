@@ -267,17 +267,22 @@ setInterval(() => {
     const now = Date.now();
     for (const [id, item] of previewSessions.entries()) {
         if (now - item.timestamp > 30 * 60 * 1000) {
-            try {
-                const fPath = path.join(booksFolder, `preview_${id}_cover.png`);
-                if (fs.existsSync(fPath)) fs.unlinkSync(fPath);
-                const sPath = path.join(booksFolder, `session_${id}.json`);
-                if (fs.existsSync(sPath)) fs.unlinkSync(sPath);
-            } catch (_) {}
-            previewSessions.delete(id);
+            const inUse = (typeof bookQueue !== 'undefined' && bookQueue && bookQueue.isSessionInUse && bookQueue.isSessionInUse(id)) ||
+                Array.from(activeJobs.values()).some(j => j.previewId === id && (j.status === 'generating' || j.status === 'queued'));
+            if (!inUse) {
+                try {
+                    const fPath = path.join(booksFolder, `preview_${id}_cover.png`);
+                    if (fs.existsSync(fPath)) fs.unlinkSync(fPath);
+                    const sPath = path.join(booksFolder, `session_${id}.json`);
+                    if (fs.existsSync(sPath)) fs.unlinkSync(sPath);
+                } catch (_) {}
+                previewSessions.delete(id);
+            }
         }
     }
     for (const [id, item] of activeJobs.entries()) {
-        if (now - (item.timestamp || 0) > 30 * 60 * 1000) {
+        // Keep order and job records for at least 30 days to support permanent download links
+        if (now - (item.timestamp || 0) > 30 * 24 * 60 * 60 * 1000) {
             try {
                 const jPath = path.join(booksFolder, `job_${id}.json`);
                 if (fs.existsSync(jPath)) fs.unlinkSync(jPath);
@@ -1698,6 +1703,248 @@ app.post('/api/create-order', rateLimiter, async (req, res) => {
 });
 
 // ====================================================================
+// ROBUST ASYNCHRONOUS BOOK GENERATION QUEUE (CONCURRENCY=1, 3 RETRIES, DLQ)
+// ====================================================================
+class BookGenerationQueue {
+    constructor() {
+        this.queue = [];
+        this.processing = false;
+        this.concurrency = 1;
+        this.maxAttempts = 3;
+        this.currentItem = null;
+    }
+
+    isSessionInUse(previewId) {
+        if (!previewId) return false;
+        if (this.currentItem && ((this.currentItem.session && this.currentItem.session.previewId === previewId) || this.currentItem.previewId === previewId)) {
+            return true;
+        }
+        return this.queue.some(item => (item.session && item.session.previewId === previewId) || item.previewId === previewId);
+    }
+
+    enqueue(item) {
+        if (!item || !item.jobId) return;
+        item.attempts = item.attempts || 0;
+        item.enqueuedAt = item.enqueuedAt || Date.now();
+
+        // Write disk queue file for crash/restart recovery
+        try {
+            const qFile = path.join(booksFolder, `queue_${item.jobId}.json`);
+            const safeItem = {
+                jobId: item.jobId,
+                attempts: item.attempts,
+                bookLength: item.bookLength,
+                parentEmail: item.parentEmail,
+                protocol: item.protocol,
+                host: item.host,
+                previewId: (item.session && item.session.previewId) || item.previewId,
+                enqueuedAt: item.enqueuedAt
+            };
+            fs.writeFileSync(qFile, JSON.stringify(safeItem, null, 2));
+        } catch (err) {
+            console.warn(`⚠️ [QUEUE] Could not persist queue_${item.jobId}.json:`, err.message);
+        }
+
+        this.queue.push(item);
+        console.log(`📥 [QUEUE] Job ${item.jobId} enqueued. Queue length: ${this.queue.length}`);
+
+        // Trigger worker asynchronously
+        setImmediate(() => this.processNext());
+    }
+
+    async processNext() {
+        if (this.processing || this.queue.length === 0) {
+            return;
+        }
+
+        this.processing = true;
+        const item = this.queue.shift();
+        this.currentItem = item;
+        const { jobId, bookLength, parentEmail, protocol, host } = item;
+        let session = item.session;
+
+        // Restore session from disk if recovering from restart
+        if (!session && item.previewId) {
+            session = getSession(item.previewId);
+        }
+
+        console.log(`⚡ [QUEUE] Starting Job ${jobId} (Attempt ${item.attempts + 1}/${this.maxAttempts}). Remaining in queue: ${this.queue.length}`);
+
+        try {
+            await assembleFullBookAsync(jobId, session, bookLength, parentEmail, protocol, host);
+
+            // Successfully fulfilled: remove queue persistence file
+            try {
+                const qFile = path.join(booksFolder, `queue_${jobId}.json`);
+                if (fs.existsSync(qFile)) fs.unlinkSync(qFile);
+            } catch (_) {}
+
+            console.log(`🎉 [QUEUE] Job ${jobId} fulfilled successfully!`);
+            this.currentItem = null;
+            this.processing = false;
+            this.processNext();
+        } catch (err) {
+            item.attempts = (item.attempts || 0) + 1;
+            console.error(`❌ [QUEUE] Job ${jobId} failed on attempt ${item.attempts}/${this.maxAttempts}:`, err.message);
+
+            if (item.attempts < this.maxAttempts) {
+                // Exponential backoff: Attempt 1 fail -> 15s delay; Attempt 2 fail -> 45s delay
+                const delayMs = item.attempts === 1 ? 15000 : 45000;
+                console.log(`⏳ [QUEUE RETRY] Backing off for ${delayMs / 1000}s before retrying Job ${jobId} (Attempt ${item.attempts + 1}/${this.maxAttempts})...`);
+
+                // Inform status checkers that retry is in progress
+                const j = getJob(jobId) || { id: jobId, timestamp: Date.now() };
+                j.progress = 25;
+                j.step = `Re-calibrating storybook rendering (attempt ${item.attempts + 1}/${this.maxAttempts})...`;
+                j.retryCount = item.attempts;
+                saveJob(jobId, j);
+
+                setTimeout(() => {
+                    // Prepend back to front of queue to prioritize this paying customer
+                    this.queue.unshift(item);
+                    this.currentItem = null;
+                    this.processing = false;
+                    this.processNext();
+                }, delayMs);
+            } else {
+                // All 3 attempts exhausted -> Move to Dead Letter Queue (DLQ)
+                await this.handleDeadLetter(item, err);
+                this.currentItem = null;
+                this.processing = false;
+                this.processNext();
+            }
+        }
+    }
+
+    async handleDeadLetter(item, err) {
+        const { jobId, session, parentEmail } = item;
+        console.error(`🚨 [DLQ] Job ${jobId} EXHAUSTED all ${this.maxAttempts} attempts! Moving to Dead Letter Queue.`);
+
+        // 1. Write DLQ artifact on disk
+        const dlqData = {
+            jobId,
+            failedAt: new Date().toISOString(),
+            timestamp: Date.now(),
+            attempts: item.attempts,
+            error: err.message,
+            stack: err.stack,
+            childName: (session && session.childName) || 'Unknown',
+            theme: (session && session.theme) || 'Unknown',
+            language: (session && session.language) || 'Unknown',
+            parentEmail: parentEmail || (session && session.email) || 'Unknown',
+            bookLength: item.bookLength
+        };
+
+        try {
+            const dlqFile = path.join(booksFolder, `dlq_${jobId}.json`);
+            fs.writeFileSync(dlqFile, JSON.stringify(dlqData, null, 2));
+            console.log(`📁 [DLQ] Failure report written to ${dlqFile}`);
+
+            // Remove pending queue file
+            const qFile = path.join(booksFolder, `queue_${jobId}.json`);
+            if (fs.existsSync(qFile)) fs.unlinkSync(qFile);
+        } catch (dlqErr) {
+            console.warn(`⚠️ [DLQ] Could not write DLQ file:`, dlqErr.message);
+        }
+
+        // 2. Mark job status as failed
+        const job = getJob(jobId) || { id: jobId, timestamp: Date.now() };
+        job.status = 'failed';
+        job.error = err.message;
+        job.step = 'Generation encountered an error after multiple attempts';
+        saveJob(jobId, job);
+
+        // 3. Automated Razorpay Refund on DLQ failure
+        if (razorpay && job.paymentId && process.env.AUTO_REFUND_ON_FAILURE !== 'false') {
+            try {
+                console.log(`💸 [DLQ] Initiating fail-safe refund for Job ${jobId} (Payment: ${job.paymentId})...`);
+                const refund = await razorpay.payments.refund(job.paymentId, {
+                    amount: job.amountPaise || 19900,
+                    notes: {
+                        reason: "Automated DLQ fulfillment failure after 3 attempts",
+                        jobId: jobId,
+                        childName: (session && session.childName) || 'Child',
+                        error: (err.message || '').slice(0, 100)
+                    }
+                });
+                console.log(`✅ [DLQ] Automated Refund initiated: ${refund.id}`);
+                job.refundId = refund.id;
+                job.refundStatus = 'initiated';
+                saveJob(jobId, job);
+
+                // Customer refund email
+                if (mailer && parentEmail) {
+                    await mailer.sendMail({
+                        to: parentEmail,
+                        subject: `TwinkleTale — Full Refund Initiated for ${(session && session.childName) || 'Your Child'}'s Storybook`,
+                        html: `<div style="font-family:Georgia,serif;padding:32px;background:#FAF7F2;border-radius:12px;max-width:600px;margin:0 auto;border:1px solid #EAE4D9">
+                            <h2 style="color:#842029;margin-top:0">We apologize for the inconvenience</h2>
+                            <p style="font-size:16px;color:#333;line-height:1.6">Dear Parent,</p>
+                            <p style="font-size:16px;color:#333;line-height:1.6">While creating the high-resolution illustrations for <strong>${(session && session.childName) || 'your child'}'s storybook</strong>, our illustration studio encountered an unexpected technical delay.</p>
+                            <p style="font-size:16px;color:#333;line-height:1.6">To ensure your complete peace of mind, we have <strong>automatically initiated a 100% full refund</strong> of ₹${(job.amountPaise || 19900) / 100} back to your original payment method.</p>
+                            <div style="background:#FFF;padding:16px;border-radius:8px;border:1px solid #DDD;margin:20px 0">
+                                <p style="margin:4px 0;font-size:14px;color:#555"><strong>Refund ID:</strong> ${refund.id}</p>
+                                <p style="margin:4px 0;font-size:14px;color:#555"><strong>Payment ID:</strong> ${job.paymentId}</p>
+                                <p style="margin:4px 0;font-size:14px;color:#555"><strong>Amount Refunded:</strong> ₹${(job.amountPaise || 19900) / 100}</p>
+                                <p style="margin:4px 0;font-size:14px;color:#555"><strong>Arrival:</strong> 3-5 business days directly to your original bank/card</p>
+                            </div>
+                            <p style="font-size:14px;color:#555">If you have any questions, our support team is right here to help at <a href="mailto:${process.env.SENDER_EMAIL || 'support@twinkletaleai.com'}">${process.env.SENDER_EMAIL || 'support@twinkletaleai.com'}</a>.</p>
+                            <hr style="border:none;border-top:1px solid #DDD;margin:24px 0">
+                            <p style="font-size:12px;color:#999;text-align:center">TwinkleTale Studios • Customer Protection Guarantee</p>
+                        </div>`
+                    });
+                }
+            } catch (refundErr) {
+                console.error(`⚠️ [DLQ] Automated Razorpay refund error:`, refundErr.message);
+            }
+        } else if (mailer && parentEmail) {
+            try {
+                await mailer.sendMail({
+                    to: parentEmail,
+                    subject: `TwinkleTale — Update on ${(session && session.childName) || 'Your Child'}'s Storybook Order`,
+                    html: `<div style="font-family:Georgia,serif;padding:32px;background:#FAF7F2;border-radius:12px;max-width:600px;margin:0 auto;border:1px solid #EAE4D9">
+                        <h2 style="color:#161B33;margin-top:0">Order Update for ${(session && session.childName) || 'Your Child'}'s Storybook</h2>
+                        <p style="font-size:16px;color:#333;line-height:1.6">Dear Parent,</p>
+                        <p style="font-size:16px;color:#333;line-height:1.6">Our studio experienced a brief delay while rendering ${(session && session.childName) || 'your child'}'s personalized storybook. Our engineers have been alerted and are resolving this for you.</p>
+                        <p style="font-size:16px;color:#333;line-height:1.6">Your storybook will either be delivered to this email shortly, or a full refund will be processed. You can contact us anytime at <a href="mailto:${process.env.SENDER_EMAIL || 'support@twinkletaleai.com'}">${process.env.SENDER_EMAIL || 'support@twinkletaleai.com'}</a>.</p>
+                    </div>`
+                });
+            } catch (_) {}
+        }
+
+        // 4. Critical Admin Alert Email to process.env.ADMIN_EMAIL || process.env.SENDER_EMAIL
+        const adminRecipient = process.env.ADMIN_EMAIL || process.env.SENDER_EMAIL;
+        if (mailer && adminRecipient) {
+            try {
+                await mailer.sendMail({
+                    to: adminRecipient,
+                    subject: `🚨 [CRITICAL DLQ ALERT] Order Fulfillment Failed — Job ${jobId} (3 Retries Exhausted)`,
+                    html: `<div style="font-family:sans-serif;padding:24px;border:2px solid #dc3545;border-radius:8px;background:#fff8f8;max-width:640px">
+                        <h2 style="color:#dc3545;margin-top:0">🚨 Dead Letter Queue Alert — All 3 Retries Exhausted</h2>
+                        <p><strong>Job ID:</strong> ${jobId}</p>
+                        <p><strong>Customer Email:</strong> ${parentEmail || 'N/A'}</p>
+                        <p><strong>Payment ID:</strong> ${job.paymentId || 'N/A'}</p>
+                        <p><strong>Order ID:</strong> ${job.orderId || 'N/A'}</p>
+                        <p><strong>Amount:</strong> ₹${((job.amountPaise || 0) / 100).toFixed(2)}</p>
+                        <p><strong>Child:</strong> ${(session && session.childName) || 'N/A'} (${(session && session.theme) || 'N/A'}, ${(session && session.language) || 'N/A'})</p>
+                        <p><strong>Refund Status:</strong> ${job.refundStatus || 'none'} (${job.refundId || 'none'})</p>
+                        <hr style="border:none;border-top:1px solid #e0c8c8;margin:16px 0">
+                        <p><strong>Failure Cause:</strong> <code style="color:#c7254e;background:#f9f2f4;padding:3px 6px;border-radius:4px">${err.message}</code></p>
+                        <pre style="background:#2d3748;color:#f7fafc;padding:12px;border-radius:6px;overflow-x:auto;font-size:12px;white-space:pre-wrap">${err.stack || 'No stack trace available'}</pre>
+                        <p style="font-size:12px;color:#718096">Artifact saved locally at: <code>books/dlq_${jobId}.json</code></p>
+                    </div>`
+                });
+                console.log(`📧 [DLQ] Immediate Admin Alert email dispatched to ${adminRecipient}`);
+            } catch (mailErr) {
+                console.error(`⚠️ [DLQ] Failed to send admin alert email:`, mailErr.message);
+            }
+        }
+    }
+}
+
+const bookQueue = new BookGenerationQueue();
+
+// ====================================================================
 // FLOW B: STEP 3 - VERIFY PAYMENT & DISPATCH GENERATION JOB
 // ====================================================================
 app.post('/api/verify-and-complete-book', rateLimiter, async (req, res) => {
@@ -1831,7 +2078,7 @@ app.post('/api/verify-and-complete-book', rateLimiter, async (req, res) => {
         saveJob(jobId, {
             id: jobId,
             timestamp: Date.now(),
-            status: 'generating',
+            status: 'queued',
             progress: 15,
             step: 'Painting decorative story borders...',
             pdfUrl: null,
@@ -1845,9 +2092,17 @@ app.post('/api/verify-and-complete-book', rateLimiter, async (req, res) => {
             bookLength
         });
 
-        assembleFullBookAsync(jobId, session, bookLength, email || session.email, req.protocol, req.get('host'));
+        // Decouple full book generation into asynchronous background queue
+        bookQueue.enqueue({
+            jobId,
+            session,
+            bookLength,
+            parentEmail: email || session.email,
+            protocol: req.protocol,
+            host: req.get('host')
+        });
 
-        res.json({ success: true, jobId });
+        res.json({ success: true, jobId, queued: true });
     } catch (err) {
         console.error("❌ Verify error:", err.message);
         res.status(500).json({ success: false, error: err.message });
@@ -1872,6 +2127,131 @@ app.get('/api/job-status/:jobId', (req, res) => {
         refundStatus: job.refundStatus || null
     });
 });
+
+// ====================================================================
+// PERMANENT STORYBOOK DOWNLOAD ENDPOINTS (NEVER EXPIRES)
+// ====================================================================
+async function handleDownloadStorybook(req, res) {
+    const { jobId } = req.params;
+    if (!jobId) {
+        return res.status(400).send(renderDownloadHtmlMessage('Invalid Link', 'No storybook identifier was provided in this link.'));
+    }
+
+    const job = getJob(jobId);
+
+    // If job not found in memory/disk, check if jobId happens to match a local file name
+    if (!job) {
+        const potentialFile = path.join(booksFolder, jobId);
+        if (fs.existsSync(potentialFile) && potentialFile.endsWith('.pdf')) {
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `inline; filename="${jobId}"`);
+            return res.sendFile(potentialFile);
+        }
+        return res.status(404).send(renderDownloadHtmlMessage(
+            'Storybook Not Found',
+            'We could not locate this storybook. It may have expired or the order reference is incorrect. If you need assistance, please contact us at <a href="mailto:support@twinkletaleai.com" style="color:#1B4938;font-weight:bold;">support@twinkletaleai.com</a> with your order details.'
+        ));
+    }
+
+    // If the job is still queued or in progress
+    if (job.status === 'queued' || job.status === 'generating') {
+        return res.send(renderDownloadHtmlMessage(
+            '✨ Crafting Your Magical Storybook',
+            `We are currently illustrating and assembling your personalized storybook!
+            <br><br>
+            <strong>Status:</strong> ${job.step || 'Painting storybook illustrations...'} (${job.progress || 20}%)
+            <br><br>
+            Please refresh this page in 1–2 minutes, or check your inbox at <strong>${job.email || 'your email'}</strong> once delivery completes.`,
+            true // autoRefresh
+        ));
+    }
+
+    // If the job failed
+    if (job.status === 'failed') {
+        return res.status(500).send(renderDownloadHtmlMessage(
+            'Fulfillment Assistance Required',
+            `Our studio encountered an unexpected delay while rendering this storybook.
+            <br><br>
+            ${job.refundStatus === 'initiated' ? 'A full refund has been automatically initiated to your original payment method.' : 'Our support engineering team has been alerted.'}
+            <br><br>
+            Please reach out directly to <a href="mailto:support@twinkletaleai.com" style="color:#1B4938;font-weight:bold;">support@twinkletaleai.com</a> and our team will ensure your book is delivered.`
+        ));
+    }
+
+    // Job is completed
+    const fileName = job.fileName || `twinkletale_${job.id}.pdf`;
+    const localFile = path.join(booksFolder, fileName);
+    const forceDownload = req.query.download === '1' || req.query.download === 'true';
+    const dispositionType = forceDownload ? 'attachment' : 'inline';
+
+    // 1. Primary fast path: Stream directly from local disk if present
+    if (fs.existsSync(localFile)) {
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `${dispositionType}; filename="${fileName}"`);
+        return res.sendFile(localFile);
+    }
+
+    // 2. Cloud Storage fallback: Generate a fresh 30-day pre-signed Supabase URL and redirect
+    if (supabase && job.fileName) {
+        try {
+            const signedRes = await supabase.storage.from('storybooks').createSignedUrl(job.fileName, 2592000);
+            if (signedRes && signedRes.data && signedRes.data.signedUrl) {
+                console.log(`🔗 Fresh 30-day signed URL generated for Job ${jobId}`);
+                return res.redirect(signedRes.data.signedUrl);
+            }
+        } catch (supErr) {
+            console.warn(`⚠️ Supabase signed URL generation notice for Job ${jobId}:`, supErr.message);
+        }
+    }
+
+    // 3. Fallback to directPdfUrl or stored pdfUrl if valid external URL
+    if (job.directPdfUrl && job.directPdfUrl.startsWith('http') && !job.directPdfUrl.includes('/api/download/')) {
+        return res.redirect(job.directPdfUrl);
+    }
+    if (job.pdfUrl && job.pdfUrl.startsWith('http') && !job.pdfUrl.includes('/api/download/')) {
+        return res.redirect(job.pdfUrl);
+    }
+
+    return res.status(404).send(renderDownloadHtmlMessage(
+        'Storybook File Unavailable',
+        'The storybook file could not be retrieved at this moment. Please contact our support team at <a href="mailto:support@twinkletaleai.com" style="color:#1B4938;font-weight:bold;">support@twinkletaleai.com</a> for an immediate replacement link.'
+    ));
+}
+
+function renderDownloadHtmlMessage(title, message, autoRefresh = false) {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${title} | TwinkleTale</title>
+    ${autoRefresh ? '<meta http-equiv="refresh" content="12">' : ''}
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #FAF7F2; color: #161B33; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .card { background: #FFFFFF; max-width: 520px; width: 100%; padding: 40px 32px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.06); text-align: center; border: 1px solid #EAE4D9; }
+        h1 { font-size: 24px; font-weight: 700; margin-top: 0; margin-bottom: 16px; color: #161B33; font-family: Georgia, serif; }
+        p { font-size: 15px; line-height: 1.6; color: #4A5568; margin-bottom: 24px; }
+        .spinner { width: 44px; height: 44px; border: 4px solid #E2E8F0; border-top-color: #D4AF37; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .btn { display: inline-block; background: #1B4938; color: #FAF7F2; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.9; }
+        .footer-note { font-size: 12px; color: #A0AEC0; margin-top: 24px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        ${autoRefresh ? '<div class="spinner"></div>' : ''}
+        <h1>${title}</h1>
+        <p>${message}</p>
+        ${autoRefresh ? '<a href="" class="btn">🔄 Refresh Status</a>' : '<a href="/" class="btn">Back to TwinkleTale</a>'}
+        <div class="footer-note">TwinkleTale Studios • Magical Bedtime Keepsakes</div>
+    </div>
+</body>
+</html>`;
+}
+
+app.get('/api/download/:jobId', handleDownloadStorybook);
+app.get('/download/:jobId', handleDownloadStorybook);
 
 // ====================================================================
 // ASYNC BACKGROUND FULFILLMENT WORKER (MULTILINGUAL + SPREAD LAYOUT)
@@ -2400,22 +2780,39 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         const cryptToken = crypto.randomBytes(16).toString('hex');
         const fileName = `twinkletale_${safeName}_${cryptToken}.pdf`;
         let pdfUrl = null;
+        let signedSupabaseUrl = null;
 
+        // 1. Always save locally to booksFolder first to guarantee local streaming availability
+        const localFilePath = path.join(booksFolder, fileName);
+        fs.writeFileSync(localFilePath, pdfBytes);
+        console.log("💾 Saved locally:", localFilePath);
+
+        // 2. Upload to Supabase if configured and generate 30-day pre-signed URL (2,592,000 seconds)
         if (supabase) {
             try {
                 const up = await supabase.storage.from('storybooks').upload(fileName, pdfBytes, { contentType: 'application/pdf', upsert: false });
-                if (!up.error) pdfUrl = supabase.storage.from('storybooks').getPublicUrl(fileName).data.publicUrl;
-                console.log("☁️ Saved permanently to Supabase:", pdfUrl);
+                if (!up.error) {
+                    const signedRes = await supabase.storage.from('storybooks').createSignedUrl(fileName, 2592000);
+                    if (signedRes && signedRes.data && signedRes.data.signedUrl) {
+                        signedSupabaseUrl = signedRes.data.signedUrl;
+                        pdfUrl = signedSupabaseUrl;
+                    } else {
+                        pdfUrl = supabase.storage.from('storybooks').getPublicUrl(fileName).data.publicUrl;
+                    }
+                    console.log("☁️ Saved permanently to Supabase (30-day signed URL):", pdfUrl);
+                }
             } catch (e) {
                 console.log("⚠️ Supabase upload notice:", e.message);
                 pdfUrl = null;
             }
         }
         if (!pdfUrl) {
-            fs.writeFileSync(path.join(booksFolder, fileName), pdfBytes);
             pdfUrl = `${protocol}://${host}/books/${fileName}`;
-            console.log("💾 Saved locally:", pdfUrl);
         }
+
+        // 3. Construct permanent download endpoint URL
+        const effectiveProtocol = (protocol === 'https' || (process.env.NODE_ENV === 'production' && !host.includes('localhost'))) ? 'https' : protocol;
+        const persistentDownloadUrl = `${effectiveProtocol}://${host}/api/download/${jobId}`;
 
         // ================= EMAIL DELIVERY =================
         let emailed = false;
@@ -2429,11 +2826,11 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
                         <h2 style="color:#161B33;margin-top:0">✨ ${childName}'s ${title} is ready!</h2>
                         <p style="font-size:16px;color:#333;line-height:1.6">Hello! We have finished crafting your personalized keepsake bedtime storybook for <strong>${childName}</strong> in <strong>${language || 'English'}</strong>.</p>
                         <p style="text-align:center;margin:30px 0">
-                            <a href="${pdfUrl}" target="_blank" style="background:#1B4938;color:#FAF7F2;padding:14px 28px;border-radius:8px;text-decoration:none;font-size:16px;font-weight:bold;display:inline-block">📥 Download Print-Ready Storybook (PDF)</a>
+                            <a href="${persistentDownloadUrl}" target="_blank" style="background:#1B4938;color:#FAF7F2;padding:14px 28px;border-radius:8px;text-decoration:none;font-size:16px;font-weight:bold;display:inline-block">📥 Download Print-Ready Storybook (PDF)</a>
                         </p>
                         <p style="font-size:13px;color:#777;line-height:1.5">You can read this on any phone, iPad, tablet, or print it out on A4/Letter paper to make a physical bedside book.</p>
                         <hr style="border:none;border-top:1px solid #DDD;margin:24px 0">
-                        <p style="font-size:12px;color:#999;text-align:center">This link is permanent and never expires.<br>Crafted with love by TwinkleTale Studios.</p>
+                        <p style="font-size:12px;color:#999;text-align:center">This download link is permanent and never expires.<br>Crafted with love by TwinkleTale Studios.</p>
                     </div>`
                 });
                 emailed = true;
@@ -2447,99 +2844,21 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         job.status = 'completed';
         job.progress = 100;
         job.step = 'Your storybook is ready!';
-        job.pdfUrl = pdfUrl;
+        job.pdfUrl = persistentDownloadUrl;
+        job.directPdfUrl = pdfUrl;
+        job.fileName = fileName;
         job.emailed = emailed;
         saveJob(jobId, job);
 
         const jobUpscales = bookUpscalesCount - startUpscales;
         const estUpscaleCost = (jobUpscales * 0.04).toFixed(2);
         console.log(`💰 Estimated upscale cost for Job ${jobId}: $${estUpscaleCost} (${jobUpscales} upscales used x ~$0.04)`);
-        console.log(`🎉 Job ${jobId} Completed! Pages=${pdfDoc.getPageCount()} | PDF: ${pdfUrl}`);
+        console.log(`🎉 Job ${jobId} Completed! Pages=${pdfDoc.getPageCount()} | PDF: ${persistentDownloadUrl}`);
     } catch (err) {
-        console.error(`❌ Job ${jobId} Failed:`, err.message);
-        const job = getJob(jobId) || { id: jobId, timestamp: Date.now() };
-        job.status = 'failed';
-        job.error = err.message;
-        job.step = 'Generation encountered an error';
-        saveJob(jobId, job);
-
-        // FAIL-PROOF MECHANISM: Automated Razorpay Refund on Failure
-        if (razorpay && job.paymentId && process.env.AUTO_REFUND_ON_FAILURE !== 'false') {
-            try {
-                console.log(`💸 Initiating automated fail-safe refund for Job ${jobId} (Payment: ${job.paymentId})...`);
-                const refund = await razorpay.payments.refund(job.paymentId, {
-                    amount: job.amountPaise || 19900,
-                    notes: {
-                        reason: "Automated fulfillment failure",
-                        jobId: jobId,
-                        childName: (session && session.childName) || 'Child',
-                        error: (err.message || '').slice(0, 100)
-                    }
-                });
-                console.log(`✅ Automated Refund successfully initiated: ${refund.id}`);
-                job.refundId = refund.id;
-                job.refundStatus = 'initiated';
-                saveJob(jobId, job);
-
-                // Send immediate apology & refund confirmation email to customer
-                if (mailer && parentEmail) {
-                    await mailer.sendMail({
-                        to: parentEmail,
-                        subject: `TwinkleTale — Full Refund Initiated for ${(session && session.childName) || 'Your Child'}'s Storybook`,
-                        html: `<div style="font-family:Georgia,serif;padding:32px;background:#FAF7F2;border-radius:12px;max-width:600px;margin:0 auto;border:1px solid #EAE4D9">
-                            <h2 style="color:#842029;margin-top:0">We apologize for the inconvenience</h2>
-                            <p style="font-size:16px;color:#333;line-height:1.6">Dear Parent,</p>
-                            <p style="font-size:16px;color:#333;line-height:1.6">While creating the high-resolution illustrations for <strong>${(session && session.childName) || 'your child'}'s storybook</strong>, our illustration studio encountered an unexpected technical delay.</p>
-                            <p style="font-size:16px;color:#333;line-height:1.6">To ensure your complete peace of mind, we have <strong>automatically initiated a 100% full refund</strong> of ₹${(job.amountPaise || 19900) / 100} back to your original payment method.</p>
-                            <div style="background:#FFF;padding:16px;border-radius:8px;border:1px solid #DDD;margin:20px 0">
-                                <p style="margin:4px 0;font-size:14px;color:#555"><strong>Refund ID:</strong> ${refund.id}</p>
-                                <p style="margin:4px 0;font-size:14px;color:#555"><strong>Payment ID:</strong> ${job.paymentId}</p>
-                                <p style="margin:4px 0;font-size:14px;color:#555"><strong>Amount Refunded:</strong> ₹${(job.amountPaise || 19900) / 100}</p>
-                                <p style="margin:4px 0;font-size:14px;color:#555"><strong>Arrival:</strong> 3-5 business days directly to your original bank/card</p>
-                            </div>
-                            <p style="font-size:14px;color:#555">If you have any questions, our support team is right here to help at <a href="mailto:${process.env.SENDER_EMAIL || 'support@twinkletaleai.com'}">${process.env.SENDER_EMAIL || 'support@twinkletaleai.com'}</a>.</p>
-                            <hr style="border:none;border-top:1px solid #DDD;margin:24px 0">
-                            <p style="font-size:12px;color:#999;text-align:center">TwinkleTale Studios • Customer Protection Guarantee</p>
-                        </div>`
-                    });
-                    console.log(`📧 Refund confirmation email dispatched to ${parentEmail}`);
-                }
-            } catch (refundErr) {
-                console.error(`⚠️ Automated Razorpay refund notice for Job ${jobId}:`, refundErr.message);
-            }
-        } else if (mailer && parentEmail) {
-            // Customer assurance notice if paymentId not available
-            try {
-                await mailer.sendMail({
-                    to: parentEmail,
-                    subject: `TwinkleTale — Update on ${(session && session.childName) || 'Your Child'}'s Storybook Order`,
-                    html: `<div style="font-family:Georgia,serif;padding:32px;background:#FAF7F2;border-radius:12px;max-width:600px;margin:0 auto;border:1px solid #EAE4D9">
-                        <h2 style="color:#161B33;margin-top:0">Order Update for ${(session && session.childName) || 'Your Child'}'s Storybook</h2>
-                        <p style="font-size:16px;color:#333;line-height:1.6">Dear Parent,</p>
-                        <p style="font-size:16px;color:#333;line-height:1.6">Our studio experienced a brief delay while rendering ${(session && session.childName) || 'your child'}'s personalized storybook. Our engineers have been alerted and are resolving this for you.</p>
-                        <p style="font-size:16px;color:#333;line-height:1.6">Your storybook will either be delivered to this email shortly, or a full refund will be processed. You can contact us anytime at <a href="mailto:${process.env.SENDER_EMAIL || 'support@twinkletaleai.com'}">${process.env.SENDER_EMAIL || 'support@twinkletaleai.com'}</a>.</p>
-                    </div>`
-                });
-            } catch (_) {}
-        }
-
-        // Admin Alert Email
-        if (mailer && process.env.SENDER_EMAIL) {
-            try {
-                await mailer.sendMail({
-                    to: process.env.SENDER_EMAIL,
-                    subject: `🚨 [TWINKLETALE ALERT] Order Fulfillment Failed — Job ${jobId}`,
-                    html: `<p><strong>Job ID:</strong> ${jobId}</p>
-                        <p><strong>Customer Email:</strong> ${parentEmail}</p>
-                        <p><strong>Payment ID:</strong> ${job.paymentId || 'N/A'}</p>
-                        <p><strong>Child:</strong> ${(session && session.childName) || 'N/A'} (${(session && session.theme) || 'N/A'})</p>
-                        <p><strong>Error:</strong> ${err.message}</p>
-                        <p><strong>Refund Status:</strong> ${job.refundStatus || 'none'} (${job.refundId || 'none'})</p>`
-                });
-            } catch (_) {}
-        }
+        console.error(`❌ Job ${jobId} Failed attempt:`, err.message);
+        throw err; // Rethrow to BookGenerationQueue for automatic retry or DLQ
     } finally {
-        if (session) {
+        if (session && (!bookQueue || !bookQueue.queue || !bookQueue.queue.some(q => q.jobId === jobId))) {
             session.photoData = null; // Ephemeral photo memory purged immediately for child privacy
         }
     }
@@ -2695,34 +3014,70 @@ async function recoverDanglingJobs() {
         if (!fs.existsSync(booksFolder)) return;
         const files = fs.readdirSync(booksFolder);
         const now = Date.now();
+
+        // 1. Recover queued jobs from queue_*.json files
+        for (const f of files) {
+            if (f.startsWith('queue_') && f.endsWith('.json')) {
+                const qPath = path.join(booksFolder, f);
+                try {
+                    const qItem = JSON.parse(fs.readFileSync(qPath, 'utf8'));
+                    if (qItem && qItem.jobId) {
+                        const existingJob = getJob(qItem.jobId);
+                        if (!existingJob || existingJob.status !== 'completed') {
+                            console.log(`🔄 [SELF-HEALING] Re-enqueuing interrupted queue job: ${qItem.jobId}`);
+                            if (!qItem.session && existingJob && existingJob.previewId) {
+                                qItem.session = getSession(existingJob.previewId);
+                            }
+                            bookQueue.enqueue(qItem);
+                        } else {
+                            try { fs.unlinkSync(qPath); } catch (_) {}
+                        }
+                    }
+                } catch (qErr) {
+                    console.warn(`⚠️ Error reading queue file ${f}:`, qErr.message);
+                }
+            }
+        }
+
+        // 2. Recover un-queued dangling jobs from job_*.json files
         for (const f of files) {
             if (f.startsWith('job_') && f.endsWith('.json')) {
                 const jPath = path.join(booksFolder, f);
                 try {
                     const job = JSON.parse(fs.readFileSync(jPath, 'utf8'));
-                    // If job was in-flight within the last 60 minutes when server restarted
-                    if (job && job.status === 'generating' && (now - (job.timestamp || 0)) < 60 * 60 * 1000) {
-                        console.log(`🔄 [SELF-HEALING] Interrupted job detected: ${job.id}. Checking session for auto-resume...`);
-                        const session = job.previewId ? getSession(job.previewId) : null;
-                        if (session) {
-                            console.log(`🔄 [SELF-HEALING] Resuming book fulfillment for ${session.childName} (${job.id})...`);
-                            assembleFullBookAsync(job.id, session, job.bookLength, job.email, 'https', process.env.RENDER_EXTERNAL_HOSTNAME || 'storybooks.twinkletaleai.com');
-                        } else if (razorpay && job.paymentId && process.env.AUTO_REFUND_ON_FAILURE !== 'false') {
-                            // If session cannot be recovered, execute fail-safe automatic refund immediately
-                            console.warn(`💸 [SELF-HEALING] Session unavailable for ${job.id}. Processing automatic protection refund...`);
-                            try {
-                                const ref = await razorpay.payments.refund(job.paymentId, {
-                                    amount: job.amountPaise || 19900,
-                                    notes: { reason: "Server restart recovery refund", jobId: job.id }
+                    // If job was in-flight within the last 60 minutes when server restarted and not already queued
+                    if (job && (job.status === 'generating' || job.status === 'queued') && (now - (job.timestamp || 0)) < 60 * 60 * 1000) {
+                        const alreadyInQueue = bookQueue.queue.some(q => q.jobId === job.id);
+                        if (!alreadyInQueue) {
+                            console.log(`🔄 [SELF-HEALING] Interrupted job detected: ${job.id}. Checking session for auto-resume...`);
+                            const session = job.previewId ? getSession(job.previewId) : null;
+                            if (session) {
+                                console.log(`🔄 [SELF-HEALING] Enqueuing resumed book fulfillment for ${session.childName} (${job.id})...`);
+                                bookQueue.enqueue({
+                                    jobId: job.id,
+                                    session,
+                                    bookLength: job.bookLength,
+                                    parentEmail: job.email,
+                                    protocol: 'https',
+                                    host: process.env.RENDER_EXTERNAL_HOSTNAME || 'storybooks.twinkletaleai.com'
                                 });
-                                job.status = 'failed';
-                                job.refundId = ref.id;
-                                job.refundStatus = 'initiated';
-                                job.error = 'Order interrupted during system restart — 100% refund initiated';
-                                saveJob(job.id, job);
-                                console.log(`✅ [SELF-HEALING] Refund initiated: ${ref.id}`);
-                            } catch (rErr) {
-                                console.error(`⚠️ [SELF-HEALING] Refund attempt error:`, rErr.message);
+                            } else if (razorpay && job.paymentId && process.env.AUTO_REFUND_ON_FAILURE !== 'false') {
+                                // If session cannot be recovered, execute fail-safe automatic refund immediately
+                                console.warn(`💸 [SELF-HEALING] Session unavailable for ${job.id}. Processing automatic protection refund...`);
+                                try {
+                                    const ref = await razorpay.payments.refund(job.paymentId, {
+                                        amount: job.amountPaise || 19900,
+                                        notes: { reason: "Server restart recovery refund", jobId: job.id }
+                                    });
+                                    job.status = 'failed';
+                                    job.refundId = ref.id;
+                                    job.refundStatus = 'initiated';
+                                    job.error = 'Order interrupted during system restart — 100% refund initiated';
+                                    saveJob(job.id, job);
+                                    console.log(`✅ [SELF-HEALING] Refund initiated: ${ref.id}`);
+                                } catch (rErr) {
+                                    console.error(`⚠️ [SELF-HEALING] Refund attempt error:`, rErr.message);
+                                }
                             }
                         }
                     }
@@ -2735,9 +3090,21 @@ async function recoverDanglingJobs() {
 }
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`🚀 TwinkleTale Server running on port ${PORT}`);
-    setTimeout(() => {
-        recoverDanglingJobs();
-    }, 4000);
-});
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`🚀 TwinkleTale Server running on port ${PORT}`);
+        setTimeout(() => {
+            recoverDanglingJobs();
+        }, 4000);
+    });
+}
+
+module.exports = {
+    app,
+    bookQueue,
+    BookGenerationQueue,
+    saveJob,
+    getJob,
+    assembleFullBookAsync,
+    recoverDanglingJobs
+};

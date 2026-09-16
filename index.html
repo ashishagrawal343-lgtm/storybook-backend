@@ -2035,32 +2035,30 @@
   </section>
 
   <!-- ========================================================= -->
-  <!-- PROGRESS & DOWNLOAD STAGE -->
+  <!-- ORDER CONFIRMATION STAGE (INSTANT POST-PAYMENT) -->
   <!-- ========================================================= -->
   <section id="progressStage">
     <div class="container">
-      <div class="progress-card">
-        <div class="spinner-ring" id="progressSpinner"></div>
-        <h3 class="progress-title" id="progressHeading">Crafting Your Storybook...</h3>
-        <p style="color:var(--text-muted);" id="progressSubheading">Please keep this tab open while our AI paints your child's spreads.</p>
-        
-        <div class="progress-bar-container">
-          <div class="progress-bar-fill" id="progressBarFill"></div>
+      <div class="progress-card" style="padding:40px 24px; text-align:center;">
+        <div style="width:70px; height:70px; border-radius:50%; background:rgba(16,185,129,0.12); color:#10B981; font-size:2rem; display:flex; align-items:center; justify-content:center; margin:0 auto 18px; box-shadow:0 4px 16px rgba(16,185,129,0.2);">
+          <i class="fas fa-check-circle"></i>
         </div>
-        <div class="progress-step-text" id="progressStepText">Weaving personalized bedtime rhymes...</div>
+        <h3 class="progress-title" id="progressHeading" style="font-size:1.8rem; color:var(--navy); margin-bottom:12px;">Payment Successful! 🎉</h3>
+        
+        <div style="background:var(--input-bg); border:1px solid var(--border-light); border-radius:14px; padding:22px 20px; max-width:580px; margin:20px auto 25px; text-align:left;">
+          <p style="font-size:1.05rem; font-weight:600; color:var(--text-dark); line-height:1.6; margin:0 0 14px;" id="orderConfirmationNotice">
+            🎉 Payment Successful! Your magical storybook is being generated. You will receive a secure download link via email within 5–8 minutes. (Please check your spam or promotions folder just in case!)
+          </p>
+          <div style="font-size:0.88rem; color:var(--text-muted); border-top:1px dashed var(--border-light); padding-top:12px; line-height:1.6;">
+            <div>📧 Delivery Email: <strong id="confirmEmailDisplay" style="color:var(--navy);">your email</strong></div>
+            <div style="margin-top:4px;">🔖 Order Reference: <span id="confirmOrderDisplay" style="color:var(--text-dark); font-family:monospace; font-weight:700;">Processing</span></div>
+          </div>
+        </div>
 
-        <div id="downloadBox">
-          <div style="font-size:3rem; margin-bottom:12px;">🎉</div>
-          <h3 style="font-size:1.8rem; color:var(--navy); margin-bottom:10px;">Your Keepsake Book is Ready!</h3>
-          <p style="color:var(--text-muted); margin-bottom:25px;" id="emailConfirmationText">
-            A high-resolution, print-ready PDF has been generated and emailed to you.
-          </p>
-          <a href="#" id="downloadPdfLink" target="_blank" class="btn-download-pdf">
-            <i class="fas fa-file-pdf"></i> Download Storybook (PDF)
+        <div style="display:flex; justify-content:center; gap:14px; flex-wrap:wrap;">
+          <a href="/" class="primary-btn" style="text-decoration:none; display:inline-flex; align-items:center; gap:8px; padding:12px 28px;">
+            <i class="fas fa-sparkles"></i> Back to TwinkleTale Home
           </a>
-          <p style="font-size:0.85rem; color:var(--text-muted); margin-top:15px;">
-            The download link is permanent and never expires.
-          </p>
         </div>
       </div>
     </div>
@@ -2303,7 +2301,11 @@
           <p>
             All purchases are delivered electronically in high-resolution PDF format. No physical printed copy is shipped unless explicitly specified as part of a physical printing add-on.
           </p>
-          <h4>5. Limitation of Liability & Governing Law</h4>
+          <h4>5. Cancellation & Non-Refundable Product Policy</h4>
+          <p>
+            This is a non-refundable digital product. Due to the custom, automated, and personalized nature of our digital children's storybooks (which begin custom AI rendering and cloud computation immediately upon payment confirmation), all sales are final and non-refundable once an order is placed. In the rare event of a technical rendering or delivery issue, our support team will promptly assist with re-generating your storybook.
+          </p>
+          <h4>6. Limitation of Liability & Governing Law</h4>
           <p>
             TwinkleTale shall not be liable for indirect, incidental, or consequential damages. In all circumstances, maximum liability is limited strictly to the amount paid for the specific storybook order. These terms are governed by and construed in accordance with the laws of India.
           </p>
@@ -2340,30 +2342,24 @@
         <div class="policy-content-pane" id="pane-refund">
           <h3>Refund and Cancellation Policy</h3>
           <p style="font-size:0.82rem; color:var(--text-muted);">Last Updated: September 2026</p>
-          <h4>1. Nature of Personalized Digital Products</h4>
+          <h4>1. Custom Personalized Digital Goods</h4>
           <p>
-            Each TwinkleTale storybook is an individual, custom-computed digital asset personalized specifically for your child. Because generation begins automatically upon payment confirmation, <strong>orders cannot be cancelled or retracted once processing has initiated</strong>.
+            This is a non-refundable digital product. Each TwinkleTale storybook is an individual, custom-computed digital asset personalized specifically for your child. Because generation begins automatically upon payment confirmation, orders cannot be cancelled or refunded once processing has initiated.
           </p>
-          <h4>2. 100% Quality & Defect Guarantee</h4>
+          <h4>2. 100% Quality & Defect Resolution Guarantee</h4>
           <p>
-            We stand behind the magic of our books. You are entitled to an immediate free re-generation or a <strong>100% Full Refund</strong> within <strong>7 days of purchase</strong> under any of the following circumstances:
+            We guarantee 100% successful digital delivery. If your generation encounters any technical failure, broken download link, or system rendering defect, our studio provides free immediate re-generation. Simply contact our support team at <a href="mailto:support@twinkletaleai.com" style="color:var(--coral);">support@twinkletaleai.com</a> and we will ensure your book is delivered promptly.
           </p>
-          <ul>
-            <li>Generation failed or the download link is broken/inaccessible.</li>
-            <li>System rendering error resulting in overlapping, unreadable, or missing text.</li>
-            <li>Severe spelling distortion caused by system generation failure.</li>
-            <li>The final delivered book does not match the customized child details entered in the preview order.</li>
-          </ul>
-          <h4>3. How to Claim a Refund or Free Re-generation</h4>
+          <h4>3. How to Request Support or Re-generation</h4>
           <p>
-            Simply email <a href="mailto:support@twinkletaleai.com">support@twinkletaleai.com</a> or message us on WhatsApp with:
+            Simply email <a href="mailto:support@twinkletaleai.com">support@twinkletaleai.com</a> with:
           </p>
           <ul>
             <li>Your Order ID or registered email address.</li>
             <li>A brief description or screenshot of the issue.</li>
           </ul>
           <div class="policy-highlight-box">
-            <strong>Refund Settlement Timeline:</strong> Refund requests are reviewed and approved within <strong>24 hours</strong>. Once approved, the funds are automatically reversed by Razorpay directly to your original payment method (UPI, Debit/Credit Card, NetBanking) within <strong>5 to 7 business days</strong> as per banking network timelines.
+            <strong>Customer Support Response Time:</strong> Support requests are reviewed and resolved within <strong>24 hours</strong>.
           </div>
         </div>
 
@@ -2893,11 +2889,18 @@
       const previewStageEl = document.getElementById('previewStage');
       if (previewStageEl) previewStageEl.style.display = 'none';
       const prog = document.getElementById('progressStage');
-      prog.style.display = 'block';
-      prog.scrollIntoView({ behavior: 'smooth' });
+      if (prog) {
+        prog.style.display = 'block';
+        prog.scrollIntoView({ behavior: 'smooth' });
+      }
 
       const email = document.getElementById('parentEmail').value.trim();
       const isLong = selectedEdition === 'long';
+
+      const emailDisplay = document.getElementById('confirmEmailDisplay');
+      if (emailDisplay) emailDisplay.innerText = email || 'your email';
+      const orderDisplay = document.getElementById('confirmOrderDisplay');
+      if (orderDisplay) orderDisplay.innerText = paymentResponse.razorpay_order_id || 'Processing';
 
       let coverPayload = window.currentCoverDataUrl || '';
       // Payload hygiene: do not re-upload multi-megabyte base64 strings when server already cached it
@@ -2918,94 +2921,17 @@
             email,
             coverDataUrl: coverPayload
           })
-        }, 2, 3500, (attempt) => {
-          document.getElementById('progressStepText').textContent = `Waking up book engine (connecting attempt ${attempt + 1})...`;
-        });
+        }, 2, 3500);
 
         const verifyData = await verifyRes.json();
-        if (verifyData.success && verifyData.jobId) {
-          pollJobStatus(verifyData.jobId);
-        } else {
-          document.getElementById('progressHeading').textContent = 'Order Verification Issue';
-          document.getElementById('progressStepText').textContent = verifyData.error || 'Please contact support.';
+        if (verifyData.success && verifyData.jobId && orderDisplay) {
+          orderDisplay.innerText = paymentResponse.razorpay_order_id || verifyData.jobId;
         }
       } catch (err) {
-        document.getElementById('progressHeading').textContent = 'Connection Error';
-        document.getElementById('progressStepText').textContent = err.message;
+        console.warn('Background verification dispatch note:', err.message);
       }
     }
 
-    function pollJobStatus(jobId) {
-      const fill = document.getElementById('progressBarFill');
-      const stepText = document.getElementById('progressStepText');
-      let consecutiveErrors = 0;
-      let totalPolls = 0;
-
-      const interval = setInterval(async () => {
-        totalPolls++;
-        try {
-          const res = await fetch(`${API_BASE}/api/job-status/${jobId}`);
-          const data = await res.json();
-
-          if (data && data.success) {
-            consecutiveErrors = 0;
-            fill.style.width = `${Math.min(100, data.progress || 20)}%`;
-            stepText.textContent = data.step || 'Crafting storybook...';
-
-            if (data.status === 'completed' && data.pdfUrl) {
-              clearInterval(interval);
-              document.getElementById('progressSpinner').style.display = 'none';
-              document.getElementById('progressHeading').textContent = 'Storybook Complete!';
-              document.getElementById('progressSubheading').textContent = 'Your personalized keepsake is ready for bedtime reading.';
-              
-              const downloadLink = document.getElementById('downloadPdfLink');
-              downloadLink.href = data.pdfUrl;
-              document.getElementById('downloadBox').style.display = 'block';
-
-              const parentEmailVal = document.getElementById('parentEmail') ? document.getElementById('parentEmail').value : '';
-              if (data.emailed && parentEmailVal) {
-                document.getElementById('emailConfirmationText').innerHTML = 
-                  `A high-resolution print-ready PDF has also been sent to <strong>${parentEmailVal}</strong>.`;
-              }
-            } else if (data.status === 'failed') {
-              clearInterval(interval);
-              document.getElementById('progressSpinner').style.display = 'none';
-              document.getElementById('progressHeading').textContent = 'Order Protection Notice';
-              if (data.refundId) {
-                stepText.innerHTML = `<div style="background:#FFF3CD;color:#664D03;padding:16px;border-radius:8px;border:1px solid #FFECB5;text-align:left;font-size:14px;line-height:1.5">
-                  <strong>Technical Delay & Full Refund Initiated:</strong><br>
-                  Our studio encountered an unexpected delay while rendering high-resolution spreads. To ensure your complete peace of mind, a <strong>full 100% refund has been automatically initiated</strong> to your payment method (Refund ID: <code>${data.refundId}</code>).<br>
-                  <span style="font-size:12px;color:#856404">A detailed confirmation has been sent to your email.</span>
-                </div>`;
-              } else {
-                stepText.innerHTML = `<div style="background:#F8D7DA;color:#842029;padding:14px;border-radius:8px;border:1px solid #F5C2C7;font-size:14px">
-                  ${data.error || 'Something went wrong while rendering the book.'}
-                  <br><small>If payment was completed, your order is protected and our support team has been notified.</small>
-                </div><br><button type="button" onclick="pollJobStatus('${jobId}')" class="secondary-btn" style="margin-top:10px;padding:8px 18px">Check Status Again</button>`;
-              }
-            }
-          } else {
-            consecutiveErrors++;
-            if (consecutiveErrors >= 5) {
-              stepText.innerHTML = `Still crafting your storybook (connecting)...<br><small style="color:#777">If this takes more than 2 minutes, your book is still being finalized and will be emailed directly to your inbox.</small>`;
-            }
-          }
-        } catch (e) {
-          consecutiveErrors++;
-          console.log('Polling notice:', e.message);
-          if (consecutiveErrors >= 6) {
-            stepText.textContent = 'Reconnecting to storybook engine...';
-          }
-        }
-
-        // Safety timeout safeguard (after 6 minutes of continuous polling)
-        if (totalPolls > 100) {
-          clearInterval(interval);
-          document.getElementById('progressSpinner').style.display = 'none';
-          document.getElementById('progressHeading').textContent = 'Order in Final Delivery';
-          stepText.innerHTML = `Your storybook is taking a few extra moments to bind into 4K print quality.<br>Please check your email inbox in a few minutes for the permanent download link.<br><button type="button" onclick="window.location.reload()" class="secondary-btn" style="margin-top:14px;padding:8px 18px">Refresh Page</button>`;
-        }
-      }, 3500);
     }
 
     // =========================================================

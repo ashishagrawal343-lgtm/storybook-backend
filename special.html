@@ -1528,26 +1528,28 @@
 
     </section>
 
-    <!-- STEP 3: Real-Time Book Assembly & Fulfillment Card -->
-    <section class="card fulfillment-card" id="fulfillmentCard">
-      <div class="fulfillment-icon">
-        <i class="fa-solid fa-gift"></i>
+    <!-- STEP 3: Instant Post-Payment Order Confirmation Card -->
+    <section class="card fulfillment-card" id="fulfillmentCard" style="display:none; text-align:center; padding:32px 22px;">
+      <div class="fulfillment-icon" style="background:#ECFDF5; color:#059669; width:64px; height:64px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 16px; font-size:1.8rem; box-shadow:0 4px 14px rgba(5,150,105,0.2);">
+        <i class="fa-solid fa-circle-check"></i>
       </div>
-      <h2 class="fulfillment-title" id="fulfillmentTitle">Payment Confirmed! 🎉</h2>
-      <p class="fulfillment-sub" id="fulfillmentSub">
-        Our illustration studio is binding your child's personalized bedtime book right now.
-      </p>
-
-      <div class="progress-bar-bg">
-        <div class="progress-bar-fill" id="jobProgressBarFill" style="width: 25%;"></div>
+      <h2 class="fulfillment-title" id="fulfillmentTitle" style="font-size:1.45rem; font-weight:800; color:var(--navy); margin-bottom:12px;">
+        🎉 Payment Successful!
+      </h2>
+      <div style="background:#FAF5EE; border:1px solid #EAE0D0; border-radius:14px; padding:18px 16px; margin:16px 0 20px; text-align:left;">
+        <p style="font-size:1.02rem; font-weight:600; color:#1E293B; line-height:1.6; margin:0 0 12px;" id="orderConfirmationNotice">
+          🎉 Payment Successful! Your magical storybook is being generated. You will receive a secure download link via email within 5–8 minutes. (Please check your spam or promotions folder just in case!)
+        </p>
+        <div style="font-size:0.86rem; color:#64748B; border-top:1px dashed #DDD2C0; padding-top:10px; line-height:1.5;">
+          <div>📧 Delivery Email: <strong id="confirmEmailDisplay" style="color:var(--navy);">your email</strong></div>
+          <div style="margin-top:4px;">🔖 Order ID: <span id="confirmOrderDisplay" style="color:#0F172A; font-family:monospace; font-weight:700;">Processing</span></div>
+        </div>
       </div>
-      <div id="jobStatusText" style="font-size:0.92rem;font-weight:700;color:var(--navy);margin-bottom:14px;">
-        Painting decorative story borders...
+      <div style="display:flex; flex-direction:column; gap:10px; align-items:center;">
+        <a href="https://twinkletaleai.com/" class="btn-primary" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:8px; width:100%; max-width:320px; height:48px;">
+          <i class="fa-solid fa-sparkles"></i> Back to TwinkleTale Home
+        </a>
       </div>
-
-      <a id="btnDownloadBook" class="download-book-btn" href="#" target="_blank" rel="noopener noreferrer" download>
-        <i class="fa-solid fa-download"></i> Download Your Storybook PDF
-      </a>
     </section>
 
     <!-- Child Privacy & Security Commitment -->
@@ -2161,12 +2163,24 @@
       }
     }
 
-    // Verify Payment & Start Job Tracking
+    // Verify Payment & Immediate Order Confirmation
     async function verifyAndCompleteBook(paymentResponse, previewId, isLong, email) {
+      // Hide input forms and preview cards
       document.getElementById('previewResultCard').style.display = 'none';
       document.getElementById('formCard').style.display = 'none';
-      document.getElementById('fulfillmentCard').style.display = 'block';
-      window.scrollTo({ top: document.getElementById('fulfillmentCard').offsetTop - 30, behavior: 'smooth' });
+
+      // Update email and order id displays
+      const emailDisplay = document.getElementById('confirmEmailDisplay');
+      if (emailDisplay) emailDisplay.innerText = email || 'your email';
+      const orderDisplay = document.getElementById('confirmOrderDisplay');
+      if (orderDisplay) orderDisplay.innerText = paymentResponse.razorpay_order_id || 'Confirmed';
+
+      // Immediately display clean, branded Order Confirmation card (zero loading spinner / wait screens)
+      const fulfillmentCard = document.getElementById('fulfillmentCard');
+      if (fulfillmentCard) {
+        fulfillmentCard.style.display = 'block';
+        window.scrollTo({ top: fulfillmentCard.offsetTop - 30, behavior: 'smooth' });
+      }
 
       try {
         const verifyRes = await fetchWithRetry(`${API_BASE}/api/verify-and-complete-book`, {
@@ -2186,12 +2200,12 @@
 
         const verifyData = await verifyRes.json();
         if (!verifyRes.ok || !verifyData.success) {
-          throw new Error(verifyData.error || 'Payment verification failed');
+          console.warn('Payment verification returned note:', verifyData.error);
+        } else if (verifyData.jobId && orderDisplay) {
+          orderDisplay.innerText = paymentResponse.razorpay_order_id || verifyData.jobId;
         }
-
-        trackJobProgress(verifyData.jobId);
       } catch (err) {
-        alert('Verification error: ' + err.message);
+        console.warn('Background verification dispatch note:', err.message);
       }
     }
 
@@ -2203,41 +2217,6 @@
         razorpay_payment_id: simPaymentId,
         razorpay_signature: 'simulated_dev_signature'
       }, previewId, isLong, email);
-    }
-
-    // Poll Job Status Until PDF Ready
-    function trackJobProgress(jobId) {
-      const jobFill = document.getElementById('jobProgressBarFill');
-      const statusText = document.getElementById('jobStatusText');
-      const downloadBtn = document.getElementById('btnDownloadBook');
-
-      activeJobPollInterval = setInterval(async () => {
-        try {
-          const res = await fetch(`${API_BASE}/api/job-status/${jobId}`);
-          const job = await res.json();
-
-          if (job && job.progress) {
-            jobFill.style.width = `${job.progress}%`;
-          }
-          if (job && job.step) {
-            statusText.innerText = job.step;
-          }
-
-          if (job.status === 'completed' && job.pdfUrl) {
-            clearInterval(activeJobPollInterval);
-            jobFill.style.width = '100%';
-            document.getElementById('fulfillmentTitle').innerText = 'Your Storybook is Ready! 🌟';
-            statusText.innerText = 'Complete high-resolution PDF rendered & sent to your email!';
-            downloadBtn.href = job.pdfUrl;
-            downloadBtn.style.display = 'inline-flex';
-          } else if (job.status === 'failed') {
-            clearInterval(activeJobPollInterval);
-            statusText.innerText = 'We experienced an unexpected delay, but a full refund was automatically processed.';
-          }
-        } catch (e) {
-          console.warn('Job poll warn:', e);
-        }
-      }, 2500);
     }
 
     // FAQ Accordion Toggle
@@ -2267,14 +2246,16 @@
           <p>TwinkleTale delivers a digital, print-ready, high-resolution PDF e-book directly to the email address provided at checkout. No recurring subscription or automated recurring charge is ever applied.</p>
           <h4>2. Personal Use License</h4>
           <p>Your purchased keepsake storybook comes with a perpetual personal license to read, share with family, and print at any home or local commercial print studio for personal enjoyment.</p>
+          <h4>3. Non-Refundable Product Policy</h4>
+          <p>This is a non-refundable digital product. Due to the custom, automated, and personalized nature of our digital children's storybooks (which begin custom AI rendering and cloud computation immediately upon payment confirmation), all purchases are final and non-refundable once an order is placed. In the rare event of a technical rendering or delivery issue, our support team will promptly assist with re-generating your storybook.</p>
         `;
       } else if (type === 'refund') {
-        title.innerText = '100% Satisfaction & Refund Guarantee';
+        title.innerText = 'Refund & Cancellation Policy';
         body.innerHTML = `
-          <h4>1. Zero Risk Promise</h4>
-          <p>If for any reason your storybook generation encounters an unrecoverable studio failure, our automated fail-safe initiates a 100% refund immediately back to your original payment method.</p>
-          <h4>2. Contact Support</h4>
-          <p>For any questions or manual refund requests, simply email support@twinkletaleai.com within 7 days of purchase and our team will resolve it within 24 hours.</p>
+          <h4>1. Custom Personalized Digital Goods</h4>
+          <p>This is a non-refundable digital product. Each storybook is custom-crafted and rendered individually for your child. Because cloud generation begins automatically upon payment confirmation, orders cannot be cancelled or refunded once placed.</p>
+          <h4>2. Quality & Delivery Assurance</h4>
+          <p>We guarantee 100% successful digital delivery. If your download link is broken or you experience any technical rendering defect, our studio provides free immediate re-generation. Simply contact us at <a href="mailto:support@twinkletaleai.com" style="color:var(--coral);">support@twinkletaleai.com</a> and our team will resolve it within 24 hours.</p>
         `;
       }
 
