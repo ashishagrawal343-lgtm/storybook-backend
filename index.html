@@ -3591,8 +3591,6 @@
       }
     }
 
-    }
-
     // =========================================================
     // COMPLIANCE & LEGAL POLICY MODAL CONTROLLER
     // =========================================================
@@ -3698,17 +3696,25 @@
       if (sampleKey === 'radha') {
         radhaCard.style.display = 'grid';
         sidCard.style.display = 'none';
-        tabRadha?.classList.add('active');
-        tabSid?.classList.remove('active');
-        tabRadha?.setAttribute('aria-selected', 'true');
-        tabSid?.setAttribute('aria-selected', 'false');
+        if (tabRadha) {
+          tabRadha.classList.add('active');
+          tabRadha.setAttribute('aria-selected', 'true');
+        }
+        if (tabSid) {
+          tabSid.classList.remove('active');
+          tabSid.setAttribute('aria-selected', 'false');
+        }
       } else {
         radhaCard.style.display = 'none';
         sidCard.style.display = 'grid';
-        tabRadha?.classList.remove('active');
-        tabSid?.classList.add('active');
-        tabRadha?.setAttribute('aria-selected', 'false');
-        tabSid?.setAttribute('aria-selected', 'true');
+        if (tabRadha) {
+          tabRadha.classList.remove('active');
+          tabRadha.setAttribute('aria-selected', 'false');
+        }
+        if (tabSid) {
+          tabSid.classList.add('active');
+          tabSid.setAttribute('aria-selected', 'true');
+        }
       }
     }
 
@@ -3736,6 +3742,28 @@
         closeSampleLightbox();
       }
     }
+
+    // Explicitly bind to window for inline onclick handlers & attach event listeners
+    window.switchBookSample = switchBookSample;
+    window.openSampleLightbox = openSampleLightbox;
+    window.closeSampleLightbox = closeSampleLightbox;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const tabRadha = document.getElementById('tabBtnRadha');
+      const tabSid = document.getElementById('tabBtnSid');
+      if (tabRadha) {
+        tabRadha.addEventListener('click', (e) => {
+          e.preventDefault();
+          switchBookSample('radha');
+        });
+      }
+      if (tabSid) {
+        tabSid.addEventListener('click', (e) => {
+          e.preventDefault();
+          switchBookSample('sid');
+        });
+      }
+    });
   </script>
 
   <!-- Live Sample Lightbox Modal -->

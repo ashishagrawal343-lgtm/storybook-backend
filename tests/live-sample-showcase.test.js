@@ -64,6 +64,89 @@ assert(serverContent.includes('sid-dinosaur-wonder-night-sample.pdf'), 'server.j
 assert(serverContent.includes('res.download('), 'server.js missing res.download attachment header');
 console.log('  ✔ server.js has robust res.download route configured with custom attachment filenames.');
 console.log('✅ TEST 4 PASSED: Server endpoints verified.');
+// --- TEST 5: JavaScript Compilation & Syntax Audit ---
+console.log('\n--- TEST 5: JavaScript Compilation & Syntax Audit ---');
+const vm = require('vm');
+['index.html', 'frontend_index.html'].forEach((fileName) => {
+  const htmlPath = path.join(__dirname, '..', fileName);
+  const content = fs.readFileSync(htmlPath, 'utf8');
+  const scriptRegex = /<script\b[^>]*>([\s\S]*?)<\/script>/gi;
+  let match, count = 0;
+  while ((match = scriptRegex.exec(content)) !== null) {
+    count++;
+    const code = match[1];
+    if (!code.trim()) continue;
+    try {
+      new vm.Script(code);
+      console.log(`  ✔ ${fileName} Script #${count}: Parsed cleanly with zero syntax errors.`);
+    } catch (err) {
+      assert.fail(`${fileName} Script #${count} failed to parse: ${err.message}`);
+    }
+  }
+});
+console.log('✅ TEST 5 PASSED: All JavaScript scripts compile without syntax errors.');
+
+// --- TEST 6: Simulated DOM Tab Switcher Execution ---
+console.log('\n--- TEST 6: Simulated DOM Tab Switcher Execution ---');
+function createMockElement(id, initialDisplay) {
+  const classes = new Set();
+  const attrs = {};
+  return {
+    id,
+    style: { display: initialDisplay },
+    classList: {
+      add: (c) => classes.add(c),
+      remove: (c) => classes.delete(c),
+      contains: (c) => classes.has(c)
+    },
+    setAttribute: (k, v) => { attrs[k] = String(v); },
+    getAttribute: (k) => attrs[k]
+  };
+}
+
+const mockRadhaCard = createMockElement('sampleContentRadha', 'grid');
+const mockSidCard = createMockElement('sampleContentSid', 'none');
+const mockTabRadha = createMockElement('tabBtnRadha', '');
+mockTabRadha.classList.add('active');
+mockTabRadha.setAttribute('aria-selected', 'true');
+const mockTabSid = createMockElement('tabBtnSid', '');
+mockTabSid.setAttribute('aria-selected', 'false');
+
+const elements = {
+  sampleContentRadha: mockRadhaCard,
+  sampleContentSid: mockSidCard,
+  tabBtnRadha: mockTabRadha,
+  tabBtnSid: mockTabSid
+};
+
+global.document = {
+  getElementById: (id) => elements[id] || null
+};
+
+// Extract switchBookSample definition from index.html
+const indexHtml = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+const switchFnMatch = indexHtml.match(/function switchBookSample\(sampleKey\)\s*\{[\s\S]*?\n    \}/);
+assert(switchFnMatch, 'Could not find switchBookSample in index.html');
+const switchFn = new Function('sampleKey', switchFnMatch[0].replace('function switchBookSample(sampleKey)', ''));
+
+// Test switching to Sid (Sample 2)
+switchFn('sid');
+assert.strictEqual(mockRadhaCard.style.display, 'none', 'Radha card should be hidden');
+assert.strictEqual(mockSidCard.style.display, 'grid', 'Sid card should be visible as grid');
+assert(!mockTabRadha.classList.contains('active'), 'Radha tab should not be active');
+assert(mockTabSid.classList.contains('active'), 'Sid tab should be active');
+assert.strictEqual(mockTabSid.getAttribute('aria-selected'), 'true', 'Sid tab should have aria-selected=true');
+assert.strictEqual(mockTabRadha.getAttribute('aria-selected'), 'false', 'Radha tab should have aria-selected=false');
+console.log('  ✔ switchBookSample("sid"): Correctly switched to Sample 2 (Dinosaur Wonders)');
+
+// Test switching back to Radha (Sample 1)
+switchFn('radha');
+assert.strictEqual(mockRadhaCard.style.display, 'grid', 'Radha card should be visible as grid');
+assert.strictEqual(mockSidCard.style.display, 'none', 'Sid card should be hidden');
+assert(mockTabRadha.classList.contains('active'), 'Radha tab should be active');
+assert(!mockTabSid.classList.contains('active'), 'Sid tab should not be active');
+console.log('  ✔ switchBookSample("radha"): Correctly switched back to Sample 1 (Space & Stars)');
+console.log('✅ TEST 6 PASSED: Tab switching execution verified.');
 
 console.log('\n========================================================================');
 console.log('🎉 ALL LIVE BOOK SAMPLES SHOWCASE TESTS PASSED CLEANLY!');
