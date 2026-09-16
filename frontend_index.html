@@ -301,6 +301,455 @@
       align-items: center;
       text-align: left;
     }
+
+    /* ========================================================= */
+    /* LIVE STORYBOOK SAMPLES SHOWCASE                           */
+    /* ========================================================= */
+    .sample-showcase-container {
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      padding: 36px 36px 32px;
+      box-shadow: 0 20px 50px -15px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(226, 232, 240, 0.85);
+      margin: 24px auto 65px;
+      max-width: 1080px;
+      position: relative;
+    }
+    .sample-showcase-intro {
+      text-align: center;
+      max-width: 760px;
+      margin: 0 auto 26px;
+    }
+    .sample-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(212, 175, 55, 0.12);
+      color: #996515;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 6px 14px;
+      border-radius: 20px;
+      margin-bottom: 12px;
+      border: 1px solid rgba(212, 175, 55, 0.28);
+    }
+    .sample-showcase-intro h2 {
+      font-size: 2.1rem;
+      color: var(--navy);
+      margin-bottom: 10px;
+      line-height: 1.25;
+      letter-spacing: -0.5px;
+    }
+    .sample-showcase-intro p {
+      color: var(--text-muted);
+      font-size: 0.98rem;
+      line-height: 1.55;
+    }
+    
+    /* Sample Switcher Tabs */
+    .sample-nav-wrapper {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+    }
+    .sample-tab-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 20px;
+      background: #F8FAFC;
+      border: 1.5px solid #E2E8F0;
+      border-radius: 16px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      text-align: left;
+      font-family: inherit;
+    }
+    .sample-tab-btn:hover {
+      border-color: #CBD5E1;
+      background: #F1F5F9;
+      transform: translateY(-1px);
+    }
+    .sample-tab-btn.active {
+      background: #FFFFFF;
+      border-color: var(--gold);
+      box-shadow: 0 8px 24px -6px rgba(212, 175, 55, 0.28), 0 0 0 2px rgba(212, 175, 55, 0.2);
+    }
+    .sample-tab-icon {
+      font-size: 1.6rem;
+      line-height: 1;
+    }
+    .sample-tab-text {
+      display: flex;
+      flex-direction: column;
+    }
+    .sample-tab-title {
+      font-size: 0.94rem;
+      font-weight: 700;
+      color: var(--navy);
+    }
+    .sample-tab-subtitle {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .sample-tab-tag {
+      margin-left: 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      background: #EDF2F7;
+      color: #4A5568;
+      padding: 3px 8px;
+      border-radius: 10px;
+    }
+    .sample-tab-btn.active .sample-tab-tag {
+      background: rgba(217, 83, 79, 0.12);
+      color: var(--coral);
+    }
+
+    /* Active Sample Card Grid */
+    .sample-content-card {
+      display: grid;
+      grid-template-columns: 1.05fr 1fr;
+      gap: 36px;
+      align-items: center;
+      animation: sampleFadeIn 0.35s ease;
+    }
+    @keyframes sampleFadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Left Visual Column */
+    .sample-visual-box {
+      position: relative;
+      border-radius: 18px;
+      overflow: hidden;
+      background: #0B1120;
+      box-shadow: 0 20px 45px -12px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(212, 175, 55, 0.25);
+      border: 3px solid #FFFFFF;
+      transition: transform 0.35s ease, box-shadow 0.35s ease;
+      cursor: pointer;
+    }
+    .sample-visual-box:hover {
+      transform: scale(1.015);
+      box-shadow: 0 28px 55px -12px rgba(0, 0, 0, 0.42), 0 0 0 1.5px var(--gold);
+    }
+    .sample-visual-img {
+      width: 100%;
+      height: auto;
+      display: block;
+      aspect-ratio: 1/1;
+      object-fit: cover;
+    }
+    .sample-visual-badge {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      color: #FFFFFF;
+      font-size: 0.74rem;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      z-index: 2;
+    }
+    .sample-visual-zoom {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(6px);
+      color: #FFFFFF;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 16px;
+      opacity: 0.85;
+      transition: opacity 0.2s;
+    }
+    .sample-visual-box:hover .sample-visual-zoom {
+      opacity: 1;
+      background: rgba(217, 83, 79, 0.95);
+    }
+    .sample-caption-note {
+      text-align: center;
+      margin-top: 10px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    /* Right Info Column */
+    .sample-info-pane {
+      text-align: left;
+    }
+    .sample-pills-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .sample-theme-pill {
+      background: rgba(43, 45, 66, 0.08);
+      color: var(--navy);
+      font-weight: 700;
+      font-size: 0.8rem;
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+    .sample-edition-pill {
+      background: rgba(45, 106, 79, 0.12);
+      color: var(--forest);
+      font-weight: 700;
+      font-size: 0.8rem;
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+    .sample-res-pill {
+      background: rgba(212, 175, 55, 0.15);
+      color: #996515;
+      font-weight: 700;
+      font-size: 0.8rem;
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+    .sample-heading {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.85rem;
+      color: var(--navy);
+      margin: 0 0 12px;
+      line-height: 1.25;
+      letter-spacing: -0.3px;
+    }
+    .sample-desc-text {
+      color: var(--text-muted);
+      font-size: 0.94rem;
+      line-height: 1.6;
+      margin-bottom: 18px;
+    }
+    .sample-checklist {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .sample-checklist li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 0.88rem;
+      line-height: 1.5;
+      color: var(--navy);
+    }
+    .sample-checklist li i {
+      color: var(--forest);
+      font-size: 1rem;
+      margin-top: 3px;
+      flex-shrink: 0;
+    }
+
+    /* Actions Box */
+    .sample-btn-actions {
+      display: flex;
+      align-items: stretch;
+      gap: 12px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .btn-download-sample {
+      flex: 1;
+      min-width: 220px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      background: linear-gradient(135deg, var(--coral) 0%, #B23B37 100%);
+      color: #FFFFFF;
+      text-decoration: none;
+      padding: 12px 20px;
+      border-radius: var(--radius-sm);
+      font-weight: 700;
+      box-shadow: 0 8px 20px -4px rgba(217, 83, 79, 0.4);
+      transition: all 0.25s ease;
+    }
+    .btn-download-sample:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 25px -4px rgba(217, 83, 79, 0.5);
+      color: #FFFFFF;
+    }
+    .btn-download-sample .btn-icon {
+      font-size: 1.3rem;
+    }
+    .btn-download-sample .btn-content {
+      display: flex;
+      flex-direction: column;
+      text-align: left;
+    }
+    .btn-download-sample .btn-title {
+      font-size: 0.94rem;
+      line-height: 1.2;
+    }
+    .btn-download-sample .btn-subtitle {
+      font-size: 0.72rem;
+      opacity: 0.9;
+      font-weight: 500;
+    }
+    .btn-read-sample {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 18px;
+      background: #FFFFFF;
+      color: var(--navy);
+      border: 1.5px solid var(--border-light);
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.88rem;
+      transition: all 0.25s;
+    }
+    .btn-read-sample:hover {
+      border-color: var(--gold);
+      color: var(--coral);
+      transform: translateY(-2px);
+    }
+    .sample-trust-tag {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Bottom Showcase Banner */
+    .sample-showcase-bar {
+      margin-top: 32px;
+      padding-top: 22px;
+      border-top: 1px dashed #E2E8F0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .sample-bar-prompt {
+      font-size: 0.92rem;
+      color: var(--navy);
+    }
+    .sample-bar-prompt strong {
+      color: var(--coral);
+    }
+
+    /* Lightbox Modal */
+    .sample-lightbox-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 15, 30, 0.88);
+      backdrop-filter: blur(8px);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: lightboxFade 0.25s ease;
+    }
+    @keyframes lightboxFade {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .sample-lightbox-inner {
+      position: relative;
+      max-width: 900px;
+      width: 100%;
+      background: #0B1120;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.15);
+      text-align: center;
+    }
+    .sample-lightbox-img {
+      width: 100%;
+      max-height: 80vh;
+      object-fit: contain;
+      display: block;
+    }
+    .sample-lightbox-close {
+      position: absolute;
+      top: 12px;
+      right: 14px;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: #FFFFFF;
+      font-size: 1.4rem;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+    .sample-lightbox-close:hover {
+      background: var(--coral);
+    }
+    .sample-lightbox-bar {
+      padding: 12px 18px;
+      background: #0F172A;
+      color: #E2E8F0;
+      font-size: 0.88rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 860px) {
+      .sample-showcase-container {
+        padding: 24px 18px;
+        margin: 15px auto 45px;
+      }
+      .sample-content-card {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+      .sample-showcase-intro h2 {
+        font-size: 1.6rem;
+      }
+      .sample-heading {
+        font-size: 1.5rem;
+      }
+      .sample-nav-wrapper {
+        flex-direction: column;
+      }
+      .sample-tab-btn {
+        width: 100%;
+        justify-content: flex-start;
+      }
+      .sample-showcase-bar {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+      }
+      .btn-download-sample {
+        width: 100%;
+      }
+    }
     .book-mockup-wrapper {
       display: flex;
       justify-content: center;
@@ -1540,31 +1989,193 @@
         </a>
       </div>
 
-      <!-- Heirloom Spread Showcase -->
-      <div class="showcase-banner" id="previewShowcase">
-        <div class="book-mockup-wrapper">
-          <div class="book-mockup">
-            <div class="mockup-header">
-              <div class="mockup-name">Aarav's</div>
-              <div class="mockup-title">Treasury of Space & Stars</div>
-            </div>
-            <div class="mockup-circle"></div>
-            <div class="mockup-footer">TwinkleTale Keepsake Edition</div>
+      <!-- Live Storybook Showcase & Heirloom Keepsake Standard -->
+      <div class="sample-showcase-container" id="previewShowcase">
+        <div class="sample-showcase-intro">
+          <span class="sample-badge"><i class="fas fa-sparkles"></i> LIVE STORYBOOK SAMPLES</span>
+          <h2>See How Real Photos Turn Into Magical Storybooks</h2>
+          <p>
+            Explore actual customer-quality storybooks created with TwinkleTale AI. Each edition features 
+            breathtaking left-page 3D Pixar artwork and enchanting right-page lyrical verses. Click below to inspect the transformation 
+            and download the complete 12-page sample PDF:
+          </p>
+
+          <!-- Interactive Sample Switcher Tabs -->
+          <div class="sample-nav-wrapper" role="tablist">
+            <button type="button" class="sample-tab-btn active" id="tabBtnRadha" onclick="switchBookSample('radha')" role="tab" aria-selected="true">
+              <span class="sample-tab-icon">✨</span>
+              <div class="sample-tab-text">
+                <span class="sample-tab-title">Radha's Starlight Cosmic Voyage</span>
+                <span class="sample-tab-subtitle">Theme: Space & Stars • 12 Pages</span>
+              </div>
+              <span class="sample-tab-tag">Sample 1</span>
+            </button>
+            <button type="button" class="sample-tab-btn" id="tabBtnSid" onclick="switchBookSample('sid')" role="tab" aria-selected="false">
+              <span class="sample-tab-icon">🦖</span>
+              <div class="sample-tab-text">
+                <span class="sample-tab-title">Sid's Dinosaur Wonder Night</span>
+                <span class="sample-tab-subtitle">Theme: Dinosaur Wonders • 12 Pages</span>
+              </div>
+              <span class="sample-tab-tag">Sample 2</span>
+            </button>
           </div>
         </div>
-        <div class="showcase-text">
-          <span class="section-subtitle">The Heirloom Keepsake Standard</span>
-          <h3>Left-Image & Right-Verse Classic Spreads</h3>
-          <p>
-            Every storybook is designed like a classic hardcover picture book. 
-            On the left page: a breathtaking 3D Pixar/Disney style illustration featuring your child as the storybook hero. 
-            On the right page: an enchanting read-aloud verse in elegant typography.
-          </p>
-          <ul class="spread-features">
-            <li><i class="fas fa-check-circle"></i> <strong>Consistent 3D Pixar Hero:</strong> Your child's likeness, expressive features & signature theme outfit preserved across every page.</li>
-            <li><i class="fas fa-check-circle"></i> <strong>Lyrical Bedtime Verses:</strong> Rhyming poetry and heartwarming stories crafted to inspire wonder and sweet dreams.</li>
-            <li><i class="fas fa-check-circle"></i> <strong>High-Res 300 DPI PDF:</strong> Crisp on tablets, iPads, phones, or printed out into a bedside keepsake.</li>
-          </ul>
+
+        <!-- Sample 1: Radha's Starlight Cosmic Voyage -->
+        <div class="sample-content-card" id="sampleContentRadha" role="tabpanel">
+          <!-- Left: Artwork Visual Reference -->
+          <div class="sample-visual-column">
+            <div class="sample-visual-box" onclick="openSampleLightbox('/public/samples/sample-radha-cosmic-voyage.jpg', 'Radha\'s Starlight Cosmic Voyage - Real Photo to Storybook Spread')">
+              <div class="sample-visual-badge">
+                <i class="fas fa-camera"></i> Real Photo ➔ 3D Pixar Spread
+              </div>
+              <picture>
+                <source srcset="/public/samples/sample-radha-cosmic-voyage.webp" type="image/webp">
+                <img src="/public/samples/sample-radha-cosmic-voyage.jpg" 
+                     alt="Radha's Starlight Cosmic Voyage - Real Photo to Storybook Transformation" 
+                     class="sample-visual-img" 
+                     loading="eager" 
+                     width="600" height="600">
+              </picture>
+              <div class="sample-visual-zoom">
+                <i class="fas fa-search-plus"></i> Click to Enlarge Spread
+              </div>
+            </div>
+            <div class="sample-caption-note">
+              <i class="fas fa-circle-check" style="color:var(--forest);"></i> Verified customer-grade sample spread (Space & Stars)
+            </div>
+          </div>
+
+          <!-- Right: Story Details & Download -->
+          <div class="sample-info-pane">
+            <div class="sample-pills-row">
+              <span class="sample-theme-pill"><i class="fas fa-rocket"></i> Space & Stars</span>
+              <span class="sample-edition-pill"><i class="fas fa-book-open"></i> 12 Total Pages</span>
+              <span class="sample-res-pill"><i class="fas fa-print"></i> 300 DPI Keepsake</span>
+            </div>
+
+            <h3 class="sample-heading">Radha's Starlight Cosmic Voyage</h3>
+            <p class="sample-desc-text">
+              Watch how Radha's front-facing snapshot transformed into a radiant cosmic explorer floating among 
+              silvery moonbeams and swirling galaxies, capturing her authentic smile, bright eyes, and sweet expression in rich picture-book realism.
+            </p>
+
+            <ul class="sample-checklist">
+              <li>
+                <i class="fas fa-check-circle"></i>
+                <div><strong>Consistent 3D Pixar Hero:</strong> Preserves Radha's unique facial likeness, eye shape, and joyful smile across every single spread.</div>
+              </li>
+              <li>
+                <i class="fas fa-check-circle"></i>
+                <div><strong>Lyrical Bedtime Verses:</strong> Heartwarming rhyming poetry crafted to inspire wonder and peaceful, snuggle-up bedtime dreams.</div>
+              </li>
+              <li>
+                <i class="fas fa-check-circle"></i>
+                <div><strong>Complete 12-Page Edition:</strong> Includes personalized keepsake cover, custom dedication page, 4 full story spreads, and heirloom back cover.</div>
+              </li>
+            </ul>
+
+            <div class="sample-btn-actions">
+              <a href="/api/sample-download/radha" download="Radha-Starlight-Cosmic-Voyage-TwinkleTale-Sample.pdf" class="btn-download-sample">
+                <i class="fas fa-download btn-icon"></i>
+                <div class="btn-content">
+                  <span class="btn-title">Download Complete Sample PDF</span>
+                  <span class="btn-subtitle">Free Instant Download • 1.8 MB (300 DPI Print-Ready)</span>
+                </div>
+              </a>
+              <a href="/public/samples/radha-starlight-cosmic-voyage-sample.pdf" target="_blank" rel="noopener noreferrer" class="btn-read-sample">
+                <i class="fas fa-eye"></i> Read Online
+              </a>
+            </div>
+
+            <div class="sample-trust-tag">
+              <i class="fas fa-shield-halved" style="color:var(--forest);"></i> 100% Free Sample • No email signup or payment needed to download
+            </div>
+          </div>
+        </div>
+
+        <!-- Sample 2: Sid's Dinosaur Wonder Night -->
+        <div class="sample-content-card" id="sampleContentSid" role="tabpanel" style="display:none;">
+          <!-- Left: Artwork Visual Reference -->
+          <div class="sample-visual-column">
+            <div class="sample-visual-box" onclick="openSampleLightbox('/public/samples/sample-sid-dinosaur-wonder.jpg', 'Sid\'s Dinosaur Wonder Night - Real Photo to Storybook Spread')">
+              <div class="sample-visual-badge">
+                <i class="fas fa-camera"></i> Real Photo ➔ 3D Pixar Spread
+              </div>
+              <picture>
+                <source srcset="/public/samples/sample-sid-dinosaur-wonder.webp" type="image/webp">
+                <img src="/public/samples/sample-sid-dinosaur-wonder.jpg" 
+                     alt="Sid's Dinosaur Wonder Night - Real Photo to Storybook Transformation" 
+                     class="sample-visual-img" 
+                     loading="lazy" 
+                     width="600" height="600">
+              </picture>
+              <div class="sample-visual-zoom">
+                <i class="fas fa-search-plus"></i> Click to Enlarge Spread
+              </div>
+            </div>
+            <div class="sample-caption-note">
+              <i class="fas fa-circle-check" style="color:var(--forest);"></i> Verified customer-grade sample spread (Dinosaur Wonders)
+            </div>
+          </div>
+
+          <!-- Right: Story Details & Download -->
+          <div class="sample-info-pane">
+            <div class="sample-pills-row">
+              <span class="sample-theme-pill"><i class="fas fa-dragon"></i> Dinosaur Wonders</span>
+              <span class="sample-edition-pill"><i class="fas fa-book-open"></i> 12 Total Pages</span>
+              <span class="sample-res-pill"><i class="fas fa-print"></i> 300 DPI Keepsake</span>
+            </div>
+
+            <h3 class="sample-heading">Sid's Dinosaur Wonder Night</h3>
+            <p class="sample-desc-text">
+              See how Sid's photo was transformed into a brave storybook adventurer in a cozy amber hoodie exploring "The Secret Door", 
+              with his authentic navy patka/turban, sparkling eyes, and signature happy grin preserved with 100% fidelity.
+            </p>
+
+            <ul class="sample-checklist">
+              <li>
+                <i class="fas fa-check-circle"></i>
+                <div><strong>Cultural & Personal Feature Fidelity:</strong> Authentic navy patka/turban, natural skin tone, and cheerful smile preserved without generic cap hallucinations.</div>
+              </li>
+              <li>
+                <i class="fas fa-check-circle"></i>
+                <div><strong>Lyrical Bedtime Verses:</strong> "The Secret Door" adventure rhyme printed in classic picture-book typography with artisan foliage borders.</div>
+              </li>
+              <li>
+                <i class="fas fa-check-circle"></i>
+                <div><strong>Complete 12-Page Edition:</strong> High-res 300 DPI layout formatted for tablets, Kindle, iPads, or printing on A4 photo paper.</div>
+              </li>
+            </ul>
+
+            <div class="sample-btn-actions">
+              <a href="/api/sample-download/sid" download="Sid-Dinosaur-Wonder-Night-TwinkleTale-Sample.pdf" class="btn-download-sample">
+                <i class="fas fa-download btn-icon"></i>
+                <div class="btn-content">
+                  <span class="btn-title">Download Complete Sample PDF</span>
+                  <span class="btn-subtitle">Free Instant Download • 2.0 MB (300 DPI Print-Ready)</span>
+                </div>
+              </a>
+              <a href="/public/samples/sid-dinosaur-wonder-night-sample.pdf" target="_blank" rel="noopener noreferrer" class="btn-read-sample">
+                <i class="fas fa-eye"></i> Read Online
+              </a>
+            </div>
+
+            <div class="sample-trust-tag">
+              <i class="fas fa-shield-halved" style="color:var(--forest);"></i> 100% Free Sample • No email signup or payment needed to download
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Call to Action Bar -->
+        <div class="sample-showcase-bar">
+          <div class="sample-bar-prompt">
+            <strong>Ready to see your own child as the story hero?</strong>
+            <span>Generate their personalized cover & opening rhyme for free in ~25 seconds.</span>
+          </div>
+          <a href="#create" class="btn-primary" style="padding:10px 22px; font-size:0.92rem;">
+            <span>Personalize Your Child's Book</span> <i class="fas fa-arrow-right"></i>
+          </a>
         </div>
       </div>
     </div>
@@ -2803,8 +3414,74 @@
       if (e.key === 'Escape') {
         closePolicyModal();
         closeCheckoutModal();
+        closeSampleLightbox();
       }
     });
+
+    // =========================================================
+    // LIVE BOOK SAMPLES SWITCHER & LIGHTBOX
+    // =========================================================
+    function switchBookSample(sampleKey) {
+      const radhaCard = document.getElementById('sampleContentRadha');
+      const sidCard = document.getElementById('sampleContentSid');
+      const tabRadha = document.getElementById('tabBtnRadha');
+      const tabSid = document.getElementById('tabBtnSid');
+
+      if (!radhaCard || !sidCard) return;
+
+      if (sampleKey === 'radha') {
+        radhaCard.style.display = 'grid';
+        sidCard.style.display = 'none';
+        tabRadha?.classList.add('active');
+        tabSid?.classList.remove('active');
+        tabRadha?.setAttribute('aria-selected', 'true');
+        tabSid?.setAttribute('aria-selected', 'false');
+      } else {
+        radhaCard.style.display = 'none';
+        sidCard.style.display = 'grid';
+        tabRadha?.classList.remove('active');
+        tabSid?.classList.add('active');
+        tabRadha?.setAttribute('aria-selected', 'false');
+        tabSid?.setAttribute('aria-selected', 'true');
+      }
+    }
+
+    function openSampleLightbox(imgSrc, title) {
+      const modal = document.getElementById('sampleLightboxModal');
+      const img = document.getElementById('sampleLightboxImg');
+      const caption = document.getElementById('sampleLightboxCaption');
+      if (!modal || !img) return;
+      img.src = imgSrc;
+      if (caption) caption.textContent = title || 'TwinkleTale Live Storybook Sample Spread';
+      modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeSampleLightbox() {
+      const modal = document.getElementById('sampleLightboxModal');
+      if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+      }
+    }
+
+    function handleLightboxBackdropClick(e) {
+      if (e.target && e.target.id === 'sampleLightboxModal') {
+        closeSampleLightbox();
+      }
+    }
   </script>
+
+  <!-- Live Sample Lightbox Modal -->
+  <div id="sampleLightboxModal" class="sample-lightbox-backdrop" style="display:none;" onclick="handleLightboxBackdropClick(event)">
+    <div class="sample-lightbox-inner">
+      <button type="button" class="sample-lightbox-close" onclick="closeSampleLightbox()" aria-label="Close Lightbox">&times;</button>
+      <img id="sampleLightboxImg" class="sample-lightbox-img" src="" alt="Zoomed Sample Spread">
+      <div class="sample-lightbox-bar">
+        <span id="sampleLightboxCaption" style="font-weight:600;">TwinkleTale Live Storybook Sample</span>
+        <span style="color:#94A3B8; font-size:0.8rem;">Press Esc or click outside to close</span>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

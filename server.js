@@ -3057,6 +3057,32 @@ app.get('/offer', (req, res) => {
     res.sendFile(path.join(__dirname, 'special.html'));
 });
 
+// Sample Storybook PDF Download Endpoint (guaranteed Content-Disposition attachment across all devices)
+app.get('/api/sample-download/:sampleId', (req, res) => {
+    const sampleId = String(req.params.sampleId || '').toLowerCase();
+    let fileName = '';
+    let downloadName = '';
+    if (sampleId === 'radha') {
+        fileName = 'radha-starlight-cosmic-voyage-sample.pdf';
+        downloadName = 'Radha-Starlight-Cosmic-Voyage-TwinkleTale-Sample.pdf';
+    } else if (sampleId === 'sid') {
+        fileName = 'sid-dinosaur-wonder-night-sample.pdf';
+        downloadName = 'Sid-Dinosaur-Wonder-Night-TwinkleTale-Sample.pdf';
+    } else {
+        return res.status(404).json({ error: 'Sample not found' });
+    }
+    const filePath = path.join(__dirname, 'public', 'samples', fileName);
+    if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: 'Sample file missing' });
+    }
+    res.download(filePath, downloadName, (err) => {
+        if (err && !res.headersSent) {
+            console.error('❌ Sample download error:', err.message);
+            res.status(500).send('Could not download sample book.');
+        }
+    });
+});
+
 // ====================================================================
 // STARTUP SELF-HEALING: RESUME INTERRUPTED JOBS OR TRIGGER FAIL-SAFE REFUND
 // ====================================================================
