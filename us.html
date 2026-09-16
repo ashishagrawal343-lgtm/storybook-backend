@@ -1,0 +1,2569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+  <title>TwinkleTale AI | Personalized Children's Keepsake Storybooks</title>
+  <meta name="description" content="Turn your child into the hero of their own personalized, illustrated keepsake storybook. Instant digital download in under 3 minutes. Loved by 2,400+ US families.">
+  <meta name="keywords" content="personalized children book, custom storybook, AI kids book, personalized bedtime story, keepsake gift for kids">
+  <meta name="theme-color" content="#161B33">
+
+  <!-- OpenGraph / Social -->
+  <meta property="og:title" content="TwinkleTale AI — Turn Your Child into the Hero of Their Own Storybook">
+  <meta property="og:description" content="Upload 1 photo. Our illustration studio creates a breathtaking, personalized bedtime storybook featuring your child's likeness. 50% off US launch special.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.twinkletaleai.com/us">
+  <meta property="og:image" content="/public/ad_showcase_siddhu.jpg">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,600&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Razorpay Checkout SDK -->
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+  <style>
+    /* =====================================================================
+       CSS DESIGN SYSTEM & RESETS (MOBILE-FIRST 320px -> 1920px)
+       ===================================================================== */
+    :root {
+      --primary: #161B33;
+      --primary-dark: #0B0E1B;
+      --primary-light: #242D4F;
+      --gold: #D97706;
+      --gold-light: #FBBF24;
+      --gold-soft: #FEF3C7;
+      --accent: #E11D48;
+      --forest: #059669;
+      --forest-soft: #ECFDF5;
+      --bg: #FAF8F5;
+      --bg-alt: #F3EFEA;
+      --surface: #FFFFFF;
+      --text: #1E293B;
+      --text-muted: #64748B;
+      --text-light: #94A3B8;
+      --border: #E2E8F0;
+      --border-focus: #3B82F6;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-full: 9999px;
+      --shadow-sm: 0 2px 4px rgba(0,0,0,0.04);
+      --shadow-md: 0 8px 20px rgba(22, 27, 51, 0.08);
+      --shadow-lg: 0 16px 36px rgba(22, 27, 51, 0.12);
+      --shadow-book: 0 20px 40px -10px rgba(22, 27, 51, 0.25), 0 0 1px 1px rgba(22, 27, 51, 0.05);
+      --transition: all 0.22s ease-in-out;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      -webkit-text-size-adjust: 100%;
+      font-size: 16px;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+      width: 100%;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    h1, h2, h3, h4 {
+      font-family: 'Fraunces', Georgia, serif;
+      color: var(--primary);
+      line-height: 1.25;
+      letter-spacing: -0.015em;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    button, input, select, textarea {
+      font-family: inherit;
+      font-size: 16px; /* Prevents auto-zoom on iOS */
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    /* =====================================================================
+       TOP ANNOUNCEMENT BAR
+       ===================================================================== */
+    .promo-bar {
+      background: linear-gradient(90deg, #161B33 0%, #2A1B4E 50%, #161B33 100%);
+      color: #FFFFFF;
+      font-size: 0.84rem;
+      font-weight: 600;
+      text-align: center;
+      padding: 10px 16px;
+      letter-spacing: 0.01em;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .promo-bar .badge {
+      background: var(--gold);
+      color: #FFFFFF;
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+      font-size: 0.74rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* =====================================================================
+       NAVIGATION / HEADER
+       ===================================================================== */
+    .header {
+      background: rgba(250, 248, 245, 0.94);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+      transition: var(--transition);
+    }
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 70px;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 1.55rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    .logo-star {
+      color: var(--gold);
+      font-size: 1.35rem;
+      animation: pulse 2.5s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.18); opacity: 0.85; }
+    }
+    .header-trust {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .header-trust i {
+      color: var(--gold);
+    }
+    .nav-cta {
+      background: var(--primary);
+      color: #FFFFFF;
+      font-size: 0.9rem;
+      font-weight: 700;
+      padding: 10px 20px;
+      border-radius: var(--radius-full);
+      transition: var(--transition);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 44px;
+    }
+    .nav-cta:hover {
+      background: var(--primary-light);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+    }
+
+    @media (min-width: 768px) {
+      .header-trust {
+        display: flex;
+      }
+    }
+
+    /* =====================================================================
+       HERO SECTION
+       ===================================================================== */
+    .hero {
+      padding: clamp(36px, 6vw, 72px) 0 clamp(40px, 6vw, 64px);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 40px;
+      align-items: center;
+    }
+    @media (min-width: 992px) {
+      .hero-grid {
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 60px;
+      }
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--gold-soft);
+      border: 1px solid rgba(217, 119, 6, 0.25);
+      color: #92400E;
+      font-size: 0.84rem;
+      font-weight: 700;
+      padding: 6px 16px;
+      border-radius: var(--radius-full);
+      margin-bottom: 20px;
+    }
+    .hero-title {
+      font-size: clamp(2.1rem, 5.5vw, 3.5rem);
+      margin-bottom: 18px;
+      color: var(--primary);
+      font-weight: 700;
+    }
+    .hero-title span {
+      background: linear-gradient(135deg, var(--gold) 0%, #B45309 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-subtitle {
+      font-size: clamp(1.02rem, 1.8vw, 1.22rem);
+      color: #475569;
+      margin-bottom: 28px;
+      max-width: 580px;
+    }
+    .hero-trust-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+    .hero-trust-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.96rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .hero-trust-item i {
+      color: var(--forest);
+      font-size: 1.1rem;
+    }
+
+    .hero-cta-group {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    @media (min-width: 480px) {
+      .hero-cta-group {
+        flex-direction: row;
+        align-items: center;
+      }
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #161B33 0%, #2A335E 100%);
+      color: #FFFFFF;
+      font-weight: 700;
+      font-size: 1.05rem;
+      padding: 16px 32px;
+      border-radius: var(--radius-full);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 10px 24px rgba(22, 27, 51, 0.22);
+      transition: var(--transition);
+      cursor: pointer;
+      border: none;
+      min-height: 52px;
+      text-align: center;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 30px rgba(22, 27, 51, 0.28);
+      background: linear-gradient(135deg, #1C2344 0%, #354075 100%);
+    }
+    .btn-primary .strike {
+      font-size: 0.88rem;
+      font-weight: 400;
+      text-decoration: line-through;
+      opacity: 0.75;
+      margin-left: 4px;
+    }
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--primary);
+      font-weight: 700;
+      font-size: 0.98rem;
+      padding: 15px 26px;
+      border-radius: var(--radius-full);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      transition: var(--transition);
+      cursor: pointer;
+      min-height: 52px;
+      text-align: center;
+    }
+    .btn-secondary:hover {
+      background: #F8FAFC;
+      border-color: #CBD5E1;
+      transform: translateY(-1px);
+    }
+
+    .hero-proof-micro {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .avatar-stack {
+      display: flex;
+      align-items: center;
+    }
+    .avatar-stack img {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 2px solid #FFFFFF;
+      margin-left: -8px;
+      object-fit: cover;
+    }
+    .avatar-stack img:first-child {
+      margin-left: 0;
+    }
+    .hero-proof-text {
+      font-size: 0.84rem;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+    .hero-proof-text strong {
+      color: var(--text);
+      display: block;
+    }
+
+    /* 3D BOOK MOCKUP */
+    .hero-visual {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      perspective: 1200px;
+    }
+    .book-card-3d {
+      width: 100%;
+      max-width: 380px;
+      background: #FFFFFF;
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: var(--shadow-book);
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      position: relative;
+      transform: rotateY(-6deg) rotateX(4deg);
+      transition: transform 0.4s ease;
+    }
+    .book-card-3d:hover {
+      transform: rotateY(0deg) rotateX(0deg);
+    }
+    .book-preview-window {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      aspect-ratio: 1 / 1;
+      background: #161B33;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.35);
+    }
+    .book-preview-window img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .book-badge-ribbon {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      background: var(--gold);
+      color: #FFFFFF;
+      font-size: 0.78rem;
+      font-weight: 800;
+      padding: 4px 12px;
+      border-radius: var(--radius-full);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+    .book-meta-footer {
+      padding: 16px 8px 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .book-meta-title {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 1.15rem;
+      color: var(--primary);
+      font-weight: 700;
+    }
+    .book-meta-sub {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .book-meta-price {
+      text-align: right;
+    }
+    .book-meta-price .price {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--forest);
+    }
+    .book-meta-price .was {
+      font-size: 0.82rem;
+      text-decoration: line-through;
+      color: var(--text-light);
+    }
+
+    /* =====================================================================
+       SOCIAL PROOF / TRUST STRIP
+       ===================================================================== */
+    .trust-strip {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 24px 0;
+    }
+    .trust-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      align-items: center;
+      text-align: center;
+    }
+    @media (min-width: 768px) {
+      .trust-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+    .trust-metric-title {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: clamp(1.4rem, 2.8vw, 1.9rem);
+      font-weight: 700;
+      color: var(--primary);
+    }
+    .trust-metric-desc {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    /* =====================================================================
+       LIVE SAMPLES SHOWCASE SECTION
+       ===================================================================== */
+    .section-padding {
+      padding: clamp(48px, 8vw, 84px) 0;
+    }
+    .section-head {
+      text-align: center;
+      max-width: 680px;
+      margin: 0 auto clamp(32px, 5vw, 48px);
+    }
+    .section-eyebrow {
+      display: inline-block;
+      text-transform: uppercase;
+      font-size: 0.78rem;
+      font-weight: 800;
+      color: var(--gold);
+      letter-spacing: 0.1em;
+      margin-bottom: 10px;
+    }
+    .section-title {
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      color: var(--primary);
+      margin-bottom: 14px;
+    }
+    .section-desc {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+    }
+
+    /* Sample Tabs */
+    .sample-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+    }
+    .sample-tab-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-weight: 700;
+      font-size: 0.94rem;
+      padding: 12px 24px;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      transition: var(--transition);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 48px;
+    }
+    .sample-tab-btn.active {
+      background: var(--primary);
+      color: #FFFFFF;
+      border-color: var(--primary);
+      box-shadow: var(--shadow-md);
+    }
+
+    .sample-display-card {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .sample-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+    }
+    @media (min-width: 768px) {
+      .sample-grid {
+        grid-template-columns: 1.1fr 1fr;
+      }
+    }
+    .sample-cover-wrap {
+      background: #0B0E1B;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 340px;
+    }
+    .sample-cover-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .sample-details {
+      padding: clamp(24px, 4vw, 36px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .sample-pill {
+      display: inline-block;
+      align-self: flex-start;
+      background: var(--forest-soft);
+      color: var(--forest);
+      font-size: 0.78rem;
+      font-weight: 800;
+      padding: 4px 12px;
+      border-radius: var(--radius-full);
+      margin-bottom: 14px;
+    }
+    .sample-name {
+      font-size: clamp(1.4rem, 3vw, 1.85rem);
+      margin-bottom: 12px;
+    }
+    .sample-story-snippet {
+      font-style: italic;
+      color: #475569;
+      background: var(--bg);
+      border-left: 3px solid var(--gold);
+      padding: 12px 16px;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      margin-bottom: 20px;
+      font-size: 0.95rem;
+    }
+    .sample-perks {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 24px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    .sample-perks li {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sample-perks li i {
+      color: var(--forest);
+    }
+    .sample-download-btn {
+      background: var(--forest);
+      color: #FFFFFF;
+      font-weight: 700;
+      font-size: 0.95rem;
+      padding: 13px 22px;
+      border-radius: var(--radius-full);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: var(--transition);
+      min-height: 48px;
+    }
+    .sample-download-btn:hover {
+      background: #047857;
+      transform: translateY(-1px);
+    }
+
+    /* =====================================================================
+       HOW IT WORKS SECTION
+       ===================================================================== */
+    .steps-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+    @media (min-width: 640px) {
+      .steps-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (min-width: 1024px) {
+      .steps-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+    .step-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 28px 22px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      transition: var(--transition);
+    }
+    .step-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+    }
+    .step-number {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #FFFFFF;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.95rem;
+      margin-bottom: 18px;
+    }
+    .step-title {
+      font-size: 1.15rem;
+      margin-bottom: 8px;
+    }
+    .step-desc {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* =====================================================================
+       THE INTERACTIVE BOOK CUSTOMIZER STUDIO (#create)
+       ===================================================================== */
+    .studio-wrap {
+      background: #FFFFFF;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      max-width: 880px;
+      margin: 0 auto;
+    }
+    .studio-header {
+      background: linear-gradient(135deg, #161B33 0%, #2A3462 100%);
+      color: #FFFFFF;
+      padding: clamp(24px, 4vw, 36px) clamp(20px, 4vw, 32px);
+      text-align: center;
+    }
+    .studio-header h3 {
+      color: #FFFFFF;
+      font-size: clamp(1.4rem, 3vw, 1.9rem);
+      margin-bottom: 8px;
+    }
+    .studio-header p {
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 0.95rem;
+    }
+
+    .studio-form {
+      padding: clamp(20px, 4vw, 36px);
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    .form-step {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .step-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.02rem;
+      color: var(--primary);
+    }
+    .step-badge {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--gold);
+      color: #FFFFFF;
+      font-size: 0.8rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .input-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+    @media (min-width: 580px) {
+      .input-grid-2 {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .field-label {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #334155;
+    }
+    .input-text {
+      width: 100%;
+      height: 50px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0 16px;
+      font-size: 16px;
+      background: #F8FAFC;
+      transition: var(--transition);
+    }
+    .input-text:focus {
+      outline: none;
+      border-color: var(--border-focus);
+      background: #FFFFFF;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+
+    /* Pronoun / Gender Selector */
+    .gender-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .gender-pill {
+      border: 1.5px solid var(--border);
+      background: #F8FAFC;
+      border-radius: var(--radius-sm);
+      padding: 12px 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      min-height: 52px;
+      user-select: none;
+    }
+    .gender-pill i {
+      font-size: 1.2rem;
+      color: var(--primary);
+    }
+    .gender-pill .pill-title {
+      font-weight: 700;
+      font-size: 0.88rem;
+    }
+    .gender-pill .pill-sub {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+    }
+    .gender-pill.active {
+      border-color: var(--primary);
+      background: #F0F4FF;
+      box-shadow: 0 0 0 2px var(--primary);
+    }
+
+    /* Themes Grid */
+    .themes-selection-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    @media (min-width: 640px) {
+      .themes-selection-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+    .theme-option {
+      border: 1.5px solid var(--border);
+      background: #F8FAFC;
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: var(--transition);
+      min-height: 54px;
+      user-select: none;
+    }
+    .theme-option .t-icon {
+      font-size: 1.4rem;
+    }
+    .theme-option .t-name {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .theme-option.active {
+      border-color: var(--gold);
+      background: #FFFBEB;
+      box-shadow: 0 0 0 2px var(--gold);
+    }
+
+    /* Photo Upload Box */
+    .photo-drop-zone {
+      border: 2px dashed #CBD5E1;
+      background: #F8FAFC;
+      border-radius: var(--radius-md);
+      padding: 24px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    .photo-drop-zone:hover {
+      border-color: var(--primary);
+      background: #F1F5F9;
+    }
+    .photo-avatar-preview {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: #E2E8F0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      border: 3px solid #FFFFFF;
+      box-shadow: var(--shadow-sm);
+    }
+    .photo-avatar-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .photo-avatar-preview i {
+      font-size: 2rem;
+      color: #94A3B8;
+    }
+    .photo-upload-title {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--primary);
+    }
+    .photo-upload-hint {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      max-width: 360px;
+    }
+
+    /* Distinctive Features Dropdown */
+    .feature-toggle-box {
+      background: #F8FAFC;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+    }
+    .feature-toggle-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #334155;
+    }
+    .feature-checkbox-grid {
+      display: none;
+      gap: 12px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px dashed var(--border);
+      flex-wrap: wrap;
+    }
+    .feature-checkbox-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      border-radius: var(--radius-full);
+    }
+
+    /* Dedication Presets */
+    .dedication-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .ded-pill {
+      font-size: 0.78rem;
+      font-weight: 600;
+      background: #F1F5F9;
+      color: #475569;
+      padding: 5px 12px;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      transition: var(--transition);
+      border: 1px solid transparent;
+    }
+    .ded-pill:hover {
+      background: #E2E8F0;
+      color: var(--primary);
+    }
+
+    /* Edition Selector / Pricing Cards */
+    .edition-selection-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+    @media (min-width: 600px) {
+      .edition-selection-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    .edition-tier-card {
+      border: 2px solid var(--border);
+      background: #FFFFFF;
+      border-radius: var(--radius-md);
+      padding: 20px 18px;
+      cursor: pointer;
+      transition: var(--transition);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 140px;
+    }
+    .edition-tier-card:hover {
+      border-color: #94A3B8;
+    }
+    .edition-tier-card.selected {
+      border-color: var(--primary);
+      background: #FAF8F5;
+      box-shadow: 0 0 0 2px var(--primary);
+    }
+    .tier-ribbon {
+      position: absolute;
+      top: -11px;
+      right: 14px;
+      background: var(--forest);
+      color: #FFFFFF;
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 2px 10px;
+      border-radius: var(--radius-full);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .tier-title {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 1.18rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 4px;
+    }
+    .tier-desc {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+      margin-bottom: 12px;
+    }
+    .tier-pricing-row {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .tier-price-active {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--primary);
+    }
+    .tier-price-strike {
+      font-size: 0.9rem;
+      color: var(--text-light);
+      text-decoration: line-through;
+    }
+    .tier-discount-badge {
+      font-size: 0.76rem;
+      font-weight: 800;
+      color: var(--forest);
+      background: var(--forest-soft);
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+    }
+
+    /* Checkout / Action Area */
+    .studio-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .btn-submit-order {
+      background: linear-gradient(135deg, #161B33 0%, #2A335E 100%);
+      color: #FFFFFF;
+      font-size: 1.12rem;
+      font-weight: 800;
+      padding: 16px 28px;
+      border-radius: var(--radius-full);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 8px 24px rgba(22, 27, 51, 0.25);
+      transition: var(--transition);
+      min-height: 56px;
+    }
+    .btn-submit-order:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px rgba(22, 27, 51, 0.32);
+    }
+    .btn-preview-first {
+      background: transparent;
+      color: var(--primary);
+      border: 1.5px solid var(--border);
+      font-weight: 700;
+      font-size: 0.95rem;
+      padding: 12px 24px;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: var(--transition);
+      min-height: 48px;
+    }
+    .btn-preview-first:hover {
+      background: #F8FAFC;
+      border-color: #CBD5E1;
+    }
+    .security-note {
+      text-align: center;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .security-note i {
+      color: var(--forest);
+    }
+
+    /* =====================================================================
+       COMPARISON TABLE / EDITION MATRIX
+       ===================================================================== */
+    .pricing-table-card {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .pricing-matrix-header {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1.2fr;
+      padding: 20px 24px;
+      background: #F8FAFC;
+      border-bottom: 1px solid var(--border);
+      font-weight: 700;
+      color: var(--primary);
+    }
+    .matrix-row {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1.2fr;
+      padding: 16px 24px;
+      border-bottom: 1px solid #F1F5F9;
+      font-size: 0.92rem;
+      align-items: center;
+    }
+    .matrix-row:last-child {
+      border-bottom: none;
+    }
+    .matrix-feature {
+      font-weight: 600;
+      color: var(--text);
+    }
+    .matrix-check {
+      color: var(--forest);
+      font-weight: 700;
+    }
+
+    /* =====================================================================
+       REVIEWS / TESTIMONIALS
+       ===================================================================== */
+    .reviews-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+    @media (min-width: 768px) {
+      .reviews-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (min-width: 1024px) {
+      .reviews-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+    .review-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: var(--shadow-sm);
+    }
+    .stars {
+      color: var(--gold);
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+    }
+    .review-text {
+      font-size: 0.92rem;
+      color: #334155;
+      line-height: 1.55;
+      margin-bottom: 18px;
+    }
+    .review-author {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .author-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: var(--primary-light);
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+    .author-info strong {
+      display: block;
+      font-size: 0.88rem;
+      color: var(--text);
+    }
+    .author-info span {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    /* =====================================================================
+       FAQ ACCORDION
+       ===================================================================== */
+    .faq-container {
+      max-width: 760px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .faq-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      transition: var(--transition);
+    }
+    .faq-question {
+      padding: 18px 22px;
+      font-weight: 700;
+      font-size: 1.02rem;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+    }
+    .faq-question i {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      transition: transform 0.25s ease;
+    }
+    .faq-item.active .faq-question i {
+      transform: rotate(180deg);
+    }
+    .faq-answer {
+      display: none;
+      padding: 0 22px 20px;
+      font-size: 0.94rem;
+      color: #475569;
+      line-height: 1.6;
+    }
+    .faq-item.active .faq-answer {
+      display: block;
+    }
+
+    /* =====================================================================
+       STICKY MOBILE CONVERSION BAR (< 768px)
+       ===================================================================== */
+    .sticky-mobile-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 99;
+      background: rgba(255, 255, 255, 0.98);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-top: 1px solid var(--border);
+      padding: 10px 18px calc(10px + env(safe-area-inset-bottom));
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+      transition: transform 0.3s ease;
+    }
+    @media (min-width: 769px) {
+      .sticky-mobile-bar {
+        display: none !important;
+      }
+    }
+    .sticky-pricing-info {
+      display: flex;
+      flex-direction: column;
+    }
+    .sticky-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--forest);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .sticky-price-group {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+    .sticky-price-main {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--primary);
+    }
+    .sticky-price-strike {
+      font-size: 0.85rem;
+      text-decoration: line-through;
+      color: var(--text-light);
+    }
+    .sticky-cta-btn {
+      background: var(--primary);
+      color: #FFFFFF;
+      font-size: 0.95rem;
+      font-weight: 700;
+      padding: 12px 24px;
+      border-radius: var(--radius-full);
+      border: none;
+      min-height: 46px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* =====================================================================
+       PROGRESS / SUCCESS STAGE
+       ===================================================================== */
+    #progressStage {
+      display: none;
+      padding: 60px 0;
+    }
+    .progress-box {
+      background: #FFFFFF;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      padding: 40px 24px;
+      text-align: center;
+      max-width: 640px;
+      margin: 0 auto;
+      box-shadow: var(--shadow-lg);
+    }
+    .success-badge-icon {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      background: var(--forest-soft);
+      color: var(--forest);
+      font-size: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+    }
+
+    /* =====================================================================
+       FOOTER
+       ===================================================================== */
+    .footer {
+      background: var(--primary-dark);
+      color: #94A3B8;
+      padding: 60px 0 30px;
+      margin-top: auto;
+      font-size: 0.88rem;
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 36px;
+      margin-bottom: 40px;
+    }
+    @media (min-width: 768px) {
+      .footer-grid {
+        grid-template-columns: 2fr 1fr 1fr;
+      }
+    }
+    .footer-logo {
+      font-family: 'Fraunces', Georgia, serif;
+      color: #FFFFFF;
+      font-size: 1.4rem;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .footer-links {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .footer-links a:hover {
+      color: #FFFFFF;
+    }
+    .footer-bottom {
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding-top: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+      text-align: center;
+      font-size: 0.82rem;
+    }
+    @media (min-width: 768px) {
+      .footer-bottom {
+        flex-direction: row;
+        justify-content: space-between;
+      }
+    }
+
+    /* =====================================================================
+       TEST MODE SIMULATION MODAL
+       ===================================================================== */
+    .sim-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(11, 14, 27, 0.7);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .sim-modal-content {
+      background: #FFFFFF;
+      border-radius: var(--radius-lg);
+      max-width: 440px;
+      width: 100%;
+      padding: 30px 24px;
+      text-align: center;
+      box-shadow: var(--shadow-lg);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 1. TOP PROMO BAR -->
+  <div class="promo-bar">
+    <span class="badge">🇺🇸 US Launch Special</span>
+    <span>50% OFF All Keepsake Editions • Instant High-Res Digital Download in 3 Mins</span>
+  </div>
+
+  <!-- 2. STICKY HEADER -->
+  <header class="header">
+    <div class="container header-inner">
+      <a href="/us" class="logo">
+        <i class="fas fa-sparkles logo-star"></i>
+        <span>TwinkleTale</span>
+      </a>
+
+      <div class="header-trust">
+        <span>⭐ <strong>4.9/5</strong> Rating</span>
+        <span>•</span>
+        <span>2,400+ Happy US Families</span>
+      </div>
+
+      <a href="#create" class="nav-cta">
+        <span>Personalize Your Book</span>
+        <i class="fas fa-arrow-right"></i>
+      </a>
+    </div>
+  </header>
+
+  <!-- 3. HERO SECTION -->
+  <section class="hero">
+    <div class="container hero-grid">
+      <div>
+        <div class="hero-badge">
+          <i class="fas fa-magic"></i>
+          <span>#1 AI Illustrated Keepsake for Kids</span>
+        </div>
+
+        <h1 class="hero-title">
+          Turn Your Child into the Hero of Their Own <span>Magical Storybook</span>
+        </h1>
+
+        <p class="hero-subtitle">
+          Upload one favorite photo. Our illustration studio weaves your child’s likeness into a breathtaking, full-color storybook filled with rhyme, courage, and bedtime wonder.
+        </p>
+
+        <ul class="hero-trust-list">
+          <li class="hero-trust-item">
+            <i class="fas fa-check-circle"></i>
+            <span>Preserves exact facial likeness, smile, hair & cultural attributes</span>
+          </li>
+          <li class="hero-trust-item">
+            <i class="fas fa-bolt"></i>
+            <span>Instant delivery in under 3 minutes straight to your inbox</span>
+          </li>
+          <li class="hero-trust-item">
+            <i class="fas fa-book-open"></i>
+            <span>Print-ready 300 DPI PDF for reading on tablets or printing locally</span>
+          </li>
+        </ul>
+
+        <div class="hero-cta-group">
+          <a href="#create" class="btn-primary">
+            <span>Create Your Book — $5.99</span>
+            <span class="strike">$11.99</span>
+            <i class="fas fa-arrow-right"></i>
+          </a>
+          <a href="#samples" class="btn-secondary">
+            <i class="fas fa-eye"></i>
+            <span>View Real Samples</span>
+          </a>
+        </div>
+
+        <div class="hero-proof-micro">
+          <div class="avatar-stack">
+            <img src="/public/ad_showcase_siddhu.jpg" alt="Happy Child Hero">
+            <img src="/public/ad_showcase_ananya.jpg" alt="Storybook Star">
+            <img src="/public/samples/sample-radha-cosmic-voyage.webp" alt="Child Character">
+          </div>
+          <div class="hero-proof-text">
+            <strong>4.9/5 from 2,400+ Families</strong>
+            <span>Loved across California, Texas, New York, Florida & more</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3D Book Visual Mockup -->
+      <div class="hero-visual">
+        <div class="book-card-3d">
+          <div class="book-badge-ribbon">50% OFF TODAY</div>
+          <div class="book-preview-window">
+            <img src="/public/samples/sample-radha-cosmic-voyage.webp" alt="Radha's Starlight Voyage Keepsake Storybook" id="heroBookCover">
+          </div>
+          <div class="book-meta-footer">
+            <div>
+              <div class="book-meta-title" id="heroBookTitle">Radha's Cosmic Voyage</div>
+              <div class="book-meta-sub">Personalized 12-Page Keepsake</div>
+            </div>
+            <div class="book-meta-price">
+              <div class="price">$5.99</div>
+              <div class="was">$11.99</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. SOCIAL PROOF / TRUST STRIP -->
+  <section class="trust-strip">
+    <div class="container trust-grid">
+      <div>
+        <div class="trust-metric-title">2,400+</div>
+        <div class="trust-metric-desc">Books Illustrated & Delivered</div>
+      </div>
+      <div>
+        <div class="trust-metric-title">4.9 / 5.0</div>
+        <div class="trust-metric-desc">Parent Satisfaction Rating</div>
+      </div>
+      <div>
+        <div class="trust-metric-title">&lt; 3 Mins</div>
+        <div class="trust-metric-desc">Lightning-Fast Generation</div>
+      </div>
+      <div>
+        <div class="trust-metric-title">100%</div>
+        <div class="trust-metric-desc">Delight or Money-Back Guarantee</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. INTERACTIVE LIVE SAMPLES SHOWCASE -->
+  <section class="section-padding" id="samples" style="background: var(--bg-alt);">
+    <div class="container">
+      <div class="section-head">
+        <span class="section-eyebrow">Real Illustrated Results</span>
+        <h2 class="section-title">See How Real Photos Turn into Magical Books</h2>
+        <p class="section-desc">Explore genuine storybooks created for real children. You can even read and download the complete sample PDFs for free.</p>
+      </div>
+
+      <!-- Sample Selector Tabs -->
+      <div class="sample-tabs">
+        <button class="sample-tab-btn active" id="tabRadha" onclick="switchSample('radha')">
+          <span>🚀 Space Adventure (Radha)</span>
+        </button>
+        <button class="sample-tab-btn" id="tabSid" onclick="switchSample('sid')">
+          <span>🦕 Dinosaur Wonders (Sid)</span>
+        </button>
+      </div>
+
+      <!-- Sample Display Card -->
+      <div class="sample-display-card">
+        <div class="sample-grid">
+          <div class="sample-cover-wrap">
+            <img id="sampleCoverImg" src="/public/samples/sample-radha-cosmic-voyage.webp" alt="Radha's Starlight Voyage">
+          </div>
+          <div class="sample-details">
+            <span class="sample-pill" id="sampleThemePill">Space & Stars Theme</span>
+            <h3 class="sample-name" id="sampleNameTitle">Radha's Cosmic Starlight Voyage</h3>
+            <p class="sample-story-snippet" id="sampleSnippet">
+              "Underneath the velvet sky where constellations dance and play, little Radha built a rocket ship to guide the Milky Way..."
+            </p>
+            <ul class="sample-perks">
+              <li><i class="fas fa-check"></i> Exact smile, hair texture, and joyful expression captured</li>
+              <li><i class="fas fa-check"></i> Rich painterly gouache & oil storybook realism</li>
+              <li><i class="fas fa-check"></i> Gentle rhyming bedtime narrative tailored for ages 1–10</li>
+            </ul>
+            <a href="/api/sample-download/radha" class="sample-download-btn" id="sampleDownloadBtn" download>
+              <i class="fas fa-file-pdf"></i>
+              <span>Download & Read Free Sample PDF</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. HOW IT WORKS (3 SIMPLE STEPS) -->
+  <section class="section-padding">
+    <div class="container">
+      <div class="section-head">
+        <span class="section-eyebrow">Effortless 3-Minute Process</span>
+        <h2 class="section-title">How Your Keepsake Comes to Life</h2>
+        <p class="section-desc">Zero complicated apps or design skills needed. Just 3 simple steps to create a memory that lasts a lifetime.</p>
+      </div>
+
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-number">1</div>
+          <h4 class="step-title">Enter Your Hero</h4>
+          <p class="step-desc">Share your child’s name, age, and pronouns so our story engine weaves them seamlessly into the plot.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-number">2</div>
+          <h4 class="step-title">Pick an Adventure</h4>
+          <p class="step-desc">Select from 6 popular adventures including Cosmic Space, Dinosaur Kingdoms, Enchanted Forests, and Oceans.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-number">3</div>
+          <h4 class="step-title">Upload 1 Photo</h4>
+          <p class="step-desc">A clear snapshot from your camera roll. Our likeness engine preserves their smile, eyes, and unique features.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-number">4</div>
+          <h4 class="step-title">Read & Print</h4>
+          <p class="step-desc">Receive your high-res, print-ready 300 DPI PDF in under 3 minutes. Read tonight on iPad or print at home.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. THE INTERACTIVE BOOK STUDIO (#create) -->
+  <section class="section-padding" id="create" style="background: var(--bg-alt);">
+    <div class="container">
+      <div class="section-head">
+        <span class="section-eyebrow">Personalize Your Keepsake</span>
+        <h2 class="section-title">Create Your Child’s Storybook</h2>
+        <p class="section-desc">Customize their adventure in 60 seconds. Special 50% discount applied automatically at checkout.</p>
+      </div>
+
+      <div class="studio-wrap">
+        <div class="studio-header">
+          <h3>The TwinkleTale Studio</h3>
+          <p>Fill out the details below to generate your personalized illustrated storybook</p>
+        </div>
+
+        <form class="studio-form" id="bookForm" onsubmit="handleFormSubmit(event)">
+          
+          <!-- STEP 1: HERO IDENTITY -->
+          <div class="form-step">
+            <div class="step-label">
+              <span class="step-badge">1</span>
+              <span>Who is the Storybook Hero?</span>
+            </div>
+
+            <div class="input-grid-2">
+              <div class="field-group">
+                <label class="field-label" for="childName">Child's First Name</label>
+                <input type="text" id="childName" class="input-text" placeholder="e.g. Leo, Maya, Lucas" required oninput="updateLivePreview()">
+              </div>
+              <div class="field-group">
+                <label class="field-label" for="childAge">Child's Age (1 to 10)</label>
+                <input type="number" id="childAge" class="input-text" min="1" max="10" value="5" required>
+              </div>
+            </div>
+
+            <!-- Identity / Pronouns -->
+            <div class="field-group" style="margin-top: 6px;">
+              <label class="field-label">Child's Pronouns (For personalized story narration)</label>
+              <div class="gender-grid">
+                <div class="gender-pill active" id="pillBoy" onclick="selectGender('boy')">
+                  <i class="fas fa-child"></i>
+                  <span class="pill-title">Boy</span>
+                  <span class="pill-sub">He / Him</span>
+                </div>
+                <div class="gender-pill" id="pillGirl" onclick="selectGender('girl')">
+                  <i class="fas fa-child-dress"></i>
+                  <span class="pill-title">Girl</span>
+                  <span class="pill-sub">She / Her</span>
+                </div>
+                <div class="gender-pill" id="pillStar" onclick="selectGender('star')">
+                  <i class="fas fa-star" style="color: var(--gold);"></i>
+                  <span class="pill-title">Little Star</span>
+                  <span class="pill-sub">They / Them</span>
+                </div>
+              </div>
+              <input type="hidden" id="childGender" value="boy">
+            </div>
+          </div>
+
+          <!-- STEP 2: THEME SELECTION -->
+          <div class="form-step">
+            <div class="step-label">
+              <span class="step-badge">2</span>
+              <span>Choose Their Adventure Theme</span>
+            </div>
+
+            <div class="themes-selection-grid">
+              <div class="theme-option active" onclick="selectTheme(this, 'Space & Stars')">
+                <span class="t-icon">🚀</span>
+                <span class="t-name">Space & Stars</span>
+              </div>
+              <div class="theme-option" onclick="selectTheme(this, 'Dinosaur Wonders')">
+                <span class="t-icon">🦕</span>
+                <span class="t-name">Dinosaur World</span>
+              </div>
+              <div class="theme-option" onclick="selectTheme(this, 'Magical Forest')">
+                <span class="t-icon">🌿</span>
+                <span class="t-name">Enchanted Forest</span>
+              </div>
+              <div class="theme-option" onclick="selectTheme(this, 'Ocean & Dolphins')">
+                <span class="t-icon">🌊</span>
+                <span class="t-name">Ocean Kingdom</span>
+              </div>
+              <div class="theme-option" onclick="selectTheme(this, 'Superheroes')">
+                <span class="t-icon">⚡</span>
+                <span class="t-name">Superhero Academy</span>
+              </div>
+              <div class="theme-option" onclick="selectTheme(this, 'Kingdom & Castles')">
+                <span class="t-icon">👑</span>
+                <span class="t-name">Knights & Castles</span>
+              </div>
+            </div>
+            <input type="hidden" id="selectedTheme" value="Space & Stars">
+          </div>
+
+          <!-- STEP 3: PHOTO UPLOAD -->
+          <div class="form-step">
+            <div class="step-label">
+              <span class="step-badge">3</span>
+              <span>Upload Child's Photo</span>
+            </div>
+
+            <div class="photo-drop-zone" onclick="document.getElementById('photoInput').click()">
+              <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="handlePhotoUpload(event)">
+              <div class="photo-avatar-preview" id="photoAvatarBox">
+                <i class="fas fa-camera" id="photoPlaceholderIcon"></i>
+                <img id="photoPreviewImg" src="" alt="Child Preview" style="display:none;">
+              </div>
+              <div class="photo-upload-title" id="photoUploadTitle">Tap to select a photo from your library</div>
+              <div class="photo-upload-hint">A clear front-facing photo with good lighting works best. We preserve hair, eyes, smile, and character!</div>
+            </div>
+
+            <!-- Optional Visual Features -->
+            <div class="feature-toggle-box">
+              <div class="feature-toggle-head" onclick="toggleFeatures()">
+                <span>✨ Distinctive Features (Glasses, Turban, etc.)</span>
+                <i class="fas fa-chevron-down" id="featureChevron"></i>
+              </div>
+              <div class="feature-checkbox-grid" id="featureBox">
+                <label class="feature-checkbox-label">
+                  <input type="checkbox" id="featureGlasses"> 👓 Wears Glasses / Spectacles
+                </label>
+                <label class="feature-checkbox-label">
+                  <input type="checkbox" id="featureTurban"> 👳 Turban / Patka
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 4: DEDICATION & EMAIL -->
+          <div class="form-step">
+            <div class="step-label">
+              <span class="step-badge">4</span>
+              <span>Personal Dedication & Delivery Email</span>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label">Personal Dedication (Printed on Opening Page)</label>
+              <div class="dedication-pills">
+                <span class="ded-pill" onclick="setDedication('May you always dream big and know how deeply you are loved.')">✨ Dream big</span>
+                <span class="ded-pill" onclick="setDedication('To our brightest little star, shine on every adventure.')">🌟 Bright star</span>
+                <span class="ded-pill" onclick="setDedication('With all our love, always and forever — Mom & Dad')">❤️ From Mom & Dad</span>
+              </div>
+              <textarea id="dedicationText" class="input-text" style="height: 75px; padding: 10px 16px; resize: vertical;" placeholder="Write a heartfelt personal note..."></textarea>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="parentEmail">Your Email Address (For High-Res PDF Delivery)</label>
+              <input type="email" id="parentEmail" class="input-text" placeholder="name@example.com" required>
+            </div>
+          </div>
+
+          <!-- STEP 5: EDITION SELECTION & PRICING -->
+          <div class="form-step">
+            <div class="step-label">
+              <span class="step-badge">5</span>
+              <span>Select Keepsake Edition</span>
+            </div>
+
+            <div class="edition-selection-grid">
+              <!-- 12-Page Treasury Edition: $5.99 (was $11.99) -->
+              <div class="edition-tier-card selected" id="tierShort" onclick="selectEdition('short')">
+                <span class="tier-ribbon">50% OFF</span>
+                <div>
+                  <div class="tier-title">Treasury Edition</div>
+                  <div class="tier-desc">12 full physical pages • 4 illustrated double-page spreads • Complete rhyming tale</div>
+                </div>
+                <div class="tier-pricing-row">
+                  <span class="tier-price-active">$5.99</span>
+                  <span class="tier-price-strike">$11.99</span>
+                  <span class="tier-discount-badge">Save $6.00</span>
+                </div>
+              </div>
+
+              <!-- 22-Page Grand Treasury: $11.99 (was $23.99) -->
+              <div class="edition-tier-card" id="tierLong" onclick="selectEdition('long')">
+                <span class="tier-ribbon" style="background: var(--gold);">BEST VALUE</span>
+                <div>
+                  <div class="tier-title">Grand Treasury</div>
+                  <div class="tier-desc">22 full physical pages • 9 illustrated double-page spreads • Extended 6-chapter epic</div>
+                </div>
+                <div class="tier-pricing-row">
+                  <span class="tier-price-active">$11.99</span>
+                  <span class="tier-price-strike">$23.99</span>
+                  <span class="tier-discount-badge">Save $12.00</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CTAs -->
+          <div class="studio-actions">
+            <button type="submit" class="btn-submit-order" id="orderSubmitBtn">
+              <span>Order Keepsake Book (<span id="btnPrice">$5.99</span>)</span>
+              <i class="fas fa-lock"></i>
+            </button>
+
+            <button type="button" class="btn-preview-first" id="previewSubmitBtn" onclick="handlePreviewFirst()">
+              <span>✨ Generate Free 25s Cover Preview First</span>
+            </button>
+
+            <div class="security-note">
+              <i class="fas fa-shield-check"></i>
+              <span>256-bit Encrypted Checkout • Instant 3-Min Delivery • 100% Money-Back Guarantee</span>
+            </div>
+          </div>
+
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. POST-PURCHASE PROGRESS / SUCCESS STAGE -->
+  <section id="progressStage">
+    <div class="container">
+      <div class="progress-box">
+        <div class="success-badge-icon">
+          <i class="fas fa-check"></i>
+        </div>
+        <h2 style="margin-bottom: 12px;">Order Confirmed & Payment Received! 🎉</h2>
+        <p style="color: #475569; font-size: 1.05rem; margin-bottom: 24px;">
+          Our AI illustration studio is now creating <strong id="progressChildName">your child</strong>'s high-resolution storybook.
+        </p>
+
+        <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; text-align: left; margin-bottom: 28px;">
+          <div style="margin-bottom: 8px;">📧 <strong>Delivery Email:</strong> <span id="progressEmailDisplay">your email</span></div>
+          <div style="margin-bottom: 8px;">🔖 <strong>Order ID:</strong> <span id="progressOrderId" style="font-family: monospace;">Processing</span></div>
+          <div>⏱️ <strong>Estimated Delivery:</strong> Under 3 to 5 minutes straight to your inbox</div>
+        </div>
+
+        <a href="/us" class="btn-secondary" style="display: inline-flex;">
+          <i class="fas fa-arrow-left"></i>
+          <span>Create Another Keepsake</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. EDITION COMPARISON MATRIX -->
+  <section class="section-padding">
+    <div class="container">
+      <div class="section-head">
+        <span class="section-eyebrow">Edition Comparison</span>
+        <h2 class="section-title">Choose the Perfect Size for Bedtime</h2>
+        <p class="section-desc">Both editions feature award-winning watercolor art, high-resolution PDF download, and child likeness preservation.</p>
+      </div>
+
+      <div class="pricing-table-card">
+        <div class="pricing-matrix-header">
+          <div>Features</div>
+          <div>Treasury ($5.99)</div>
+          <div>Grand Treasury ($11.99)</div>
+        </div>
+        <div class="matrix-row">
+          <div class="matrix-feature">Total Story Pages</div>
+          <div>12 Pages</div>
+          <div style="font-weight: 700; color: var(--primary);">22 Pages (Extended)</div>
+        </div>
+        <div class="matrix-row">
+          <div class="matrix-feature">Illustrated Double Spreads</div>
+          <div>4 Fine-Art Spreads</div>
+          <div style="font-weight: 700; color: var(--primary);">9 Fine-Art Spreads</div>
+        </div>
+        <div class="matrix-row">
+          <div class="matrix-feature">Personalized Likeness</div>
+          <div class="matrix-check"><i class="fas fa-check"></i> Included</div>
+          <div class="matrix-check"><i class="fas fa-check"></i> Included</div>
+        </div>
+        <div class="matrix-row">
+          <div class="matrix-feature">Custom Dedication Page</div>
+          <div class="matrix-check"><i class="fas fa-check"></i> Included</div>
+          <div class="matrix-check"><i class="fas fa-check"></i> Included</div>
+        </div>
+        <div class="matrix-row">
+          <div class="matrix-feature">Official Hero Certificate</div>
+          <div style="color: var(--text-muted);">—</div>
+          <div class="matrix-check"><i class="fas fa-check"></i> Included</div>
+        </div>
+        <div class="matrix-row">
+          <div class="matrix-feature">Print-Ready 300 DPI File</div>
+          <div class="matrix-check"><i class="fas fa-check"></i> Yes</div>
+          <div class="matrix-check"><i class="fas fa-check"></i> Yes</div>
+        </div>
+        <div class="matrix-row">
+          <div class="matrix-feature">Launch Pricing</div>
+          <div style="font-weight: 800;">$5.99 <span style="text-decoration:line-through; font-size:0.8rem; opacity:0.6;">$11.99</span></div>
+          <div style="font-weight: 800; color: var(--forest);">$11.99 <span style="text-decoration:line-through; font-size:0.8rem; opacity:0.6;">$23.99</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. PARENT REVIEWS -->
+  <section class="section-padding" style="background: var(--bg-alt);">
+    <div class="container">
+      <div class="section-head">
+        <span class="section-eyebrow">Parent Testimonials</span>
+        <h2 class="section-title">Loved by 2,400+ Families Across America</h2>
+        <p class="section-desc">See what parents and grandparents are saying about their TwinkleTale experience.</p>
+      </div>
+
+      <div class="reviews-grid">
+        <div class="review-card">
+          <div class="stars">★★★★★</div>
+          <p class="review-text">"My 4-year-old Leo gasped when he saw himself floating among the stars with his little teddy bear. He makes us read it every single night before bed. Best $6 I've spent all year!"</p>
+          <div class="review-author">
+            <div class="author-avatar">SM</div>
+            <div class="author-info">
+              <strong>Sarah M.</strong>
+              <span>Austin, TX • Mom of Leo (4)</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="review-card">
+          <div class="stars">★★★★★</div>
+          <p class="review-text">"I was skeptical about the photo likeness, but it captured Maya's curly hair, big brown eyes, and trademark giggle perfectly. We printed it out at Walgreens and it looks like a bookstore book."</p>
+          <div class="review-author">
+            <div class="author-avatar">ER</div>
+            <div class="author-info">
+              <strong>Elena R.</strong>
+              <span>Brooklyn, NY • Mom of Maya (5)</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="review-card">
+          <div class="stars">★★★★★</div>
+          <p class="review-text">"Got the 22-page Grand Treasury for my grandson's 6th birthday. The dinosaur story had him completely enthralled. The turnaround was literally under 3 minutes. Outstanding service!"</p>
+          <div class="review-author">
+            <div class="author-avatar">DK</div>
+            <div class="author-info">
+              <strong>David K.</strong>
+              <span>Seattle, WA • Grandfather</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="review-card">
+          <div class="stars">★★★★★</div>
+          <p class="review-text">"The illustrations are rich and painterly—not cheap cartoon CGI. It feels warm, heirloom, and special. The dedication page on the back had my wife in tears. Truly magical."</p>
+          <div class="review-author">
+            <div class="author-avatar">MT</div>
+            <div class="author-info">
+              <strong>Marcus T.</strong>
+              <span>Chicago, IL • Dad of Noah (3)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11. FAQ SECTION -->
+  <section class="section-padding">
+    <div class="container">
+      <div class="section-head">
+        <span class="section-eyebrow">Have Questions?</span>
+        <h2 class="section-title">Frequently Asked Questions</h2>
+        <p class="section-desc">Everything you need to know about our personalized children's books.</p>
+      </div>
+
+      <div class="faq-container">
+        <div class="faq-item active">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>How does the photo likeness work?</span>
+            <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            Our visual identity model analyzes key facial contours, eye shape, smile, hair color/texture, and distinctive features (like glasses or cultural headwear) from your uploaded photo. It then stylizes your child into a warm, painterly storybook illustration while preserving their genuine character.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>How fast is delivery?</span>
+            <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            Your customized storybook PDF is generated automatically by our high-performance AI studio in <strong>under 3 to 5 minutes</strong>. A secure download link is sent directly to your email address, and you can also download it right on your confirmation screen.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>Can I print the storybook?</span>
+            <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            Yes! Your storybook is delivered as a 300 DPI high-resolution PDF file. You can easily read it on an iPad, Kindle, or tablet, or print it at home or through services like Walgreens, Shutterfly, Staples, or FedEx Office.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>What payment methods do you accept?</span>
+            <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            We accept all major US credit and debit cards including Visa, Mastercard, American Express, and Discover, as well as digital wallets like Apple Pay and Google Pay through our secure 256-bit encrypted checkout.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>What is your refund policy?</span>
+            <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            We offer a <strong>100% Delight Guarantee</strong>. If for any reason you or your child are not completely delighted with your storybook, simply email our friendly support team at support@twinkletaleai.com and we will issue a full refund back to your original payment method.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12. FINAL CALL TO ACTION -->
+  <section class="section-padding" style="background: linear-gradient(135deg, #161B33 0%, #252D54 100%); color: #FFFFFF; text-align: center;">
+    <div class="container" style="max-width: 680px;">
+      <h2 style="color: #FFFFFF; font-size: clamp(2rem, 4.5vw, 3rem); margin-bottom: 16px;">
+        Give Your Child an Unforgettable Adventure Tonight
+      </h2>
+      <p style="color: rgba(255,255,255,0.85); font-size: 1.1rem; margin-bottom: 32px;">
+        Join over 2,400+ parents who have created timeless bedtime memories. Instant download in under 3 minutes.
+      </p>
+      <a href="#create" class="btn-primary" style="background: var(--gold); color: #FFFFFF; font-size: 1.15rem; padding: 18px 38px;">
+        <span>Personalize Your Keepsake — $5.99</span>
+        <i class="fas fa-sparkles"></i>
+      </a>
+    </div>
+  </section>
+
+  <!-- 13. FOOTER -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-logo">
+            <i class="fas fa-sparkles" style="color: var(--gold);"></i>
+            <span>TwinkleTale AI</span>
+          </div>
+          <p style="max-width: 380px; line-height: 1.6; margin-bottom: 16px;">
+            Creating personalized keepsake storybooks that inspire reading confidence, courage, and lifelong bedtime wonder.
+          </p>
+          <div style="font-size: 0.8rem; color: #64748B;">
+            🔒 256-Bit SSL Encrypted • COPPA & Child Privacy Protected
+          </div>
+        </div>
+
+        <div>
+          <h4 style="color: #FFFFFF; font-size: 1rem; margin-bottom: 14px;">Explore</h4>
+          <ul class="footer-links">
+            <li><a href="#create">Personalize a Book</a></li>
+            <li><a href="#samples">View Real Samples</a></li>
+            <li><a href="#samples">Free Sample PDFs</a></li>
+            <li><a href="https://www.twinkletaleai.com/">Global Storefront</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 style="color: #FFFFFF; font-size: 1rem; margin-bottom: 14px;">Customer Care</h4>
+          <ul class="footer-links">
+            <li><a href="mailto:support@twinkletaleai.com">support@twinkletaleai.com</a></li>
+            <li><a href="javascript:void(0)" onclick="alert('TwinkleTale AI strictly adheres to COPPA and child safety privacy standards. Photos are used exclusively for generation and are never sold or trained upon.')">Privacy Promise</a></li>
+            <li><a href="javascript:void(0)" onclick="alert('Full 100% refund guarantee applies to all orders if you are not completely satisfied.')">Satisfaction Guarantee</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>&copy; 2026 TwinkleTale AI Inc. All rights reserved.</div>
+        <div>Made with love for little dreamers everywhere ✨</div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- 14. STICKY MOBILE CONVERSION BAR (< 768px) -->
+  <div class="sticky-mobile-bar" id="stickyMobileBar">
+    <div class="sticky-pricing-info">
+      <span class="sticky-label">🇺🇸 US Launch 50% Off</span>
+      <div class="sticky-price-group">
+        <span class="sticky-price-main" id="stickyPrice">$5.99</span>
+        <span class="sticky-price-strike" id="stickyStrike">$11.99</span>
+      </div>
+    </div>
+    <a href="#create" class="sticky-cta-btn">
+      <span>Personalize</span>
+      <i class="fas fa-arrow-right"></i>
+    </a>
+  </div>
+
+  <!-- TEST MODE SIMULATED CHECKOUT MODAL -->
+  <div class="sim-modal" id="simModal">
+    <div class="sim-modal-content">
+      <div style="font-size: 2.2rem; color: var(--gold); margin-bottom: 12px;">✨</div>
+      <h3 style="margin-bottom: 8px;">Simulated US Checkout</h3>
+      <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 20px;">
+        Test environment active. Confirm payment to generate <strong id="simChildName">Leo</strong>'s storybook.
+      </p>
+      <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 20px; font-weight: 700;">
+        Payable: <span id="simPrice" style="color: var(--forest); font-size: 1.2rem;">$5.99</span> (USD)
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <button class="btn-secondary" style="flex: 1;" onclick="closeSimModal()">Cancel</button>
+        <button class="btn-primary" style="flex: 1;" onclick="confirmSimulatedPayment()">Authorize</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC & CONVERSION CONTROLLER -->
+  <script>
+    const API_BASE = window.location.origin;
+    let selectedEdition = 'short'; // 'short' ($5.99) vs 'long' ($11.99)
+    let uploadedPhotoBase64 = null;
+    let pendingOrderData = null;
+
+    // 1. GENDER SELECTION
+    function selectGender(gender) {
+      document.querySelectorAll('.gender-pill').forEach(el => el.classList.remove('active'));
+      const activeEl = document.getElementById(gender === 'boy' ? 'pillBoy' : (gender === 'girl' ? 'pillGirl' : 'pillStar'));
+      if (activeEl) activeEl.classList.add('active');
+      document.getElementById('childGender').value = gender;
+    }
+
+    // 2. THEME SELECTION
+    function selectTheme(el, themeName) {
+      document.querySelectorAll('.theme-option').forEach(card => card.classList.remove('active'));
+      el.classList.add('active');
+      document.getElementById('selectedTheme').value = themeName;
+      updateLivePreview();
+    }
+
+    // 3. EDITION SELECTION
+    function selectEdition(tier) {
+      selectedEdition = tier;
+      document.getElementById('tierShort').classList.toggle('selected', tier === 'short');
+      document.getElementById('tierLong').classList.toggle('selected', tier === 'long');
+      
+      const priceStr = tier === 'long' ? '$11.99' : '$5.99';
+      const strikeStr = tier === 'long' ? '$23.99' : '$11.99';
+
+      document.getElementById('btnPrice').textContent = priceStr;
+      const stickyPrice = document.getElementById('stickyPrice');
+      const stickyStrike = document.getElementById('stickyStrike');
+      if (stickyPrice) stickyPrice.textContent = priceStr;
+      if (stickyStrike) stickyStrike.textContent = strikeStr;
+    }
+
+    // 4. DEDICATION PRESET
+    function setDedication(text) {
+      document.getElementById('dedicationText').value = text;
+    }
+
+    // 5. DISTINCTIVE FEATURES TOGGLE
+    function toggleFeatures() {
+      const box = document.getElementById('featureBox');
+      const chevron = document.getElementById('featureChevron');
+      const isHidden = box.style.display === 'none' || !box.style.display;
+      box.style.display = isHidden ? 'flex' : 'none';
+      chevron.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+    }
+
+    // 6. PHOTO UPLOAD WITH HIGH-EFFICIENCY 768px CANVAS DOWNSAMPLING
+    function handlePhotoUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          const maxDim = 768;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          uploadedPhotoBase64 = canvas.toDataURL('image/jpeg', 0.85);
+
+          // Update UI
+          const previewImg = document.getElementById('photoPreviewImg');
+          const placeholderIcon = document.getElementById('photoPlaceholderIcon');
+          const title = document.getElementById('photoUploadTitle');
+
+          previewImg.src = uploadedPhotoBase64;
+          previewImg.style.display = 'block';
+          placeholderIcon.style.display = 'none';
+          title.textContent = "Photo loaded! Tap to change";
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // 7. LIVE PREVIEW UPDATE
+    function updateLivePreview() {
+      const childName = document.getElementById('childName').value.trim() || 'Radha';
+      const theme = document.getElementById('selectedTheme').value || 'Space & Stars';
+      const heroTitle = document.getElementById('heroBookTitle');
+      if (heroTitle) {
+        heroTitle.textContent = `${childName}'s ${theme}`;
+      }
+    }
+
+    // 8. SAMPLE SHOWCASE SWITCHER
+    function switchSample(sample) {
+      const isRadha = sample === 'radha';
+      document.getElementById('tabRadha').classList.toggle('active', isRadha);
+      document.getElementById('tabSid').classList.toggle('active', !isRadha);
+
+      const coverImg = document.getElementById('sampleCoverImg');
+      const themePill = document.getElementById('sampleThemePill');
+      const nameTitle = document.getElementById('sampleNameTitle');
+      const snippet = document.getElementById('sampleSnippet');
+      const dlBtn = document.getElementById('sampleDownloadBtn');
+
+      if (isRadha) {
+        coverImg.src = '/public/samples/sample-radha-cosmic-voyage.webp';
+        themePill.textContent = 'Space & Stars Theme';
+        nameTitle.textContent = "Radha's Cosmic Starlight Voyage";
+        snippet.textContent = '"Underneath the velvet sky where constellations dance and play, little Radha built a rocket ship to guide the Milky Way..."';
+        dlBtn.href = '/api/sample-download/radha';
+      } else {
+        coverImg.src = '/public/samples/sample-sid-dinosaur-wonder.webp';
+        themePill.textContent = 'Dinosaur Wonders Theme';
+        nameTitle.textContent = "Sid's Dinosaur Wonder Night";
+        snippet.textContent = '"Through prehistoric misty plains where giant brontosaurs roam free, little Sid discovered lands of fossil-carved majesty..."';
+        dlBtn.href = '/api/sample-download/sid';
+      }
+    }
+
+    // 9. FAQ TOGGLE
+    function toggleFaq(el) {
+      const item = el.parentElement;
+      item.classList.toggle('active');
+    }
+
+    // 10. FORM SUBMISSION -> ORDER CREATION (SERVER-AUTHORITATIVE $5.99 / $11.99)
+    async function handleFormSubmit(event) {
+      event.preventDefault();
+      
+      const childName = document.getElementById('childName').value.trim();
+      const age = parseInt(document.getElementById('childAge').value, 10) || 5;
+      const gender = document.getElementById('childGender').value;
+      const theme = document.getElementById('selectedTheme').value;
+      const dedication = document.getElementById('dedicationText').value.trim();
+      const email = document.getElementById('parentEmail').value.trim();
+
+      if (!childName) {
+        alert("Please provide your child's first name!");
+        return;
+      }
+      if (!email) {
+        alert("Please provide your email address for book delivery!");
+        return;
+      }
+
+      const submitBtn = document.getElementById('orderSubmitBtn');
+      const origText = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<span>Creating your order...</span> <i class="fas fa-spinner fa-spin"></i>`;
+
+      const distinctiveAttributes = [];
+      if (document.getElementById('featureGlasses')?.checked) distinctiveAttributes.push('glasses');
+      if (document.getElementById('featureTurban')?.checked) distinctiveAttributes.push('turban');
+
+      const payload = {
+        market: 'US',
+        currency: 'USD',
+        isDirectCheckout: true,
+        childName,
+        gender,
+        age,
+        theme,
+        language: 'English',
+        photoData: uploadedPhotoBase64,
+        dedication,
+        email,
+        bookLength: selectedEdition === 'long' ? '22 pages' : '12 pages',
+        attributes: distinctiveAttributes
+      };
+
+      try {
+        const res = await fetch(`${API_BASE}/api/create-order`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const orderData = await res.json();
+
+        if (!orderData.success) {
+          alert(`Order initiation error: ${orderData.error}`);
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = origText;
+          return;
+        }
+
+        // Test Mode Simulation fallback
+        if (orderData.isTestMode || orderData.keyId.includes('simulated') || orderData.keyId.includes('YOUR_')) {
+          pendingOrderData = orderData;
+          openSimModal(orderData);
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = origText;
+          return;
+        }
+
+        // Razorpay International Checkout Modal
+        const options = {
+          key: orderData.keyId,
+          amount: orderData.amount, // 599 or 1199 cents
+          currency: orderData.currency || "USD",
+          name: "TwinkleTale AI",
+          description: `${childName}'s Keepsake Storybook`,
+          order_id: orderData.orderId,
+          prefill: { email: email, name: childName },
+          theme: { color: "#161B33" },
+          handler: function (response) {
+            completeBookFulfillment(response, orderData);
+          },
+          modal: {
+            ondismiss: function () {
+              submitBtn.disabled = false;
+              submitBtn.innerHTML = origText;
+            }
+          }
+        };
+
+        const rzp = new Razorpay(options);
+        rzp.on('payment.failed', function (response) {
+          alert(`Payment unconfirmed: ${response.error.description || 'Transaction cancelled'}`);
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = origText;
+        });
+        rzp.open();
+
+      } catch (err) {
+        alert(`Connection error: ${err.message}. Please verify your network.`);
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = origText;
+      }
+    }
+
+    // 11. COMPLETE FULFILLMENT AFTER PAYMENT
+    async function completeBookFulfillment(paymentResponse, orderData) {
+      document.getElementById('create').style.display = 'none';
+      const prog = document.getElementById('progressStage');
+      prog.style.display = 'block';
+      prog.scrollIntoView({ behavior: 'smooth' });
+
+      const email = document.getElementById('parentEmail').value.trim();
+      const childName = document.getElementById('childName').value.trim();
+      document.getElementById('progressChildName').textContent = childName || 'your child';
+      document.getElementById('progressEmailDisplay').textContent = email || 'your email';
+      document.getElementById('progressOrderId').textContent = paymentResponse.razorpay_order_id || orderData.orderId;
+
+      try {
+        await fetch(`${API_BASE}/api/verify-and-complete-book`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            previewId: orderData.previewId,
+            razorpay_order_id: paymentResponse.razorpay_order_id,
+            razorpay_payment_id: paymentResponse.razorpay_payment_id,
+            razorpay_signature: paymentResponse.razorpay_signature,
+            bookLength: selectedEdition === 'long' ? '22 pages' : '12 pages',
+            market: 'US',
+            currency: 'USD',
+            email
+          })
+        });
+      } catch (err) {
+        console.warn('Verification note:', err.message);
+      }
+    }
+
+    // 12. FREE PREVIEW FIRST HANDLER
+    async function handlePreviewFirst() {
+      const childName = document.getElementById('childName').value.trim();
+      if (!childName) {
+        alert("Please enter your child's first name to generate a preview!");
+        document.getElementById('childName').focus();
+        return;
+      }
+      if (!uploadedPhotoBase64) {
+        alert("Please upload a photo of your child so our AI can illustrate their preview cover!");
+        document.getElementById('photoInput').click();
+        return;
+      }
+
+      const prevBtn = document.getElementById('previewSubmitBtn');
+      const origText = prevBtn.innerHTML;
+      prevBtn.disabled = true;
+      prevBtn.innerHTML = `<span>Painting preview (takes ~25s)...</span> <i class="fas fa-spinner fa-spin"></i>`;
+
+      const distinctiveAttributes = [];
+      if (document.getElementById('featureGlasses')?.checked) distinctiveAttributes.push('glasses');
+      if (document.getElementById('featureTurban')?.checked) distinctiveAttributes.push('turban');
+
+      try {
+        const res = await fetch(`${API_BASE}/api/generate-preview`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            childName,
+            age: parseInt(document.getElementById('childAge').value, 10) || 5,
+            gender: document.getElementById('childGender').value,
+            theme: document.getElementById('selectedTheme').value,
+            language: 'English',
+            photoData: uploadedPhotoBase64,
+            attributes: distinctiveAttributes
+          })
+        });
+        const data = await res.json();
+        prevBtn.disabled = false;
+        prevBtn.innerHTML = origText;
+
+        if (data.success && data.coverUrl) {
+          const heroCover = document.getElementById('heroBookCover');
+          if (heroCover) {
+            heroCover.src = data.coverUrl;
+            document.getElementById('heroBookTitle').textContent = `${childName}'s Keepsake`;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            alert("✨ Preview cover ready! Scroll up to see your child's illustrated cover!");
+          }
+        } else {
+          alert(`Preview error: ${data.error || 'Could not generate preview'}`);
+        }
+      } catch (e) {
+        prevBtn.disabled = false;
+        prevBtn.innerHTML = origText;
+        alert(`Connection error: ${e.message}`);
+      }
+    }
+
+    // 13. TEST MODE MODAL CONTROLS
+    function openSimModal(orderData) {
+      const childName = document.getElementById('childName').value.trim() || 'Your Child';
+      document.getElementById('simChildName').textContent = childName;
+      document.getElementById('simPrice').textContent = selectedEdition === 'long' ? '$11.99' : '$5.99';
+      document.getElementById('simModal').style.display = 'flex';
+    }
+    function closeSimModal() {
+      document.getElementById('simModal').style.display = 'none';
+    }
+    function confirmSimulatedPayment() {
+      closeSimModal();
+      if (!pendingOrderData) return;
+      completeBookFulfillment({
+        razorpay_order_id: pendingOrderData.orderId,
+        razorpay_payment_id: `pay_test_${Date.now()}`,
+        razorpay_signature: `sig_test_${Date.now()}`
+      }, pendingOrderData);
+    }
+
+    // 14. INTERSECTION OBSERVER TO HIDE STICKY MOBILE BAR WHEN FORM IS VISIBLE
+    document.addEventListener('DOMContentLoaded', () => {
+      const createSection = document.getElementById('create');
+      const mobileBar = document.getElementById('stickyMobileBar');
+
+      if (createSection && mobileBar && 'IntersectionObserver' in window) {
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              mobileBar.style.transform = 'translateY(100%)';
+            } else {
+              mobileBar.style.transform = 'translateY(0)';
+            }
+          });
+        }, { threshold: 0.15 });
+        observer.observe(createSection);
+      }
+    });
+  </script>
+</body>
+</html>

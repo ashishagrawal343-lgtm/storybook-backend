@@ -159,6 +159,51 @@ const coverEngine = new CoverDesignEngine({
     fetchImageBuffer: (url) => fetchImageBuffer(url)
 });
 
+// ====================================================================
+// REGIONAL MARKET & MULTI-CURRENCY PRICING CONFIGURATION
+// IN: Domestic India (Paise, INR)
+// US: United States (Cents, USD)
+// ====================================================================
+const MARKET_CONFIG = {
+    IN: {
+        currency: 'INR',
+        symbol: '₹',
+        short: {
+            offerPriceSubunits: 9900,   // ₹99 (special offer)
+            priceSubunits: 19900        // ₹199 (standard MSRP)
+        },
+        long: {
+            offerPriceSubunits: 19900,  // ₹199 (special offer)
+            priceSubunits: 29900        // ₹299 (standard MSRP)
+        }
+    },
+    US: {
+        currency: 'USD',
+        symbol: '$',
+        short: {
+            offerPriceSubunits: 599,    // $5.99 (50% launch promo, regular $11.99)
+            priceSubunits: 1199         // $11.99 (regular MSRP)
+        },
+        long: {
+            offerPriceSubunits: 1199,   // $11.99 (50% launch promo, regular $23.99)
+            priceSubunits: 2399         // $23.99 (regular MSRP)
+        }
+    }
+};
+
+function resolveMarketKey(body = {}, session = {}) {
+    const rawMarket = String(body.market || session.market || '').toUpperCase();
+    const rawCurrency = String(body.currency || session.currency || '').toUpperCase();
+    if (rawMarket === 'US' || rawCurrency === 'USD') return 'US';
+    return 'IN';
+}
+
+function computeEditionSubunits(marketKey, isLong, isOffer) {
+    const market = MARKET_CONFIG[marketKey] || MARKET_CONFIG.IN;
+    const tier = isLong ? market.long : market.short;
+    return isOffer ? tier.offerPriceSubunits : tier.priceSubunits;
+}
+
 const booksFolder = path.join(__dirname, 'books');
 if (!fs.existsSync(booksFolder)) fs.mkdirSync(booksFolder);
 
@@ -1649,17 +1694,25 @@ app.post('/api/create-order', rateLimiter, async (req, res) => {
     try {
         const { previewId, bookLength, email, offer } = req.body;
         let session = previewId ? getSession(previewId) : null;
+        const marketKey = resolveMarketKey(req.body, session || {});
+        const market = MARKET_CONFIG[marketKey] || MARKET_CONFIG.IN;
+        const currency = market.currency;
+
+        const isLong = String(bookLength || '').toLowerCase().includes('long') || String(bookLength || '').includes('24') || String(bookLength || '').includes('22') || String(bookLength || '').includes('28') || String(bookLength || '').includes('grand');
+        // US market launches with 50% off ($5.99 / $11.99). IN market uses special99 promo (₹99 / ₹199) or standard (₹199 / ₹299)
+        const isOffer = marketKey === 'US' ? (offer !== 'standard' && req.body.offer !== 'standard') : ((offer === 'special99') || (req.body.offer === 'special99') || (session && session.offer === 'special99'));
+        const amountSubunits = computeEditionSubunits(marketKey, isLong, isOffer);
+
         if (session) {
             // PRD FR-5: Refresh timestamp so session TTL does not expire during checkout
             session.timestamp = Date.now();
             if (offer) session.offer = offer;
+            session.market = marketKey;
+            session.currency = currency;
+            session.expectedSubunits = amountSubunits;
             saveSession(previewId, session);
         }
         let effectivePreviewId = previewId;
-
-        const isLong = String(bookLength || '').toLowerCase().includes('long') || String(bookLength || '').includes('24') || String(bookLength || '').includes('22') || String(bookLength || '').includes('28') || String(bookLength || '').includes('grand');
-        const isOffer = (offer === 'special99') || (req.body.offer === 'special99') || (session && session.offer === 'special99');
-        const amountPaise = isOffer ? (isLong ? 19900 : 9900) : (isLong ? 29900 : 19900);
 
         // Direct Checkout Support (instant payment without prior preview generation)
         if (req.body.isDirectCheckout || (!session && req.body.childName)) {
@@ -1685,7 +1738,10 @@ app.post('/api/create-order', rateLimiter, async (req, res) => {
                 attributes: visualAttributes,
                 dedication: dedication || '',
                 email: email || reqEmail || '',
-                offer: isOffer ? 'special99' : null,
+                offer: isOffer ? (marketKey === 'US' ? 'us_launch_50off' : 'special99') : null,
+                market: marketKey,
+                currency: currency,
+                expectedSubunits: amountSubunits,
                 charAnchor, pronoun, subjectPronoun, pal,
                 title: bookTitle, bookTitle,
                 coverBuffer: null,
@@ -1693,30 +1749,33 @@ app.post('/api/create-order', rateLimiter, async (req, res) => {
                 bookLength: isLong ? 'long' : 'short'
             };
             saveSession(effectivePreviewId, session);
-            console.log(`⚡ Direct checkout session created for ${session.childName} (id: ${effectivePreviewId}, offer: ${session.offer || 'none'})`);
+            console.log(`⚡ Direct checkout session created for ${session.childName} (id: ${effectivePreviewId}, market: ${marketKey}, currency: ${currency}, subunits: ${amountSubunits})`);
         } else if (!session && !String(previewId || '').startsWith('test_')) {
             return res.status(404).json({ success: false, error: 'Preview session expired. Please preview your book again.' });
         }
 
         if (razorpay) {
             const order = await razorpay.orders.create({
-                amount: amountPaise,
-                currency: 'INR',
+                amount: amountSubunits,
+                currency: currency,
                 receipt: (effectivePreviewId || `rcpt_${Date.now()}`).slice(0, 30),
                 notes: {
                     previewId: effectivePreviewId || '',
                     bookLength: isLong ? '22 pages' : '12 pages',
                     childName: session ? session.childName : 'Child',
                     email: email || (session ? session.email : ''),
-                    offer: isOffer ? 'special99' : 'standard'
+                    market: marketKey,
+                    currency: currency,
+                    offer: isOffer ? (marketKey === 'US' ? 'us_launch_50off' : 'special99') : 'standard'
                 }
             });
             return res.json({
                 success: true,
                 orderId: order.id,
                 previewId: effectivePreviewId,
-                amount: amountPaise,
-                currency: 'INR',
+                amount: amountSubunits,
+                currency: currency,
+                market: marketKey,
                 keyId: process.env.RAZORPAY_KEY_ID
             });
         } else {
@@ -1725,8 +1784,9 @@ app.post('/api/create-order', rateLimiter, async (req, res) => {
                 success: true,
                 orderId: simOrderId,
                 previewId: effectivePreviewId,
-                amount: amountPaise,
-                currency: 'INR',
+                amount: amountSubunits,
+                currency: currency,
+                market: marketKey,
                 keyId: 'rzp_test_simulated_key',
                 isTestMode: true
             });
@@ -1896,13 +1956,19 @@ class BookGenerationQueue {
         // 3. Automated Razorpay Refund on DLQ failure
         if (razorpay && job.paymentId && process.env.AUTO_REFUND_ON_FAILURE !== 'false') {
             try {
-                console.log(`💸 [DLQ] Initiating fail-safe refund for Job ${jobId} (Payment: ${job.paymentId})...`);
+                const refundCurrency = job.currency || (job.amountPaise ? 'INR' : 'USD');
+                const refundSymbol = refundCurrency === 'USD' ? '$' : '₹';
+                const refundSubunits = job.amountSubunits || job.amountPaise || (refundCurrency === 'USD' ? 599 : 19900);
+                const refundFormatted = (refundSubunits / 100).toFixed(2);
+
+                console.log(`💸 [DLQ] Initiating fail-safe refund for Job ${jobId} (Payment: ${job.paymentId}, Currency: ${refundCurrency}, Amount: ${refundSubunits})...`);
                 const refund = await razorpay.payments.refund(job.paymentId, {
-                    amount: job.amountPaise || 19900,
+                    amount: refundSubunits,
                     notes: {
                         reason: "Automated DLQ fulfillment failure after 3 attempts",
                         jobId: jobId,
                         childName: (session && session.childName) || 'Child',
+                        currency: refundCurrency,
                         error: (err.message || '').slice(0, 100)
                     }
                 });
@@ -1920,11 +1986,11 @@ class BookGenerationQueue {
                             <h2 style="color:#842029;margin-top:0">We apologize for the inconvenience</h2>
                             <p style="font-size:16px;color:#333;line-height:1.6">Dear Parent,</p>
                             <p style="font-size:16px;color:#333;line-height:1.6">While creating the high-resolution illustrations for <strong>${(session && session.childName) || 'your child'}'s storybook</strong>, our illustration studio encountered an unexpected technical delay.</p>
-                            <p style="font-size:16px;color:#333;line-height:1.6">To ensure your complete peace of mind, we have <strong>automatically initiated a 100% full refund</strong> of ₹${(job.amountPaise || 19900) / 100} back to your original payment method.</p>
+                            <p style="font-size:16px;color:#333;line-height:1.6">To ensure your complete peace of mind, we have <strong>automatically initiated a 100% full refund</strong> of ${refundSymbol}${refundFormatted} back to your original payment method.</p>
                             <div style="background:#FFF;padding:16px;border-radius:8px;border:1px solid #DDD;margin:20px 0">
                                 <p style="margin:4px 0;font-size:14px;color:#555"><strong>Refund ID:</strong> ${refund.id}</p>
                                 <p style="margin:4px 0;font-size:14px;color:#555"><strong>Payment ID:</strong> ${job.paymentId}</p>
-                                <p style="margin:4px 0;font-size:14px;color:#555"><strong>Amount Refunded:</strong> ₹${(job.amountPaise || 19900) / 100}</p>
+                                <p style="margin:4px 0;font-size:14px;color:#555"><strong>Amount Refunded:</strong> ${refundSymbol}${refundFormatted}</p>
                                 <p style="margin:4px 0;font-size:14px;color:#555"><strong>Arrival:</strong> 3-5 business days directly to your original bank/card</p>
                             </div>
                             <p style="font-size:14px;color:#555">If you have any questions, our support team is right here to help at <a href="mailto:${process.env.SENDER_EMAIL || 'support@twinkletaleai.com'}">${process.env.SENDER_EMAIL || 'support@twinkletaleai.com'}</a>.</p>
@@ -1955,6 +2021,10 @@ class BookGenerationQueue {
         const adminRecipient = process.env.ADMIN_EMAIL || process.env.SENDER_EMAIL;
         if (mailer && adminRecipient) {
             try {
+                const alertCurrency = job.currency || (job.amountPaise ? 'INR' : 'USD');
+                const alertSymbol = alertCurrency === 'USD' ? '$' : '₹';
+                const alertSubunits = job.amountSubunits || job.amountPaise || 0;
+                const alertFormatted = (alertSubunits / 100).toFixed(2);
                 await mailer.sendMail({
                     to: adminRecipient,
                     subject: `🚨 [CRITICAL DLQ ALERT] Order Fulfillment Failed — Job ${jobId} (3 Retries Exhausted)`,
@@ -1964,7 +2034,7 @@ class BookGenerationQueue {
                         <p><strong>Customer Email:</strong> ${parentEmail || 'N/A'}</p>
                         <p><strong>Payment ID:</strong> ${job.paymentId || 'N/A'}</p>
                         <p><strong>Order ID:</strong> ${job.orderId || 'N/A'}</p>
-                        <p><strong>Amount:</strong> ₹${((job.amountPaise || 0) / 100).toFixed(2)}</p>
+                        <p><strong>Amount:</strong> ${alertSymbol}${alertFormatted} (${alertCurrency})</p>
                         <p><strong>Child:</strong> ${(session && session.childName) || 'N/A'} (${(session && session.theme) || 'N/A'}, ${(session && session.language) || 'N/A'})</p>
                         <p><strong>Refund Status:</strong> ${job.refundStatus || 'none'} (${job.refundId || 'none'})</p>
                         <hr style="border:none;border-top:1px solid #e0c8c8;margin:16px 0">
@@ -2056,9 +2126,13 @@ app.post('/api/verify-and-complete-book', rateLimiter, async (req, res) => {
             console.log('🔒 Exact approved preview cover locked for final book!');
         }
 
-        const isLong = String(bookLength || '').toLowerCase().includes('long') || String(bookLength || '').includes('24') || String(bookLength || '').includes('22') || String(bookLength || '').includes('28') || String(bookLength || '').includes('grand');
-        const isOffer = (session && session.offer === 'special99') || req.body.offer === 'special99';
-        const minExpectedPaise = isOffer ? (isLong ? 19900 : 9900) : (isLong ? 29900 : 19900);
+        const marketKey = resolveMarketKey(req.body, session || {});
+        const market = MARKET_CONFIG[marketKey] || MARKET_CONFIG.IN;
+        const expectedCurrency = market.currency;
+
+        const isLong = String(bookLength || session?.bookLength || '').toLowerCase().includes('long') || String(bookLength || '').includes('24') || String(bookLength || '').includes('22') || String(bookLength || '').includes('28') || String(bookLength || '').includes('grand');
+        const isOffer = marketKey === 'US' ? (session?.offer !== 'standard' && req.body.offer !== 'standard') : ((session && session.offer === 'special99') || req.body.offer === 'special99');
+        const minExpectedSubunits = computeEditionSubunits(marketKey, isLong, isOffer);
 
         // =========================================================
         // HACK-PROOF RAZORPAY VERIFICATION & ANTI-REPLAY CHECK
@@ -2094,7 +2168,10 @@ app.post('/api/verify-and-complete-book', rateLimiter, async (req, res) => {
                 if (payment.order_id !== razorpay_order_id) {
                     return res.status(400).json({ success: false, error: 'Payment order ID mismatch.' });
                 }
-                if (payment.amount < minExpectedPaise) {
+                if (payment.currency && payment.currency.toUpperCase() !== expectedCurrency.toUpperCase()) {
+                    return res.status(400).json({ success: false, error: `Payment currency mismatch. Expected ${expectedCurrency}, received ${payment.currency}.` });
+                }
+                if (payment.amount < minExpectedSubunits) {
                     return res.status(400).json({ success: false, error: 'Paid amount is less than the required book edition price.' });
                 }
             } catch (fetchErr) {
@@ -2104,13 +2181,13 @@ app.post('/api/verify-and-complete-book', rateLimiter, async (req, res) => {
 
             // Mark payment as fulfilled to prevent re-submissions
             fulfilledPayments.set(razorpay_payment_id, Date.now());
-            console.log(`💳 Cryptographically Verified & Settled: ${razorpay_payment_id} for order ${razorpay_order_id}`);
+            console.log(`💳 Cryptographically Verified & Settled: ${razorpay_payment_id} for order ${razorpay_order_id} (${expectedCurrency} ${minExpectedSubunits})`);
         } else {
             // In Production, reject unconfigured gateways immediately
             if (process.env.NODE_ENV === 'production') {
                 return res.status(503).json({ success: false, error: 'Razorpay payment gateway is not configured for production transactions.' });
             }
-            console.log(`💳 Test Payment simulated in dev mode: ${razorpay_payment_id || 'test_payment'}`);
+            console.log(`💳 Test Payment simulated in dev mode: ${razorpay_payment_id || 'test_payment'} (${expectedCurrency} ${minExpectedSubunits})`);
         }
 
         const jobId = `job_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
@@ -2126,7 +2203,10 @@ app.post('/api/verify-and-complete-book', rateLimiter, async (req, res) => {
             previewId: session.previewId,
             orderId: razorpay_order_id || null,
             paymentId: razorpay_payment_id || null,
-            amountPaise: minExpectedPaise,
+            market: marketKey,
+            currency: expectedCurrency,
+            amountSubunits: minExpectedSubunits,
+            amountPaise: expectedCurrency === 'INR' ? minExpectedSubunits : undefined,
             email: email || session.email || null,
             bookLength
         });
@@ -2138,7 +2218,9 @@ app.post('/api/verify-and-complete-book', rateLimiter, async (req, res) => {
             bookLength,
             parentEmail: email || session.email,
             protocol: req.protocol,
-            host: req.get('host')
+            host: req.get('host'),
+            market: marketKey,
+            currency: expectedCurrency
         });
 
         res.json({ success: true, jobId, queued: true });
@@ -3066,6 +3148,15 @@ app.get('/offer', (req, res) => {
     res.sendFile(path.join(__dirname, 'special.html'));
 });
 
+// Premium High-Converting US Storefront
+app.get('/us', (req, res) => {
+    res.sendFile(path.join(__dirname, 'us.html'));
+});
+
+app.get('/usa', (req, res) => {
+    res.sendFile(path.join(__dirname, 'us.html'));
+});
+
 // Sample Storybook PDF Download Endpoint (guaranteed Content-Disposition attachment across all devices)
 app.get('/api/sample-download/:sampleId', (req, res) => {
     const sampleId = String(req.params.sampleId || '').toLowerCase();
@@ -3152,7 +3243,7 @@ async function recoverDanglingJobs() {
                                 console.warn(`💸 [SELF-HEALING] Session unavailable for ${job.id}. Processing automatic protection refund...`);
                                 try {
                                     const ref = await razorpay.payments.refund(job.paymentId, {
-                                        amount: job.amountPaise || 19900,
+                                        amount: job.amountSubunits || job.amountPaise || 19900,
                                         notes: { reason: "Server restart recovery refund", jobId: job.id }
                                     });
                                     job.status = 'failed';
