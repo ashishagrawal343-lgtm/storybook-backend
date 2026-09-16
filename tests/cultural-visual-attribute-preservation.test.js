@@ -91,10 +91,11 @@ const sanitizedFairyRole = sanitizeChildRoleForHeadwear(fairyRole, { hasHeadwear
 assert(!sanitizedFairyRole.toLowerCase().includes('flower crown'), 'Sanitized fairy role must NOT contain flower crown when child wears turban');
 console.log('  ✔ Fairies flower crown cleanly stripped for turban wearer');
 
-// Test 2D: Child WITHOUT headwear preserves theme roles intact
+// Test 2D: Child WITHOUT headwear cleanly strips unneeded caps and hats
 const defaultTrainRole = sanitizeChildRoleForHeadwear(trainRole, { hasHeadwear: false });
-assert.strictEqual(defaultTrainRole, trainRole, 'Role must remain untouched when hasHeadwear is false');
-console.log('  ✔ Child without headwear preserves original theme styling');
+assert(!defaultTrainRole.toLowerCase().includes('conductor cap'), 'Role must cleanly strip conductor cap when child has natural bare hair');
+assert(!defaultTrainRole.toLowerCase().includes('turban'), 'Role must NOT contain turban when child has natural bare hair');
+console.log('  ✔ Child without headwear has unneeded caps cleanly stripped to prevent extra props');
 
 console.log('✅ TEST 2 PASSED: Conflicting theme attire successfully neutralized.\n');
 

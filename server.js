@@ -1111,12 +1111,13 @@ async function generateAvatar(photoData, charAnchor, attributes = {}) {
                 ? String(attributes.headwearDescription || (attributes.headwearType && attributes.headwearType !== 'none' ? attributes.headwearType : '')).trim()
                 : '';
             const headwearDirective = rawHeadwear
-                ? `[CRITICAL CULTURAL ACCURACY: The child is wearing an authentic ${rawHeadwear.replace(/^authentic\s+/i, '')}; faithfully preserve this exact headwear; do NOT replace the headwear with any cap, hat, or bare hair.] `
-                : '';
+                ? `[CRITICAL CULTURAL ACCURACY: The child is wearing an authentic ${rawHeadwear.replace(/^authentic\s+/i, '')}; faithfully preserve this exact headwear; do NOT replace the headwear with any cap, hat, or alternative covering.] `
+                : `[STRICT HEADWEAR RESTRICTION: The child in the photo has natural hair with NO headwear, NO hat, NO cap. Strictly preserve their natural hair and natural hairline; absolutely NO hat, NO cap, NO headband, NO head covering.] `;
             const glassesDirective = (attributes && attributes.hasGlasses)
                 ? `[CRITICAL VISUAL FEATURE: The child is wearing ${attributes.glassesDescription || 'spectacles'}; preserve the spectacles on their face.] `
-                : '';
-            const rawAvatarPrompt = `Transform the child in this photo into an adorable, charming storybook hero in lush painterly storybook realism, soft digital gouache and fine oils texture, gentle cinematic golden lighting. ${headwearDirective}${glassesDirective}Preserve 90% to 95% facial likeness and exact identity of the child in the photo: accurately preserve their unique facial structure, exact eye shape, iris color, eyebrow shape, nose bridge and nose tip, mouth and lip contour, natural skin tone, hairstyle, hair texture, and natural hairline, while translating them seamlessly into rich picture-book painterly art. Centered head-and-shoulders portrait of the child in a cozy storybook adventure outfit, eye level, face fully in frame with generous margin around hair and chin, portrait orientation. Natural soft dimensional lighting, warm lifelike glow, authentic happy smile, finely rendered hair catching gentle rim light. Rich picture book artistry, digital gouache and fine oils. Not flat 2D cartoon, not stiff 3D CGI, not plastic, no text, no watermark`;
+                : `[STRICT EYEWEAR RESTRICTION: The child in the photo does NOT wear glasses. Strictly preserve their natural face with NO spectacles, NO glasses, NO sunglasses, NO frames.] `;
+            const propsDirective = `[STRICT NO-PROPS RULE: Strictly maintain the child's physical attributes as-is from the photo without adding any extra props, costume hats, spectacles, or accessories.] `;
+            const rawAvatarPrompt = `Transform the child in this photo into an adorable, charming storybook hero in lush painterly storybook realism, soft digital gouache and fine oils texture, gentle cinematic golden lighting. ${headwearDirective}${glassesDirective}${propsDirective}Preserve 90% to 95% facial likeness and exact identity of the child in the photo: accurately preserve their unique facial structure, exact eye shape, iris color, eyebrow shape, nose bridge and nose tip, mouth and lip contour, natural skin tone, hairstyle, hair texture, and natural hairline, while translating them seamlessly into rich picture-book painterly art. Centered head-and-shoulders portrait of the child in a cozy storybook adventure outfit, eye level, face fully in frame with generous margin around hair and chin, portrait orientation. Natural soft dimensional lighting, warm lifelike glow, authentic happy smile, finely rendered hair catching gentle rim light. Rich picture book artistry, digital gouache and fine oils. Not flat 2D cartoon, not stiff 3D CGI, not plastic, no text, no watermark, absolutely NO hats, NO caps, NO spectacles, NO glasses, NO sunglasses, NO extra props, NO unneeded accessories`;
             const avatarPrompt = sanitizePromptForSafety(rawAvatarPrompt);
             const out = await withRetry('avatar transformation (flux-kontext-pro)', async () => {
                 return await replicate.run(modelUsed, {
@@ -2917,12 +2918,17 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
                 if (rawHeadwear) {
                     const cleanHeadwear = rawHeadwear.replace(/^authentic\s+/i, '');
                     attributePrefix += `(wearing an authentic ${cleanHeadwear}:1.35), `;
-                    attributeNegative = `Strict cultural requirement: Preserve the child's authentic ${cleanHeadwear} in this scene; do NOT add any hat, cap, or generic headwear. `;
+                    attributeNegative += `Strict cultural requirement: Preserve the child's authentic ${cleanHeadwear} in this scene; do NOT add any hat, cap, or generic headwear. `;
                 }
+            } else {
+                attributeNegative += `Strict physical requirement: The child has natural hair with NO headwear; do NOT add any hat, cap, crown, or head covering. `;
             }
             if (bookAttributes && bookAttributes.hasGlasses) {
                 attributePrefix += `(wearing ${bookAttributes.glassesDescription || 'spectacles'}:1.3), `;
+            } else {
+                attributeNegative += `Strict physical requirement: The child does NOT wear glasses; do NOT add any spectacles, glasses, sunglasses, or frames. `;
             }
+            attributeNegative += `Strict physical likeness: Maintain the child's natural appearance as-is from the photo without adding any extra props or accessories. `;
             if (bookAttributes && bookAttributes.skinTone) {
                 attributePrefix += `(authentic ${bookAttributes.skinTone} skin:1.2), `;
             }
