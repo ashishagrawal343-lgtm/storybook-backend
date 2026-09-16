@@ -1772,6 +1772,7 @@ app.post('/api/create-order', rateLimiter, async (req, res) => {
             const order = await razorpay.orders.create({
                 amount: amountSubunits,
                 currency: currency,
+                payment_capture: 1, // Auto-capture payment immediately upon authorization to prevent gateway timeouts
                 receipt: (effectivePreviewId || `rcpt_${Date.now()}`).slice(0, 30),
                 notes: {
                     previewId: effectivePreviewId || '',
@@ -1879,6 +1880,28 @@ class BookGenerationQueue {
         // Restore session from disk if recovering from restart
         if (!session && item.previewId) {
             session = getSession(item.previewId);
+        }
+
+        // Resilient session fallback: reconstruct if session was lost across container restarts
+        if (!session) {
+            const jobData = getJob(jobId) || {};
+            const fallbackChildName = jobData.childName || 'Child';
+            const fallbackTheme = jobData.theme || 'Story';
+            console.warn(`⚠️ [QUEUE] Session missing for Job ${jobId} (preview: ${item.previewId || 'none'}). Reconstructing from job records...`);
+            session = {
+                previewId: item.previewId || `recov_${Date.now()}`,
+                childName: fallbackChildName,
+                gender: 'hero',
+                age: 5,
+                theme: fallbackTheme,
+                language: jobData.language || 'English',
+                email: parentEmail || jobData.email || '',
+                charAnchor: 'adorable child hero in luminous painterly picture book art',
+                pal: themeKit(fallbackTheme),
+                title: `${fallbackChildName}'s Adventure`,
+                bookTitle: `${fallbackChildName}'s Adventure`,
+                scenesData: []
+            };
         }
 
         console.log(`⚡ [QUEUE] Starting Job ${jobId} (Attempt ${item.attempts + 1}/${this.maxAttempts}). Remaining in queue: ${this.queue.length}`);
@@ -2082,14 +2105,30 @@ class BookGenerationQueue {
                         try { fs.unlinkSync(filePath); } catch (_) {}
                         continue;
                     }
-                    const session = getSession(item.previewId);
-                    if (session) {
-                        item.session = session;
-                        console.log(`📥 [QUEUE RECOVERY] Auto-recovering interrupted job ${item.jobId} for ${(session && session.childName) || 'child'} (${item.parentEmail || (session && session.email)})`);
-                        this.enqueue(item);
-                    } else {
-                        console.warn(`⚠️ [QUEUE RECOVERY] Session data missing for queued job ${item.jobId} (previewId: ${item.previewId})`);
+                    let session = getSession(item.previewId);
+                    if (!session) {
+                        const job = getJob(item.jobId) || {};
+                        const fallbackChildName = job.childName || 'Child';
+                        const fallbackTheme = job.theme || 'Story';
+                        console.warn(`⚠️ [QUEUE RECOVERY] Session data missing on disk for queued job ${item.jobId} (previewId: ${item.previewId}). Reconstructing session...`);
+                        session = {
+                            previewId: item.previewId || `recov_${Date.now()}`,
+                            childName: fallbackChildName,
+                            gender: 'hero',
+                            age: 5,
+                            theme: fallbackTheme,
+                            language: job.language || 'English',
+                            email: item.parentEmail || job.email || '',
+                            charAnchor: 'adorable child hero in luminous painterly picture book art',
+                            pal: themeKit(fallbackTheme),
+                            title: `${fallbackChildName}'s Adventure`,
+                            bookTitle: `${fallbackChildName}'s Adventure`,
+                            scenesData: []
+                        };
                     }
+                    item.session = session;
+                    console.log(`📥 [QUEUE RECOVERY] Auto-recovering interrupted job ${item.jobId} for ${(session && session.childName) || 'child'} (${item.parentEmail || (session && session.email)})`);
+                    this.enqueue(item);
                 } catch (err) {
                     console.warn(`⚠️ [QUEUE RECOVERY] Error processing ${file}:`, err.message);
                 }
@@ -2224,6 +2263,17 @@ app.post('/api/verify-and-complete-book', rateLimiter, async (req, res) => {
                 if (payment.amount < minExpectedSubunits) {
                     return res.status(400).json({ success: false, error: 'Paid amount is less than the required book edition price.' });
                 }
+
+                // If payment was authorized but not yet captured, capture it immediately to guarantee settlement
+                if (payment.status === 'authorized') {
+                    try {
+                        console.log(`💳 [RAZORPAY] Capturing authorized payment ${razorpay_payment_id} (${expectedCurrency} ${payment.amount})...`);
+                        await razorpay.payments.capture(razorpay_payment_id, payment.amount, payment.currency || expectedCurrency);
+                        console.log(`✅ [RAZORPAY] Payment ${razorpay_payment_id} captured successfully!`);
+                    } catch (capErr) {
+                        console.warn(`⚠️ [RAZORPAY] Payment capture notice (may already be auto-captured):`, capErr.message);
+                    }
+                }
             } catch (fetchErr) {
                 console.error('❌ Razorpay server audit error:', fetchErr.message);
                 return res.status(400).json({ success: false, error: 'Failed to verify transaction status directly with Razorpay.' });
@@ -2357,11 +2407,24 @@ async function handleOrderFulfillment(req, res) {
         }
 
         if (!session) {
-            return res.status(404).json({
-                success: false,
-                error: 'Could not find preview session data for this order. Please provide your previewId, childName, or payment details.',
-                details: { paymentId, orderId, effectivePreviewId, targetEmail }
-            });
+            const finalChildName = req.body.childName || req.query.childName || (paymentRecord && paymentRecord.notes && paymentRecord.notes.childName) || childName || 'Child';
+            const finalTheme = req.body.theme || req.query.theme || (paymentRecord && paymentRecord.notes && paymentRecord.notes.theme) || 'Magical Forest';
+            const finalLanguage = req.body.language || req.query.language || (paymentRecord && paymentRecord.notes && paymentRecord.notes.language) || 'English';
+            console.log(`🔧 [ORDER FULFILLMENT] Reconstructing session from parameters/notes for ${finalChildName}...`);
+            session = {
+                previewId: effectivePreviewId || `recov_${Date.now()}`,
+                childName: finalChildName,
+                gender: req.body.gender || req.query.gender || 'hero',
+                age: req.body.age || req.query.age || 5,
+                theme: finalTheme,
+                language: finalLanguage,
+                email: targetEmail || '',
+                charAnchor: 'adorable child hero in luminous painterly picture book art',
+                pal: themeKit(finalTheme),
+                title: `${finalChildName}'s Adventure`,
+                bookTitle: `${finalChildName}'s Adventure`,
+                scenesData: []
+            };
         }
 
         // 3. Create fresh Job and enqueue
@@ -2566,11 +2629,19 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
     };
 
     try {
-        const {
-            childName, gender, age, theme, language, photoData, dedication,
-            charAnchor, pronoun, pal, title,
-            bgBuffer, vigBuffer, scenesData
-        } = session;
+        session = session || {};
+        const childName = session.childName || 'Child';
+        const gender = session.gender || 'hero';
+        const age = session.age || 5;
+        const theme = session.theme || 'Story';
+        const language = session.language || 'English';
+        const photoData = session.photoData || null;
+        const dedication = session.dedication || '';
+        const charAnchor = session.charAnchor || 'adorable child hero in luminous painterly picture book art';
+        const pronoun = session.pronoun || 'they';
+        const pal = session.pal || themeKit(theme);
+        const title = session.title || session.bookTitle || `${childName}'s Adventure`;
+        const scenesData = session.scenesData || [];
         const base = String(theme || 'Story').split(' (')[0];
 
         const scenes = getSceneCount(bookLength);
@@ -2945,9 +3016,21 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
             } catch (sceneErr) {
                 console.warn(`⚠️ Scene ${i + 1} illustration notice (${sceneErr.message}). Gracefully recovering via locked character reference anchor...`);
                 const fallbackPrompt = STYLE + `Masterpiece modern children's picture book illustration in award-winning painterly realism, fine digital gouache: featuring a cheerful young ${charDetails.genderClean || 'hero'} in ${activeOutfit}, smiling happily in this scene: ${rawPrompt}`;
-                rawUrl = await generateImage(fallbackPrompt, session.referencePortraitUrl || null, { isFace: true, upscale: false });
+                try {
+                    rawUrl = await generateImage(fallbackPrompt, session.referencePortraitUrl || null, { isFace: true, upscale: false });
+                } catch (refErr) {
+                    console.warn(`⚠️ Scene ${i + 1} reference fallback notice (${refErr.message}). Recovering via pure text-to-image prompt...`);
+                    rawUrl = await generateImage(fallbackPrompt, null, { isFace: false, upscale: false });
+                }
             }
-            let rawBuf = await fetchImageBuffer(rawUrl);
+            let rawBuf;
+            try {
+                rawBuf = await fetchImageBuffer(rawUrl);
+            } catch (bufErr) {
+                console.warn(`⚠️ Scene ${i + 1} buffer download notice (${bufErr.message}). Retrying once...`);
+                await sleep(1500);
+                rawBuf = await fetchImageBuffer(rawUrl);
+            }
 
             // Memory-optimized 1200x1600 JPEG compression for 300 DPI print quality (<400KB per page on disk)
             const sceneDiskPath = path.join(booksFolder, `temp_scene_${jobId}_${i}.jpg`);
