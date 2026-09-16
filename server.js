@@ -527,10 +527,13 @@ function getCharacterDetails(childName, gender, age, theme, attributes = {}) {
         outfit = 'wearing warm fluffy cloud-white bedtime pajamas sprinkled with tiny golden stars';
     }
 
-    let headAndHairDesc = 'finely rendered hair with golden rim lighting';
+    let headAndHairDesc = 'finely rendered natural hair with golden rim lighting';
     if (attributes && attributes.hasHeadwear) {
-        const headwearDesc = attributes.headwearDescription || (attributes.headwearType !== 'none' ? `authentic ${attributes.headwearType}` : 'authentic turban');
-        headAndHairDesc = `wearing an authentic ${headwearDesc} with golden rim lighting`;
+        const rawHeadwear = String(attributes.headwearDescription || (attributes.headwearType && attributes.headwearType !== 'none' ? attributes.headwearType : '')).trim();
+        if (rawHeadwear) {
+            const headwearDesc = rawHeadwear.startsWith('authentic ') ? rawHeadwear : `authentic ${rawHeadwear}`;
+            headAndHairDesc = `wearing an ${headwearDesc} with golden rim lighting`;
+        }
     }
 
     const extraFeatures = [];
@@ -1053,8 +1056,11 @@ async function generateAvatar(photoData, charAnchor, attributes = {}) {
         const modelUsed = "black-forest-labs/flux-kontext-pro";
         try {
             console.log("  → Transforming reference photo into rich painterly storybook avatar via flux-kontext-pro (90-95% likeness)...");
-            const headwearDirective = (attributes && attributes.hasHeadwear)
-                ? `[CRITICAL CULTURAL ACCURACY: The child is wearing an authentic ${attributes.headwearDescription || 'turban'}; faithfully preserve this exact headwear; do NOT replace the headwear with any cap, hat, or bare hair.] `
+            const rawHeadwear = (attributes && attributes.hasHeadwear)
+                ? String(attributes.headwearDescription || (attributes.headwearType && attributes.headwearType !== 'none' ? attributes.headwearType : '')).trim()
+                : '';
+            const headwearDirective = rawHeadwear
+                ? `[CRITICAL CULTURAL ACCURACY: The child is wearing an authentic ${rawHeadwear.replace(/^authentic\s+/i, '')}; faithfully preserve this exact headwear; do NOT replace the headwear with any cap, hat, or bare hair.] `
                 : '';
             const glassesDirective = (attributes && attributes.hasGlasses)
                 ? `[CRITICAL VISUAL FEATURE: The child is wearing ${attributes.glassesDescription || 'spectacles'}; preserve the spectacles on their face.] `
@@ -2644,9 +2650,12 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
             let attributePrefix = '';
             let attributeNegative = '';
             if (bookAttributes && bookAttributes.hasHeadwear) {
-                const headwearName = bookAttributes.headwearDescription || (bookAttributes.headwearType !== 'none' ? `authentic ${bookAttributes.headwearType}` : 'authentic turban');
-                attributePrefix += `(wearing an authentic ${headwearName}:1.35), `;
-                attributeNegative = `Strict cultural requirement: Preserve the child's authentic ${headwearName} in this scene; do NOT add any hat, cap, or generic headwear. `;
+                const rawHeadwear = String(bookAttributes.headwearDescription || (bookAttributes.headwearType && bookAttributes.headwearType !== 'none' ? bookAttributes.headwearType : '')).trim();
+                if (rawHeadwear) {
+                    const cleanHeadwear = rawHeadwear.replace(/^authentic\s+/i, '');
+                    attributePrefix += `(wearing an authentic ${cleanHeadwear}:1.35), `;
+                    attributeNegative = `Strict cultural requirement: Preserve the child's authentic ${cleanHeadwear} in this scene; do NOT add any hat, cap, or generic headwear. `;
+                }
             }
             if (bookAttributes && bookAttributes.hasGlasses) {
                 attributePrefix += `(wearing ${bookAttributes.glassesDescription || 'spectacles'}:1.3), `;
