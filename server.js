@@ -98,6 +98,7 @@ app.set('trust proxy', true);
 app.use(cors());
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ limit: '25mb', extended: true }));
+app.get('/favicon.ico', (req, res) => res.status(204).end());
 
 const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN });
 
@@ -124,18 +125,27 @@ if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) {
 
 // Email delivery
 let mailer = null;
-if (process.env.BREVO_API_KEY && process.env.SENDER_EMAIL) {
+const cleanBrevoKey = String(process.env.BREVO_API_KEY || '').trim().replace(/^["']|["']$/g, '');
+const cleanSenderEmail = String(process.env.SENDER_EMAIL || '').trim().replace(/^["']|["']$/g, '');
+if (cleanBrevoKey && cleanSenderEmail) {
     mailer = {
         sendMail: async ({ to, subject, html, text }) => {
-            await axios.post('https://api.brevo.com/v3/smtp/email', {
-                sender: { name: 'TwinkleTale', email: process.env.SENDER_EMAIL },
-                to: [{ email: to }],
-                subject: subject,
-                htmlContent: html || `<p>${text}</p>`
-            }, { 
-                headers: { 'api-key': process.env.BREVO_API_KEY, 'Content-Type': 'application/json' },
-                timeout: 8000
-            });
+            try {
+                await axios.post('https://api.brevo.com/v3/smtp/email', {
+                    sender: { name: 'TwinkleTale', email: cleanSenderEmail },
+                    to: [{ email: String(to || '').trim() }],
+                    subject: subject,
+                    htmlContent: html || `<p>${text}</p>`
+                }, { 
+                    headers: { 'api-key': cleanBrevoKey, 'Content-Type': 'application/json' },
+                    timeout: 8000
+                });
+            } catch (mailErr) {
+                const brevoErr = mailErr.response?.data?.message || mailErr.message;
+                const statusCode = mailErr.response?.status || 'network';
+                console.warn(`⚠️ [BREVO] Email delivery notice (${brevoErr}) [HTTP ${statusCode}]. Link delivery remains active.`);
+                throw mailErr; // allow caller to catch
+            }
         }
     };
     console.log('📧 Email delivery: ON (Brevo HTTPS)');
@@ -3272,9 +3282,18 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         const jobUpscales = bookUpscalesCount - startUpscales;
         const estUpscaleCost = (jobUpscales * 0.04).toFixed(2);
         console.log(`💰 Estimated upscale cost for Job ${jobId}: $${estUpscaleCost} (${jobUpscales} upscales used x ~$0.04)`);
-        console.log(`🎉 Job ${jobId} Completed! Pages=${pdfDoc.getPageCount()} | PDF: ${persistentDownloadUrl}`);
+        console.log(`🎉 Job ${jobId} Completed! Pages=${finalPageCount} | PDF: ${persistentDownloadUrl}`);
     } catch (err) {
         console.error(`❌ Job ${jobId} Failed attempt:`, err.message);
+        // SAFETY GUARD: If the PDF was already generated and saved to disk, do NOT fail the job or trigger DLQ!
+        const existingJob = getJob(jobId);
+        if (existingJob && existingJob.status === 'completed' && existingJob.fileName) {
+            const checkFile = path.join(booksFolder, existingJob.fileName);
+            if (fs.existsSync(checkFile) && fs.statSync(checkFile).size > 1000) {
+                console.log(`✅ [SAFETY GUARD] PDF is already saved on disk (${existingJob.fileName}). Marking job ${jobId} successfully completed despite post-save notice:`, err.message);
+                return; // Gracefully complete without throwing to queue
+            }
+        }
         throw err; // Rethrow to BookGenerationQueue for automatic retry or DLQ
     } finally {
         if (session && (!bookQueue || !bookQueue.queue || !bookQueue.queue.some(q => q.jobId === jobId))) {
