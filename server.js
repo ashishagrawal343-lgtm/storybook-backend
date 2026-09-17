@@ -116,11 +116,21 @@ if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET && !process.e
 
 // Supabase permanent storage
 let supabase = null;
-const cleanSupabaseUrl = String(process.env.SUPABASE_URL || '').trim().replace(/^["']|["']$/g, '');
+function sanitizeSupabaseUrl(raw) {
+    if (!raw) return '';
+    const clean = String(raw).trim().replace(/^["']|["']$/g, '');
+    try {
+        const parsed = new URL(clean);
+        return parsed.origin;
+    } catch (_) {
+        return clean.replace(/\/+$/, '').replace(/\/rest\/v1\/?$/, '').replace(/\/storage\/v1\/?$/, '');
+    }
+}
+const cleanSupabaseUrl = sanitizeSupabaseUrl(process.env.SUPABASE_URL);
 const cleanSupabaseKey = String(process.env.SUPABASE_SERVICE_KEY || '').trim().replace(/^["']|["']$/g, '');
 if (cleanSupabaseUrl && cleanSupabaseKey) {
     supabase = createClient(cleanSupabaseUrl, cleanSupabaseKey);
-    console.log('☁️ Supabase permanent storage: ON');
+    console.log(`☁️ Supabase permanent storage: ON (${cleanSupabaseUrl})`);
     // Ensure bucket exists or auto-create 'storybooks'
     ensureSupabaseBucket();
 } else {
