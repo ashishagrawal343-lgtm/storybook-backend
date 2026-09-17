@@ -1568,8 +1568,14 @@
           <div style="margin-top:4px;">🔖 Order ID: <span id="confirmOrderDisplay" style="color:#0F172A; font-family:monospace; font-weight:700;">Processing</span></div>
         </div>
       </div>
-      <div style="display:flex; flex-direction:column; gap:10px; align-items:center;">
-        <a href="https://twinkletaleai.com/" class="btn-primary" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:8px; width:100%; max-width:320px; height:48px;">
+      <div style="display:flex; flex-direction:column; gap:12px; align-items:center;">
+        <a id="btnLiveDownloadLink" href="#" target="_blank" class="btn-primary" style="display:none; background:#1B4938; text-decoration:none; align-items:center; justify-content:center; gap:8px; width:100%; max-width:340px; height:50px; font-weight:700; box-shadow:0 4px 14px rgba(27,73,56,0.3);">
+          <i class="fa-solid fa-cloud-arrow-down"></i> Open / Download Storybook
+        </a>
+        <div id="liveDownloadNote" style="display:none; font-size:0.84rem; color:#475569; line-height:1.4;">
+          ✨ Click above to watch real-time generation progress and download your print-ready PDF!
+        </div>
+        <a href="https://twinkletaleai.com/" class="btn-primary" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:8px; width:100%; max-width:340px; height:48px;">
           <i class="fa-solid fa-sparkles"></i> Back to TwinkleTale Home
         </a>
       </div>
@@ -2250,8 +2256,15 @@
         const verifyData = await verifyRes.json();
         if (!verifyRes.ok || !verifyData.success) {
           console.warn('Payment verification returned note:', verifyData.error);
-        } else if (verifyData.jobId && orderDisplay) {
-          orderDisplay.innerText = paymentResponse.razorpay_order_id || verifyData.jobId;
+        } else if (verifyData.jobId) {
+          if (orderDisplay) orderDisplay.innerText = paymentResponse.razorpay_order_id || verifyData.jobId;
+          const liveBtn = document.getElementById('btnLiveDownloadLink');
+          if (liveBtn) {
+            liveBtn.href = `${API_BASE}/api/download/${verifyData.jobId}`;
+            liveBtn.style.display = 'inline-flex';
+          }
+          const liveNote = document.getElementById('liveDownloadNote');
+          if (liveNote) liveNote.style.display = 'block';
         }
       } catch (err) {
         console.warn('Background verification dispatch note:', err.message);

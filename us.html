@@ -1908,6 +1908,15 @@
           <div>⏱️ <strong>Estimated Delivery:</strong> Under 3 to 5 minutes straight to your inbox</div>
         </div>
 
+        <div style="display:flex; flex-direction:column; align-items:center; gap:12px; justify-content:center; max-width:380px; margin:0 auto 20px;">
+          <a id="progressLiveDownloadBtn" href="#" target="_blank" class="btn-primary" style="display:none; background:#1B4938; color:#FAF7F2; text-decoration:none; align-items:center; justify-content:center; gap:8px; width:100%; padding:14px 28px; font-weight:700; border-radius:12px; box-shadow:0 4px 16px rgba(27,73,56,0.35);">
+            <i class="fas fa-cloud-arrow-down"></i> Open / Download Storybook
+          </a>
+          <div id="progressLiveNote" style="display:none; font-size:0.85rem; color:#64748B; line-height:1.4;">
+            ✨ Click above to track live generation progress and download your print-ready PDF!
+          </div>
+        </div>
+
         <a href="/us" class="btn-secondary" style="display: inline-flex;">
           <i class="fas fa-arrow-left"></i>
           <span>Create Another Keepsake</span>
@@ -2448,7 +2457,7 @@
       document.getElementById('progressOrderId').textContent = paymentResponse.razorpay_order_id || orderData.orderId;
 
       try {
-        await fetch(`${API_BASE}/api/verify-and-complete-book`, {
+        const verifyRes = await fetch(`${API_BASE}/api/verify-and-complete-book`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -2462,6 +2471,16 @@
             email
           })
         });
+        const verifyData = await verifyRes.json();
+        if (verifyData && verifyData.jobId) {
+          const liveBtn = document.getElementById('progressLiveDownloadBtn');
+          if (liveBtn) {
+            liveBtn.href = `${API_BASE}/api/download/${verifyData.jobId}`;
+            liveBtn.style.display = 'inline-flex';
+          }
+          const liveNote = document.getElementById('progressLiveNote');
+          if (liveNote) liveNote.style.display = 'block';
+        }
       } catch (err) {
         console.warn('Verification note:', err.message);
       }

@@ -2689,8 +2689,14 @@
           </div>
         </div>
 
-        <div style="display:flex; justify-content:center; gap:14px; flex-wrap:wrap;">
-          <a href="/" class="primary-btn" style="text-decoration:none; display:inline-flex; align-items:center; gap:8px; padding:12px 28px;">
+        <div style="display:flex; flex-direction:column; align-items:center; gap:12px; justify-content:center; max-width:380px; margin:0 auto;">
+          <a id="btnLiveDownloadLink" href="#" target="_blank" class="primary-btn" style="display:none; background:#1B4938; text-decoration:none; align-items:center; justify-content:center; gap:8px; width:100%; padding:14px 28px; font-weight:700; border-radius:12px; box-shadow:0 4px 16px rgba(27,73,56,0.35);">
+            <i class="fas fa-cloud-arrow-down"></i> Open / Download Storybook
+          </a>
+          <div id="liveDownloadNote" style="display:none; font-size:0.85rem; color:var(--text-muted); line-height:1.4;">
+            ✨ Click above to track live generation progress and download your print-ready PDF!
+          </div>
+          <a href="/" class="primary-btn" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:12px 28px;">
             <i class="fas fa-sparkles"></i> Back to TwinkleTale Home
           </a>
         </div>
@@ -3583,8 +3589,15 @@
         }, 2, 3500);
 
         const verifyData = await verifyRes.json();
-        if (verifyData.success && verifyData.jobId && orderDisplay) {
-          orderDisplay.innerText = paymentResponse.razorpay_order_id || verifyData.jobId;
+        if (verifyData.success && verifyData.jobId) {
+          if (orderDisplay) orderDisplay.innerText = paymentResponse.razorpay_order_id || verifyData.jobId;
+          const liveBtn = document.getElementById('btnLiveDownloadLink');
+          if (liveBtn) {
+            liveBtn.href = `${API_BASE}/api/download/${verifyData.jobId}`;
+            liveBtn.style.display = 'inline-flex';
+          }
+          const liveNote = document.getElementById('liveDownloadNote');
+          if (liveNote) liveNote.style.display = 'block';
         }
       } catch (err) {
         console.warn('Background verification dispatch note:', err.message);
