@@ -1,0 +1,13 @@
+﻿node_modules
+books
+.git
+.gitignore
+.env
+tests
+scratch
+Live_Book_Samples
+storybook ideas images
+All Logs from Render.txt
+Render all logs part2.txt
+avatar_test.png
+*.md
