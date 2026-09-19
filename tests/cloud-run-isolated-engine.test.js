@@ -70,11 +70,29 @@ server.listen(0, '127.0.0.1', () => {
                 console.log(`  ✔ GET /health returned 200 OK: ${JSON.stringify(data)}`);
                 console.log('✅ TEST 4 PASSED: Engine microservice runs and responds properly.\n');
 
-                server.close(() => {
-                    console.log('========================================================================');
-                    console.log('🎉 ALL CLOUD RUN ENGINE TESTS PASSED SUCCESSFULLY');
-                    console.log('========================================================================');
-                    process.exit(0);
+                // TEST 5: Storefront Routes Audit (/, /special, /us)
+                console.log('--- TEST 5: Storefront Routes Audit (/, /special, /us) ---');
+                http.get(`http://127.0.0.1:${port}/`, (resRoot) => {
+                    assert.strictEqual(resRoot.statusCode, 200, 'GET / must return HTTP 200');
+                    console.log('  ✔ GET / (Main Store) returned HTTP 200 OK');
+
+                    http.get(`http://127.0.0.1:${port}/special`, (resSpecial) => {
+                        assert.strictEqual(resSpecial.statusCode, 200, 'GET /special must return HTTP 200');
+                        console.log('  ✔ GET /special (India Offer) returned HTTP 200 OK');
+
+                        http.get(`http://127.0.0.1:${port}/us`, (resUs) => {
+                            assert.strictEqual(resUs.statusCode, 200, 'GET /us must return HTTP 200');
+                            console.log('  ✔ GET /us (US Storefront) returned HTTP 200 OK');
+                            console.log('✅ TEST 5 PASSED: All 3 storefront pages successfully mounted and accessible.\n');
+
+                            server.close(() => {
+                                console.log('========================================================================');
+                                console.log('🎉 ALL CLOUD RUN ENGINE & STOREFRONT TESTS PASSED SUCCESSFULLY');
+                                console.log('========================================================================');
+                                process.exit(0);
+                            });
+                        });
+                    });
                 });
             } catch (err) {
                 console.error('❌ Assertion failed:', err);

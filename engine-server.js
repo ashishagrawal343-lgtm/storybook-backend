@@ -61,13 +61,16 @@ const ENGINE_SECRET_TOKEN = process.env.ENGINE_SECRET_TOKEN || '';
 
 // 1. Root & Health Check (mounted immediately for instant Cloud Run startup probes)
 app.get('/', (req, res) => {
-    res.json({
-        service: 'TwinkleTale Cloud Run Serverless Engine',
-        version: '1.0.0',
-        status: 'online',
-        port: PORT,
-        uptime: `${Math.floor(process.uptime())}s`
-    });
+    if (req.headers.accept && req.headers.accept.includes('application/json') && !req.headers.accept.includes('text/html')) {
+        return res.json({
+            service: 'TwinkleTale Cloud Run Serverless Engine',
+            version: '1.0.0',
+            status: 'online',
+            port: PORT,
+            uptime: `${Math.floor(process.uptime())}s`
+        });
+    }
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.get('/health', async (req, res) => {
@@ -142,6 +145,12 @@ app.get('/api/engine-debug', (req, res) => {
         }
     });
 });
+
+// Mount full storefront sub-app (serves /, /special, /us, static assets, and preview/order endpoints)
+if (serverModule && serverModule.app) {
+    app.use(serverModule.app);
+    console.log('🌐 Storefront sub-app mounted successfully: /, /special, /us active on Cloud Run');
+}
 
 // Security middleware for protected engine endpoints
 function verifyEngineAuth(req, res, next) {
