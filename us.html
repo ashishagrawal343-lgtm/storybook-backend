@@ -2198,7 +2198,10 @@
 
   <!-- JAVASCRIPT LOGIC & CONVERSION CONTROLLER -->
   <script>
-    const API_BASE = window.location.origin;
+    // Universal API base: works on localhost, Cloud Run, Render, and custom domains
+    const API_BASE = (window.location.origin && window.location.origin !== 'null' && window.location.protocol.startsWith('http'))
+      ? window.location.origin
+      : 'https://storybook-backend-85eh.onrender.com';
     let selectedEdition = 'short'; // 'short' ($5.99) vs 'long' ($11.99)
     let uploadedPhotoBase64 = null;
     let pendingOrderData = null;
@@ -2510,7 +2513,7 @@
       if (document.getElementById('featureTurban')?.checked) distinctiveAttributes.push('turban');
 
       try {
-        const res = await fetch(`${API_BASE}/api/generate-preview`, {
+        const res = await fetch(`${API_BASE}/api/create-preview`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

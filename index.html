@@ -3090,7 +3090,10 @@
 
   <!-- Frontend Logic -->
   <script>
-    const API_BASE = 'https://storybook-backend-85eh.onrender.com';
+    // Universal API base: works on localhost, Cloud Run, Render, and custom domains
+    const API_BASE = (window.location.origin && window.location.origin !== 'null' && window.location.protocol.startsWith('http'))
+      ? window.location.origin
+      : 'https://storybook-backend-85eh.onrender.com';
 
     let currentPhotoBase64 = '';
     let currentPreviewId = null;

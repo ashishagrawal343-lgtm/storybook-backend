@@ -146,6 +146,15 @@ app.get('/api/engine-debug', (req, res) => {
     });
 });
 
+// Route alias: map /api/generate-preview to /api/create-preview for universal compatibility
+app.post('/api/generate-preview', (req, res, next) => {
+    req.url = '/api/create-preview';
+    if (serverModule && serverModule.app) {
+        return serverModule.app.handle(req, res, next);
+    }
+    next();
+});
+
 // Mount full storefront sub-app (serves /, /special, /us, static assets, and preview/order endpoints)
 if (serverModule && serverModule.app) {
     app.use(serverModule.app);
