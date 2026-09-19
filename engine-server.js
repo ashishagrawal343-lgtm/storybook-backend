@@ -85,12 +85,18 @@ if (require.main === module) {
 
 // Safely load core compilation engine from server.js (server.js remains untouched)
 let serverModule = {};
+let serverLoadError = null;
 try {
     serverModule = require('./server');
     if (typeof serverModule.ensureSupabaseBucket === 'function') {
         serverModule.ensureSupabaseBucket();
     }
 } catch (loadErr) {
+    serverLoadError = {
+        message: loadErr.message,
+        stack: loadErr.stack,
+        code: loadErr.code
+    };
     console.error('❌ [ENGINE LOADER ERROR] Failed to load server compilation module:', loadErr.stack || loadErr.message || loadErr);
 }
 
@@ -102,6 +108,27 @@ const {
     saveJob,
     getJob
 } = serverModule;
+
+// Diagnostic inspection route to expose module readiness and environment health
+app.get('/api/engine-debug', (req, res) => {
+    res.json({
+        engineReady: !!assembleFullBookAsync,
+        serverLoadError: serverLoadError,
+        envVars: {
+            hasReplicate: !!process.env.REPLICATE_API_TOKEN,
+            hasSupabaseUrl: !!process.env.SUPABASE_URL,
+            supabaseUrlSample: process.env.SUPABASE_URL ? process.env.SUPABASE_URL.substring(0, 15) + '...' : null,
+            hasSupabaseKey: !!process.env.SUPABASE_SERVICE_KEY,
+            hasDeepseek: !!process.env.DEEPSEEK_API_KEY,
+            hasBrevo: !!process.env.BREVO_API_KEY,
+            hasSenderEmail: !!process.env.SENDER_EMAIL,
+            port: process.env.PORT,
+            nodeVersion: process.version,
+            platform: process.platform,
+            arch: process.arch
+        }
+    });
+});
 
 // Security middleware for protected engine endpoints
 function verifyEngineAuth(req, res, next) {
@@ -152,7 +179,11 @@ app.post('/api/assemble-book', verifyEngineAuth, async (req, res) => {
 app.post('/api/test-generate-book', async (req, res) => {
     try {
         if (!assembleFullBookAsync || !saveJob || !getJobAsync) {
-            return res.status(503).json({ success: false, error: 'Compilation engine not ready' });
+            return res.status(503).json({
+                success: false,
+                error: 'Compilation engine not ready',
+                details: serverLoadError
+            });
         }
 
         const {
