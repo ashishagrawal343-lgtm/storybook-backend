@@ -2366,9 +2366,14 @@
       submitBtn.disabled = true;
       submitBtn.innerHTML = `<span>Creating your order...</span> <i class="fas fa-spinner fa-spin"></i>`;
 
-      const distinctiveAttributes = [];
-      if (document.getElementById('featureGlasses')?.checked) distinctiveAttributes.push('glasses');
-      if (document.getElementById('featureTurban')?.checked) distinctiveAttributes.push('turban');
+      const hasGlassesChecked = !!document.getElementById('featureGlasses')?.checked;
+      const hasTurbanChecked = !!document.getElementById('featureTurban')?.checked;
+      const clientAttrs = {
+        hasGlasses: hasGlassesChecked,
+        glassesDescription: hasGlassesChecked ? 'spectacles' : '',
+        hasHeadwear: hasTurbanChecked,
+        headwearType: hasTurbanChecked ? 'turban' : 'none'
+      };
 
       const payload = {
         market: 'US',
@@ -2383,7 +2388,7 @@
         dedication,
         email,
         bookLength: selectedEdition === 'long' ? '22 pages' : '12 pages',
-        attributes: distinctiveAttributes
+        attributes: clientAttrs
       };
 
       try {
@@ -2508,9 +2513,14 @@
       prevBtn.disabled = true;
       prevBtn.innerHTML = `<span>Painting preview (takes ~25s)...</span> <i class="fas fa-spinner fa-spin"></i>`;
 
-      const distinctiveAttributes = [];
-      if (document.getElementById('featureGlasses')?.checked) distinctiveAttributes.push('glasses');
-      if (document.getElementById('featureTurban')?.checked) distinctiveAttributes.push('turban');
+      const hasGlassesChecked = !!document.getElementById('featureGlasses')?.checked;
+      const hasTurbanChecked = !!document.getElementById('featureTurban')?.checked;
+      const clientAttrs = {
+        hasGlasses: hasGlassesChecked,
+        glassesDescription: hasGlassesChecked ? 'spectacles' : '',
+        hasHeadwear: hasTurbanChecked,
+        headwearType: hasTurbanChecked ? 'turban' : 'none'
+      };
 
       try {
         const res = await fetch(`${API_BASE}/api/create-preview`, {
@@ -2523,7 +2533,7 @@
             theme: document.getElementById('selectedTheme').value,
             language: 'English',
             photoData: uploadedPhotoBase64,
-            attributes: distinctiveAttributes
+            attributes: clientAttrs
           })
         });
         const data = await res.json();
