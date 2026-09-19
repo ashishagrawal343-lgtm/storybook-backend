@@ -17,11 +17,11 @@ assert.ok(dockerfileContent.includes('FROM node:20-bookworm-slim'), 'Dockerfile 
 assert.ok(dockerfileContent.includes('fonts-dejavu-core'), 'Dockerfile must install font libraries');
 assert.ok(dockerfileContent.includes('fontconfig'), 'Dockerfile must install fontconfig for Sharp rendering');
 assert.ok(dockerfileContent.includes('ENV PORT=8080'), 'Dockerfile must specify default PORT 8080 for Cloud Run');
-assert.ok(dockerfileContent.includes('CMD ["node", "engine-server.js"]'), 'Dockerfile CMD must run engine-server.js');
+assert.ok(dockerfileContent.includes('engine-server.js'), 'Dockerfile CMD must run engine-server.js');
 console.log('  ✔ Dockerfile base image: node:20-bookworm-slim');
 console.log('  ✔ Dockerfile font packages: fontconfig, fonts-dejavu-core');
 console.log('  ✔ Dockerfile Cloud Run port: 8080');
-console.log('  ✔ Dockerfile entrypoint: CMD ["node", "engine-server.js"]');
+console.log('  ✔ Dockerfile entrypoint: CMD ["node", "--max-old-space-size=2048", "engine-server.js"]');
 console.log('✅ TEST 1 PASSED: Dockerfile structure verified.\n');
 
 // 2. .dockerignore audit

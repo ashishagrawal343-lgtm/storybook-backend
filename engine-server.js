@@ -1,20 +1,42 @@
-﻿const express = require('express');
+const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 
+// Global diagnostic & safety handlers
+process.on('uncaughtException', (err) => {
+    console.error('❌ [FATAL UNCAUGHT EXCEPTION]:', err.stack || err.message || err);
+});
+process.on('unhandledRejection', (reason) => {
+    console.error('❌ [FATAL UNHANDLED REJECTION]:', reason);
+});
+
 // Load environment variables
 require('dotenv').config();
 
-// Import tested compilation engine and cloud helpers from server.js (server.js remains untouched)
-const {
-    assembleFullBookAsync,
-    uploadToStorage,
-    ensureSupabaseBucket,
-    getJobAsync,
-    saveJob,
-    getJob
-} = require('./server');
+// Pre-sanitize cloud environment variables before importing compilation helpers
+if (process.env.SUPABASE_URL) {
+    let cleanUrl = String(process.env.SUPABASE_URL || '').trim().replace(/^["']|["']$/g, '');
+    if (cleanUrl && !/^https?:\/\//i.test(cleanUrl)) {
+        cleanUrl = `https://${cleanUrl}`;
+    }
+    process.env.SUPABASE_URL = cleanUrl;
+}
+if (process.env.SUPABASE_SERVICE_KEY) {
+    process.env.SUPABASE_SERVICE_KEY = String(process.env.SUPABASE_SERVICE_KEY || '').trim().replace(/^["']|["']$/g, '');
+}
+if (process.env.REPLICATE_API_TOKEN) {
+    process.env.REPLICATE_API_TOKEN = String(process.env.REPLICATE_API_TOKEN || '').trim().replace(/^["']|["']$/g, '');
+}
+if (process.env.DEEPSEEK_API_KEY) {
+    process.env.DEEPSEEK_API_KEY = String(process.env.DEEPSEEK_API_KEY || '').trim().replace(/^["']|["']$/g, '');
+}
+if (process.env.BREVO_API_KEY) {
+    process.env.BREVO_API_KEY = String(process.env.BREVO_API_KEY || '').trim().replace(/^["']|["']$/g, '');
+}
+if (process.env.SENDER_EMAIL) {
+    process.env.SENDER_EMAIL = String(process.env.SENDER_EMAIL || '').trim().replace(/^["']|["']$/g, '');
+}
 
 const app = express();
 app.use(cors());
@@ -24,17 +46,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 const PORT = process.env.PORT || 8080;
 const ENGINE_SECRET_TOKEN = process.env.ENGINE_SECRET_TOKEN || '';
 
-// Security middleware for protected engine endpoints
-function verifyEngineAuth(req, res, next) {
-    if (!ENGINE_SECRET_TOKEN) return next(); // If no token configured in sandbox, allow testing
-    const token = req.headers['x-engine-token'] || req.query.token;
-    if (token !== ENGINE_SECRET_TOKEN) {
-        return res.status(401).json({ error: 'Unauthorized engine dispatch request' });
-    }
-    next();
-}
-
-// 1. Root & Health Check
+// 1. Root & Health Check (mounted immediately for instant Cloud Run startup probes)
 app.get('/', (req, res) => {
     res.json({
         service: 'TwinkleTale Cloud Run Serverless Engine',
@@ -60,6 +72,47 @@ app.get('/health', async (req, res) => {
     });
 });
 
+// Immediately bind to port so Cloud Run startup probe succeeds in <50ms
+let server = null;
+if (require.main === module) {
+    server = app.listen(PORT, '0.0.0.0', () => {
+        console.log(`🚀 TwinkleTale Serverless Cloud Run Engine listening on port ${PORT}`);
+    });
+    server.on('error', (err) => {
+        console.error('❌ [FATAL LISTEN ERROR]:', err);
+    });
+}
+
+// Safely load core compilation engine from server.js (server.js remains untouched)
+let serverModule = {};
+try {
+    serverModule = require('./server');
+    if (typeof serverModule.ensureSupabaseBucket === 'function') {
+        serverModule.ensureSupabaseBucket();
+    }
+} catch (loadErr) {
+    console.error('❌ [ENGINE LOADER ERROR] Failed to load server compilation module:', loadErr.stack || loadErr.message || loadErr);
+}
+
+const {
+    assembleFullBookAsync,
+    uploadToStorage,
+    ensureSupabaseBucket,
+    getJobAsync,
+    saveJob,
+    getJob
+} = serverModule;
+
+// Security middleware for protected engine endpoints
+function verifyEngineAuth(req, res, next) {
+    if (!ENGINE_SECRET_TOKEN) return next();
+    const token = req.headers['x-engine-token'] || req.query.token;
+    if (token !== ENGINE_SECRET_TOKEN) {
+        return res.status(401).json({ error: 'Unauthorized engine dispatch request' });
+    }
+    next();
+}
+
 // 2. Production Contract: Asynchronous Book Assembly Dispatch
 app.post('/api/assemble-book', verifyEngineAuth, async (req, res) => {
     const { jobId, session, bookLength, parentEmail, protocol, host } = req.body;
@@ -67,9 +120,12 @@ app.post('/api/assemble-book', verifyEngineAuth, async (req, res) => {
         return res.status(400).json({ success: false, error: 'Missing jobId or session payload' });
     }
 
+    if (!assembleFullBookAsync) {
+        return res.status(503).json({ success: false, error: 'Engine compilation worker not initialized' });
+    }
+
     console.log(`⚡ [CLOUD RUN ENGINE] Received assemble request for Job: ${jobId} (${session.childName}, ${bookLength || '12 pages'})`);
 
-    // In Serverless Cloud Run, respond immediately with 202 Accepted so caller is never blocked
     res.status(202).json({
         success: true,
         message: 'Job accepted by Cloud Run engine worker',
@@ -95,6 +151,10 @@ app.post('/api/assemble-book', verifyEngineAuth, async (req, res) => {
 // 3. Sandbox / Quality Test Endpoint: Generate a Full Book Directly on Cloud Run
 app.post('/api/test-generate-book', async (req, res) => {
     try {
+        if (!assembleFullBookAsync || !saveJob || !getJobAsync) {
+            return res.status(503).json({ success: false, error: 'Compilation engine not ready' });
+        }
+
         const {
             childName = 'Leo',
             theme = 'Trains & Tracks',
@@ -110,7 +170,6 @@ app.post('/api/test-generate-book', async (req, res) => {
         const jobId = `job_cr_test_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
         console.log(`🧪 [CLOUD RUN TEST] Starting test generation for ${childName} | Theme: ${theme} | Length: ${bookLength}`);
 
-        // Construct mock session
         const mockSession = {
             previewId: `prev_cr_${Date.now()}`,
             childName,
@@ -138,7 +197,6 @@ app.post('/api/test-generate-book', async (req, res) => {
             timestamp: Date.now()
         });
 
-        // Run full assembly
         await assembleFullBookAsync(
             jobId,
             mockSession,
@@ -166,6 +224,9 @@ app.post('/api/test-generate-book', async (req, res) => {
 
 // 4. Download Route on Cloud Run
 app.get('/api/download/:jobId', async (req, res) => {
+    if (!getJobAsync) {
+        return res.status(503).json({ error: 'Engine not ready' });
+    }
     const job = await getJobAsync(req.params.jobId);
     if (!job) {
         return res.status(404).json({ error: 'Job not found on cloud engine' });
@@ -181,13 +242,5 @@ app.get('/api/download/:jobId', async (req, res) => {
     }
     res.json(job);
 });
-
-// Start listening if run directly
-if (require.main === module) {
-    app.listen(PORT, '0.0.0.0', () => {
-        console.log(`🚀 TwinkleTale Serverless Cloud Run Engine listening on port ${PORT}`);
-        ensureSupabaseBucket();
-    });
-}
 
 module.exports = app;

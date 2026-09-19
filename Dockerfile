@@ -1,4 +1,4 @@
-﻿FROM node:20-bookworm-slim
+FROM node:20-bookworm-slim
 
 # Install system dependencies for Sharp, font handling, and SSL certificates
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -22,4 +22,4 @@ ENV PORT=8080
 EXPOSE 8080
 
 # Cloud Run dedicated serverless engine entrypoint
-CMD ["node", "engine-server.js"]
+CMD ["node", "--max-old-space-size=2048", "engine-server.js"]
