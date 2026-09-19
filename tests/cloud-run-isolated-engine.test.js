@@ -13,12 +13,12 @@ const dockerfilePath = path.join(__dirname, '..', 'Dockerfile');
 assert.ok(fs.existsSync(dockerfilePath), 'Dockerfile must exist in project root');
 const dockerfileContent = fs.readFileSync(dockerfilePath, 'utf8');
 
-assert.ok(dockerfileContent.includes('FROM node:20-bookworm-slim'), 'Dockerfile must use node:20-bookworm-slim base');
+assert.ok(dockerfileContent.includes('FROM node:22-bookworm-slim'), 'Dockerfile must use node:22-bookworm-slim base');
 assert.ok(dockerfileContent.includes('fonts-dejavu-core'), 'Dockerfile must install font libraries');
 assert.ok(dockerfileContent.includes('fontconfig'), 'Dockerfile must install fontconfig for Sharp rendering');
 assert.ok(dockerfileContent.includes('ENV PORT=8080'), 'Dockerfile must specify default PORT 8080 for Cloud Run');
 assert.ok(dockerfileContent.includes('engine-server.js'), 'Dockerfile CMD must run engine-server.js');
-console.log('  ✔ Dockerfile base image: node:20-bookworm-slim');
+console.log('  ✔ Dockerfile base image: node:22-bookworm-slim');
 console.log('  ✔ Dockerfile font packages: fontconfig, fonts-dejavu-core');
 console.log('  ✔ Dockerfile Cloud Run port: 8080');
 console.log('  ✔ Dockerfile entrypoint: CMD ["node", "--max-old-space-size=2048", "engine-server.js"]');

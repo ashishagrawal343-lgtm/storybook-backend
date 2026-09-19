@@ -38,6 +38,19 @@ if (process.env.SENDER_EMAIL) {
     process.env.SENDER_EMAIL = String(process.env.SENDER_EMAIL || '').trim().replace(/^["']|["']$/g, '');
 }
 
+// Ensure WebSocket constructor is available for Supabase RealtimeClient
+if (typeof globalThis.WebSocket === 'undefined') {
+    globalThis.WebSocket = class WebSocketFallback {
+        constructor() {
+            this.readyState = 3; // CLOSED
+        }
+        addEventListener() {}
+        removeEventListener() {}
+        send() {}
+        close() {}
+    };
+}
+
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
