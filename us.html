@@ -383,40 +383,39 @@
       display: block;
     }
 
-    /* 3D BOOK MOCKUP */
+    /* HERO SHOWCASE VISUAL */
     .hero-visual {
       position: relative;
       display: flex;
       justify-content: center;
-      perspective: 1200px;
+      align-items: center;
     }
     .book-card-3d {
       width: 100%;
-      max-width: 380px;
+      max-width: 480px;
       background: #FFFFFF;
-      border-radius: 18px;
-      padding: 16px;
-      box-shadow: var(--shadow-book);
-      border: 1px solid rgba(226, 232, 240, 0.8);
+      border-radius: 20px;
+      padding: 12px;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid rgba(226, 232, 240, 0.9);
       position: relative;
-      transform: rotateY(-6deg) rotateX(4deg);
-      transition: transform 0.4s ease;
+      transition: transform 0.3s ease;
     }
     .book-card-3d:hover {
-      transform: rotateY(0deg) rotateX(0deg);
+      transform: translateY(-4px);
     }
     .book-preview-window {
       position: relative;
-      border-radius: 12px;
+      border-radius: 14px;
       overflow: hidden;
       aspect-ratio: 1 / 1;
-      background: #161B33;
-      box-shadow: inset 0 0 20px rgba(0,0,0,0.35);
+      background: #0B0E1B;
     }
     .book-preview-window img {
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: contain;
+      display: block;
     }
     .book-badge-ribbon {
       position: absolute;
@@ -578,12 +577,13 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 340px;
     }
     .sample-cover-wrap img {
       width: 100%;
-      height: 100%;
-      object-fit: cover;
+      height: auto;
+      aspect-ratio: 1 / 1;
+      object-fit: contain;
+      display: block;
     }
     .sample-details {
       padding: clamp(24px, 4vw, 36px);
@@ -1400,71 +1400,7 @@
       margin-bottom: 14px;
     }
 
-    /* =====================================================================
-       REVIEWS / TESTIMONIALS
-       ===================================================================== */
-    .reviews-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 20px;
-    }
-    @media (min-width: 768px) {
-      .reviews-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-    }
-    @media (min-width: 1024px) {
-      .reviews-grid {
-        grid-template-columns: repeat(4, 1fr);
-      }
-    }
-    .review-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 24px 20px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      box-shadow: var(--shadow-sm);
-    }
-    .stars {
-      color: var(--gold);
-      font-size: 0.9rem;
-      margin-bottom: 12px;
-    }
-    .review-text {
-      font-size: 0.92rem;
-      color: #334155;
-      line-height: 1.55;
-      margin-bottom: 18px;
-    }
-    .review-author {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .author-avatar {
-      width: 42px;
-      height: 42px;
-      border-radius: 50%;
-      background: var(--primary-light);
-      color: #FFFFFF;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 0.95rem;
-    }
-    .author-info strong {
-      display: block;
-      font-size: 0.88rem;
-      color: var(--text);
-    }
-    .author-info span {
-      font-size: 0.78rem;
-      color: var(--text-muted);
-    }
+
 
     /* =====================================================================
        FAQ ACCORDION
@@ -1768,7 +1704,6 @@
           <div class="avatar-stack">
             <img src="/public/samples/avatar-elizabeth.webp" alt="Elizabeth — Enchanted Forest Star">
             <img src="/public/samples/avatar-liam.webp" alt="Liam — Moonlight Carnival Hero">
-            <img src="/public/samples/sample-elizabeth-enchanted-forest.webp" alt="Elizabeth Character">
           </div>
           <div class="hero-proof-text">
             <strong>4.9/5 from 2,400+ Families</strong>
@@ -2225,66 +2160,7 @@
     </div>
   </section>
 
-  <!-- 10. PARENT REVIEWS -->
-  <section class="section-padding" style="background: var(--bg-alt);">
-    <div class="container">
-      <div class="section-head">
-        <span class="section-eyebrow">Parent Testimonials</span>
-        <h2 class="section-title">Loved by 2,400+ Families Across America</h2>
-        <p class="section-desc">See what parents and grandparents are saying about their TwinkleTale experience.</p>
-      </div>
 
-      <div class="reviews-grid">
-        <div class="review-card">
-          <div class="stars">★★★★★</div>
-          <p class="review-text">"My 4-year-old Leo gasped when he saw himself floating among the stars with his little teddy bear. He makes us read it every single night before bed. Best $6 I've spent all year!"</p>
-          <div class="review-author">
-            <div class="author-avatar">SM</div>
-            <div class="author-info">
-              <strong>Sarah M.</strong>
-              <span>Austin, TX • Mom of Leo (4)</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="review-card">
-          <div class="stars">★★★★★</div>
-          <p class="review-text">"I was skeptical about the photo likeness, but it captured Maya's curly hair, big brown eyes, and trademark giggle perfectly. We printed it out at Walgreens and it looks like a bookstore book."</p>
-          <div class="review-author">
-            <div class="author-avatar">ER</div>
-            <div class="author-info">
-              <strong>Elena R.</strong>
-              <span>Brooklyn, NY • Mom of Maya (5)</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="review-card">
-          <div class="stars">★★★★★</div>
-          <p class="review-text">"Got the 22-page Grand Treasury for my grandson's 6th birthday. The dinosaur story had him completely enthralled. The turnaround was literally under 3 minutes. Outstanding service!"</p>
-          <div class="review-author">
-            <div class="author-avatar">DK</div>
-            <div class="author-info">
-              <strong>David K.</strong>
-              <span>Seattle, WA • Grandfather</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="review-card">
-          <div class="stars">★★★★★</div>
-          <p class="review-text">"The illustrations are rich and painterly—not cheap cartoon CGI. It feels warm, heirloom, and special. The dedication page on the back had my wife in tears. Truly magical."</p>
-          <div class="review-author">
-            <div class="author-avatar">MT</div>
-            <div class="author-info">
-              <strong>Marcus T.</strong>
-              <span>Chicago, IL • Dad of Noah (3)</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
 
   <!-- 11. FAQ SECTION -->
   <section class="section-padding">
@@ -2461,6 +2337,18 @@
 
   <!-- JAVASCRIPT LOGIC & CONVERSION CONTROLLER -->
   <script>
+    // Enforce instant scroll to top on page load/refresh
+    if ('scrollRestoration' in history) {
+      history.scrollRestoration = 'manual';
+    }
+    window.scrollTo(0, 0);
+    window.addEventListener('beforeunload', () => {
+      window.scrollTo(0, 0);
+    });
+    window.addEventListener('DOMContentLoaded', () => {
+      window.scrollTo(0, 0);
+    });
+
     // Universal API base: works on localhost, Cloud Run, Render, and custom domains
     const API_BASE = (window.location.origin && window.location.origin !== 'null' && window.location.protocol.startsWith('http'))
       ? window.location.origin
