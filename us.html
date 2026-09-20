@@ -13,7 +13,7 @@
   <meta property="og:description" content="Upload 1 photo. Our illustration studio creates a breathtaking, personalized bedtime storybook featuring your child's likeness. 50% off US launch special.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://www.twinkletaleai.com/us">
-  <meta property="og:image" content="/public/ad_showcase_siddhu.jpg">
+  <meta property="og:image" content="/public/samples/sample-elizabeth-enchanted-forest.webp">
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1104,24 +1104,26 @@
       box-shadow: 0 12px 28px rgba(22, 27, 51, 0.32);
     }
     .btn-preview-first {
-      background: transparent;
-      color: var(--primary);
-      border: 1.5px solid var(--border);
-      font-weight: 700;
-      font-size: 0.95rem;
-      padding: 12px 24px;
+      background: linear-gradient(135deg, #D97706 0%, #F59E0B 100%);
+      color: #FFFFFF;
+      font-size: 1.12rem;
+      font-weight: 800;
+      padding: 16px 28px;
       border-radius: var(--radius-full);
+      border: none;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 10px;
+      box-shadow: 0 8px 24px rgba(217, 119, 6, 0.25);
       transition: var(--transition);
-      min-height: 48px;
+      min-height: 56px;
     }
     .btn-preview-first:hover {
-      background: #F8FAFC;
-      border-color: #CBD5E1;
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px rgba(217, 119, 6, 0.35);
+      background: linear-gradient(135deg, #B45309 0%, #D97706 100%);
     }
     .security-note {
       text-align: center;
@@ -1137,44 +1139,265 @@
     }
 
     /* =====================================================================
-       COMPARISON TABLE / EDITION MATRIX
+       PREVIEW STAGE (REVEALED AFTER FREE 25s PREVIEW GENERATION)
        ===================================================================== */
-    .pricing-table-card {
+    #previewStage {
+      display: none;
+      padding: 60px 0;
       background: var(--surface);
-      border-radius: var(--radius-lg);
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow-md);
-      overflow: hidden;
-      max-width: 900px;
-      margin: 0 auto;
-    }
-    .pricing-matrix-header {
-      display: grid;
-      grid-template-columns: 1.2fr 1fr 1.2fr;
-      padding: 20px 24px;
-      background: #F8FAFC;
+      border-top: 1px solid var(--border);
       border-bottom: 1px solid var(--border);
-      font-weight: 700;
-      color: var(--primary);
     }
-    .matrix-row {
+    .preview-card {
+      background: var(--bg);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      box-shadow: var(--shadow-lg);
+      max-width: 950px;
+      margin: 0 auto;
+      border: 1px solid var(--border);
+    }
+    .preview-grid {
       display: grid;
-      grid-template-columns: 1.2fr 1fr 1.2fr;
-      padding: 16px 24px;
-      border-bottom: 1px solid #F1F5F9;
-      font-size: 0.92rem;
+      grid-template-columns: 1fr;
+      gap: 32px;
       align-items: center;
     }
-    .matrix-row:last-child {
-      border-bottom: none;
+    @media (min-width: 768px) {
+      .preview-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 40px;
+      }
     }
-    .matrix-feature {
-      font-weight: 600;
-      color: var(--text);
+    .preview-cover-box {
+      text-align: center;
     }
-    .matrix-check {
-      color: var(--forest);
+    .preview-book-mockup {
+      width: 100%;
+      max-width: 320px;
+      aspect-ratio: 3/4;
+      background-color: #12172B;
+      border-radius: 12px;
+      box-shadow: -15px 20px 40px rgba(0, 0, 0, 0.3), 0 0 0 2px var(--gold);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      color: #fff;
+      border-left: 10px solid #080B16;
+      margin: 0 auto;
+      transition: all 0.3s ease;
+    }
+    .preview-book-cover-img {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 1;
+      transition: opacity 0.4s ease;
+    }
+    .preview-book-mockup.has-cover .preview-mockup-scrim-top,
+    .preview-book-mockup.has-cover .preview-mockup-scrim-bottom,
+    .preview-book-mockup.has-cover .preview-mockup-header,
+    .preview-book-mockup.has-cover .preview-mockup-footer {
+      display: none !important;
+    }
+    .preview-book-mockup::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 24px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.22) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.65) 100%);
+      z-index: 4;
+      pointer-events: none;
+    }
+    .preview-mockup-scrim-top {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 140px;
+      background: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 65%, transparent 100%);
+      z-index: 2;
+      pointer-events: none;
+    }
+    .preview-mockup-scrim-bottom {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 70px;
+      background: linear-gradient(0deg, rgba(0,0,0,0.75) 0%, transparent 100%);
+      z-index: 2;
+      pointer-events: none;
+    }
+    .preview-mockup-header {
+      position: relative;
+      text-align: center;
+      z-index: 3;
+      padding: 24px 20px 0 20px;
+    }
+    .preview-mockup-name {
+      font-family: 'Fraunces', serif;
+      font-size: 2.2rem;
+      color: var(--gold-light);
+      line-height: 1.1;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.9);
+    }
+    .preview-mockup-title {
+      font-family: 'Fraunces', serif;
+      font-size: 1.15rem;
       font-weight: 700;
+      margin-top: 4px;
+      color: #fff;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.95);
+      line-height: 1.3;
+    }
+    .preview-mockup-footer {
+      position: relative;
+      text-align: center;
+      font-size: 0.72rem;
+      color: var(--gold-light);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      font-weight: 600;
+      text-shadow: 0 1px 6px rgba(0,0,0,0.9);
+      z-index: 3;
+      padding-bottom: 16px;
+    }
+    .preview-meta h2 {
+      font-size: clamp(1.6rem, 3vw, 2.1rem);
+      color: var(--primary);
+      margin-bottom: 12px;
+    }
+    .opening-rhyme-card {
+      background: #FFFBEB;
+      border-left: 4px solid var(--gold);
+      padding: 16px 20px;
+      border-radius: var(--radius-sm);
+      font-style: italic;
+      color: var(--primary);
+      font-size: 1.05rem;
+      line-height: 1.7;
+      margin-bottom: 20px;
+      font-family: 'Fraunces', serif;
+    }
+    .preview-edition-summary {
+      background: #FEF3C7;
+      border: 1.5px solid var(--gold);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .edition-summary-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .edition-summary-badge {
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .edition-summary-price {
+      font-weight: 800;
+      font-size: 1.15rem;
+      color: var(--primary);
+    }
+    .edition-summary-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+    .unlock-btn {
+      width: 100%;
+      padding: 16px 24px;
+      border-radius: var(--radius-full);
+      background: var(--forest);
+      color: #fff;
+      font-size: 1.15rem;
+      font-weight: 800;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 8px 24px rgba(5, 150, 105, 0.3);
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 56px;
+    }
+    .unlock-btn:hover {
+      background: #047857;
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px rgba(5, 150, 105, 0.4);
+    }
+
+    /* Terms & Conditions Modal */
+    .terms-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(11, 14, 27, 0.75);
+      backdrop-filter: blur(6px);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .terms-modal-card {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      max-width: 560px;
+      width: 100%;
+      padding: 32px 28px;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--border);
+      position: relative;
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+    .terms-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+    }
+    .terms-modal-header h3 {
+      font-size: 1.25rem;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+    }
+    .terms-modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      line-height: 1;
+    }
+    .terms-modal-body p {
+      font-size: 0.92rem;
+      color: #334155;
+      line-height: 1.65;
+      margin-bottom: 14px;
     }
 
     /* =====================================================================
@@ -1543,9 +1766,9 @@
 
         <div class="hero-proof-micro">
           <div class="avatar-stack">
-            <img src="/public/ad_showcase_siddhu.jpg" alt="Happy Child Hero">
-            <img src="/public/ad_showcase_ananya.jpg" alt="Storybook Star">
-            <img src="/public/samples/sample-radha-cosmic-voyage.webp" alt="Child Character">
+            <img src="/public/samples/avatar-elizabeth.webp" alt="Elizabeth — Enchanted Forest Star">
+            <img src="/public/samples/avatar-liam.webp" alt="Liam — Moonlight Carnival Hero">
+            <img src="/public/samples/sample-elizabeth-enchanted-forest.webp" alt="Elizabeth Character">
           </div>
           <div class="hero-proof-text">
             <strong>4.9/5 from 2,400+ Families</strong>
@@ -1559,11 +1782,11 @@
         <div class="book-card-3d">
           <div class="book-badge-ribbon">50% OFF TODAY</div>
           <div class="book-preview-window">
-            <img src="/public/samples/sample-radha-cosmic-voyage.webp" alt="Radha's Starlight Voyage Keepsake Storybook" id="heroBookCover">
+            <img src="/public/samples/sample-elizabeth-enchanted-forest.webp" alt="Elizabeth's Treasury of Enchanted Forest Keepsake Storybook" id="heroBookCover">
           </div>
           <div class="book-meta-footer">
             <div>
-              <div class="book-meta-title" id="heroBookTitle">Radha's Cosmic Voyage</div>
+              <div class="book-meta-title" id="heroBookTitle">Elizabeth's Enchanted Forest</div>
               <div class="book-meta-sub">Personalized 12-Page Keepsake</div>
             </div>
             <div class="book-meta-price">
@@ -1592,8 +1815,8 @@
         <div class="trust-metric-desc">Lightning-Fast Generation</div>
       </div>
       <div>
-        <div class="trust-metric-title">100%</div>
-        <div class="trust-metric-desc">Delight or Money-Back Guarantee</div>
+        <div class="trust-metric-title">300 DPI</div>
+        <div class="trust-metric-desc">Gallery-Grade Print Quality</div>
       </div>
     </div>
   </section>
@@ -1609,11 +1832,11 @@
 
       <!-- Sample Selector Tabs -->
       <div class="sample-tabs">
-        <button class="sample-tab-btn active" id="tabRadha" onclick="switchSample('radha')">
-          <span>🚀 Space Adventure (Radha)</span>
+        <button class="sample-tab-btn active" id="tabElizabeth" onclick="switchSample('elizabeth')">
+          <span>🌿 Enchanted Forest (Elizabeth)</span>
         </button>
-        <button class="sample-tab-btn" id="tabSid" onclick="switchSample('sid')">
-          <span>🦕 Dinosaur Wonders (Sid)</span>
+        <button class="sample-tab-btn" id="tabLiam" onclick="switchSample('liam')">
+          <span>🎪 Moonlight Carnival (Liam)</span>
         </button>
       </div>
 
@@ -1621,20 +1844,20 @@
       <div class="sample-display-card">
         <div class="sample-grid">
           <div class="sample-cover-wrap">
-            <img id="sampleCoverImg" src="/public/samples/sample-radha-cosmic-voyage.webp" alt="Radha's Starlight Voyage">
+            <img id="sampleCoverImg" src="/public/samples/sample-elizabeth-enchanted-forest.webp" alt="Elizabeth's Treasury of Enchanted Forest">
           </div>
           <div class="sample-details">
-            <span class="sample-pill" id="sampleThemePill">Space & Stars Theme</span>
-            <h3 class="sample-name" id="sampleNameTitle">Radha's Cosmic Starlight Voyage</h3>
+            <span class="sample-pill" id="sampleThemePill">Forest & Animals Theme</span>
+            <h3 class="sample-name" id="sampleNameTitle">Elizabeth's Treasury of Enchanted Forest</h3>
             <p class="sample-story-snippet" id="sampleSnippet">
-              "Underneath the velvet sky where constellations dance and play, little Radha built a rocket ship to guide the Milky Way..."
+              "Deep within the whispering woods where fireflies softly glow, little Elizabeth discovered paths where silver rivers flow..."
             </p>
             <ul class="sample-perks">
               <li><i class="fas fa-check"></i> Exact smile, hair texture, and joyful expression captured</li>
               <li><i class="fas fa-check"></i> Rich painterly gouache & oil storybook realism</li>
               <li><i class="fas fa-check"></i> Gentle rhyming bedtime narrative tailored for ages 1–10</li>
             </ul>
-            <a href="/api/sample-download/radha" class="sample-download-btn" id="sampleDownloadBtn" download>
+            <a href="/api/sample-download/elizabeth" class="sample-download-btn" id="sampleDownloadBtn" download>
               <i class="fas fa-file-pdf"></i>
               <span>Download & Read Free Sample PDF</span>
             </a>
@@ -1749,25 +1972,49 @@
                 <span class="t-icon">🚀</span>
                 <span class="t-name">Space & Stars</span>
               </div>
-              <div class="theme-option" onclick="selectTheme(this, 'Dinosaur Wonders')">
-                <span class="t-icon">🦕</span>
-                <span class="t-name">Dinosaur World</span>
-              </div>
-              <div class="theme-option" onclick="selectTheme(this, 'Magical Forest')">
-                <span class="t-icon">🌿</span>
-                <span class="t-name">Enchanted Forest</span>
-              </div>
-              <div class="theme-option" onclick="selectTheme(this, 'Ocean & Dolphins')">
-                <span class="t-icon">🌊</span>
-                <span class="t-name">Ocean Kingdom</span>
-              </div>
-              <div class="theme-option" onclick="selectTheme(this, 'Superheroes')">
-                <span class="t-icon">⚡</span>
-                <span class="t-name">Superhero Academy</span>
+              <div class="theme-option" onclick="selectTheme(this, 'Forest & Animals')">
+                <span class="t-icon">🐾</span>
+                <span class="t-name">Animals & Forest</span>
               </div>
               <div class="theme-option" onclick="selectTheme(this, 'Kingdom & Castles')">
                 <span class="t-icon">👑</span>
-                <span class="t-name">Knights & Castles</span>
+                <span class="t-name">Kingdom & Castles</span>
+              </div>
+              <div class="theme-option" onclick="selectTheme(this, 'Superheroes')">
+                <span class="t-icon">⚡</span>
+                <span class="t-name">Superheroes</span>
+              </div>
+              <div class="theme-option" onclick="selectTheme(this, 'Dinosaur Wonders')">
+                <span class="t-icon">🦕</span>
+                <span class="t-name">Dinosaur Wonders</span>
+              </div>
+              <div class="theme-option" onclick="selectTheme(this, 'Ocean & Dolphins')">
+                <span class="t-icon">🌊</span>
+                <span class="t-name">Ocean & Dolphins</span>
+              </div>
+              <div class="theme-option" onclick="selectTheme(this, 'Fairies & Magic')">
+                <span class="t-icon">🧚</span>
+                <span class="t-name">Fairies & Magic</span>
+              </div>
+              <div class="theme-option" onclick="selectTheme(this, 'Trains & Tracks')">
+                <span class="t-icon">🚂</span>
+                <span class="t-name">Trains & Tracks</span>
+              </div>
+              <div class="theme-option" onclick="selectTheme(this, 'Bedtime Lullabies')">
+                <span class="t-icon">🌙</span>
+                <span class="t-name">Bedtime Lullabies</span>
+              </div>
+              <div class="theme-option" onclick="selectTheme(this, 'Circus & Carnivals')">
+                <span class="t-icon">🎪</span>
+                <span class="t-name">Circus & Carnivals</span>
+              </div>
+              <div class="theme-option" onclick="selectTheme(this, 'Unicorns & Rainbows')">
+                <span class="t-icon">🌈</span>
+                <span class="t-name">Unicorns & Rainbows</span>
+              </div>
+              <div class="theme-option" onclick="selectTheme(this, 'Jungle Safari')">
+                <span class="t-icon">🌿</span>
+                <span class="t-name">Jungle Safari</span>
               </div>
             </div>
             <input type="hidden" id="selectedTheme" value="Space & Stars">
@@ -1881,11 +2128,64 @@
 
             <div class="security-note">
               <i class="fas fa-shield-check"></i>
-              <span>256-bit Encrypted Checkout • Instant 3-Min Delivery • 100% Money-Back Guarantee</span>
+              <span>256-bit Encrypted Checkout • Instant 3-Min Delivery • Dedicated Support</span>
             </div>
           </div>
 
         </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================= -->
+  <!-- PREVIEW STAGE (REVEALED AFTER FREE 25s PREVIEW GENERATION)-->
+  <!-- ========================================================= -->
+  <section id="previewStage">
+    <div class="container">
+      <div class="preview-card">
+        <div class="preview-grid">
+          <div class="preview-cover-box">
+            <div class="preview-book-mockup" id="previewBookMockup">
+              <img id="previewCoverImg" class="preview-book-cover-img" src="" alt="Personalized Storybook Cover" style="display:none;">
+              <div class="preview-mockup-scrim-top"></div>
+              <div class="preview-mockup-header">
+                <div class="preview-mockup-name" id="previewMockupChildName">Elizabeth's</div>
+                <div class="preview-mockup-title" id="previewMockupCoverTitle">Treasury of Enchanted Forest</div>
+              </div>
+              <div class="preview-mockup-scrim-bottom"></div>
+              <div class="preview-mockup-footer">TwinkleTale Keepsake Treasury ✨</div>
+            </div>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-top:14px;">
+              <i class="fas fa-check-circle" style="color:var(--forest);"></i> Front Cover Preview with <strong id="previewChildNameBadge">Your Child</strong>
+            </p>
+          </div>
+
+          <div class="preview-meta">
+            <span class="section-eyebrow" style="margin-bottom:8px; display:inline-block;">Your Book is Ready to Unlock!</span>
+            <h2 id="previewBookTitle">Elizabeth's Treasury of Enchanted Forest</h2>
+            
+            <div class="opening-rhyme-card" id="previewRhymeText">
+              "Underneath the twinkling stars, where dreams begin to play..."
+            </div>
+
+            <div class="preview-edition-summary" id="previewEditionSummary">
+              <div class="edition-summary-header">
+                <span class="edition-summary-badge" id="previewEditionBadge"><i class="fas fa-book"></i> Treasury Edition</span>
+                <span class="edition-summary-price" id="previewEditionPrice">$5.99 <span style="font-size:0.9rem; text-decoration:line-through; color:var(--text-muted); font-weight:normal;">$11.99</span> <span style="font-size:0.82rem; color:var(--forest); font-weight:700;">50% OFF</span></span>
+              </div>
+              <div class="edition-summary-desc" id="previewEditionPages">
+                12 Story Pages • 4 Fine-Art Double Spreads • Print-Ready 300 DPI PDF
+              </div>
+            </div>
+
+            <button class="unlock-btn" id="previewUnlockBtn" onclick="handlePreviewUnlock()">
+              <i class="fas fa-lock-open"></i> Unlock & Download Full Storybook (<span id="unlockBtnPrice">$5.99</span>)
+            </button>
+            <p style="text-align:center; font-size:0.82rem; color:var(--text-muted); margin-top:10px;">
+              <i class="fas fa-shield-check" style="color:var(--forest);"></i> 256-Bit Encrypted Checkout • Instant 3-Min Delivery
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -1921,60 +2221,6 @@
           <i class="fas fa-arrow-left"></i>
           <span>Create Another Keepsake</span>
         </a>
-      </div>
-    </div>
-  </section>
-
-  <!-- 9. EDITION COMPARISON MATRIX -->
-  <section class="section-padding">
-    <div class="container">
-      <div class="section-head">
-        <span class="section-eyebrow">Edition Comparison</span>
-        <h2 class="section-title">Choose the Perfect Size for Bedtime</h2>
-        <p class="section-desc">Both editions feature award-winning watercolor art, high-resolution PDF download, and child likeness preservation.</p>
-      </div>
-
-      <div class="pricing-table-card">
-        <div class="pricing-matrix-header">
-          <div>Features</div>
-          <div>Treasury ($5.99)</div>
-          <div>Grand Treasury ($11.99)</div>
-        </div>
-        <div class="matrix-row">
-          <div class="matrix-feature">Total Story Pages</div>
-          <div>12 Pages</div>
-          <div style="font-weight: 700; color: var(--primary);">22 Pages (Extended)</div>
-        </div>
-        <div class="matrix-row">
-          <div class="matrix-feature">Illustrated Double Spreads</div>
-          <div>4 Fine-Art Spreads</div>
-          <div style="font-weight: 700; color: var(--primary);">9 Fine-Art Spreads</div>
-        </div>
-        <div class="matrix-row">
-          <div class="matrix-feature">Personalized Likeness</div>
-          <div class="matrix-check"><i class="fas fa-check"></i> Included</div>
-          <div class="matrix-check"><i class="fas fa-check"></i> Included</div>
-        </div>
-        <div class="matrix-row">
-          <div class="matrix-feature">Custom Dedication Page</div>
-          <div class="matrix-check"><i class="fas fa-check"></i> Included</div>
-          <div class="matrix-check"><i class="fas fa-check"></i> Included</div>
-        </div>
-        <div class="matrix-row">
-          <div class="matrix-feature">Official Hero Certificate</div>
-          <div style="color: var(--text-muted);">—</div>
-          <div class="matrix-check"><i class="fas fa-check"></i> Included</div>
-        </div>
-        <div class="matrix-row">
-          <div class="matrix-feature">Print-Ready 300 DPI File</div>
-          <div class="matrix-check"><i class="fas fa-check"></i> Yes</div>
-          <div class="matrix-check"><i class="fas fa-check"></i> Yes</div>
-        </div>
-        <div class="matrix-row">
-          <div class="matrix-feature">Launch Pricing</div>
-          <div style="font-weight: 800;">$5.99 <span style="text-decoration:line-through; font-size:0.8rem; opacity:0.6;">$11.99</span></div>
-          <div style="font-weight: 800; color: var(--forest);">$11.99 <span style="text-decoration:line-through; font-size:0.8rem; opacity:0.6;">$23.99</span></div>
-        </div>
       </div>
     </div>
   </section>
@@ -2089,16 +2335,6 @@
             We accept all major US credit and debit cards including Visa, Mastercard, American Express, and Discover, as well as digital wallets like Apple Pay and Google Pay through our secure 256-bit encrypted checkout.
           </div>
         </div>
-
-        <div class="faq-item">
-          <div class="faq-question" onclick="toggleFaq(this)">
-            <span>What is your refund policy?</span>
-            <i class="fas fa-chevron-down"></i>
-          </div>
-          <div class="faq-answer">
-            We offer a <strong>100% Delight Guarantee</strong>. If for any reason you or your child are not completely delighted with your storybook, simply email our friendly support team at support@twinkletaleai.com and we will issue a full refund back to your original payment method.
-          </div>
-        </div>
       </div>
     </div>
   </section>
@@ -2151,7 +2387,7 @@
           <ul class="footer-links">
             <li><a href="mailto:support@twinkletaleai.com">support@twinkletaleai.com</a></li>
             <li><a href="javascript:void(0)" onclick="alert('TwinkleTale AI strictly adheres to COPPA and child safety privacy standards. Photos are used exclusively for generation and are never sold or trained upon.')">Privacy Promise</a></li>
-            <li><a href="javascript:void(0)" onclick="alert('Full 100% refund guarantee applies to all orders if you are not completely satisfied.')">Satisfaction Guarantee</a></li>
+            <li><a href="javascript:void(0)" onclick="openTermsModal()">Terms & Conditions</a></li>
           </ul>
         </div>
       </div>
@@ -2176,6 +2412,33 @@
       <span>Personalize</span>
       <i class="fas fa-arrow-right"></i>
     </a>
+  </div>
+
+  <!-- TERMS & CONDITIONS MODAL -->
+  <div class="terms-modal" id="termsModal">
+    <div class="terms-modal-card">
+      <div class="terms-modal-header">
+        <h3><i class="fas fa-file-contract" style="color: var(--gold); margin-right: 8px;"></i> Terms & Conditions</h3>
+        <button class="terms-modal-close" onclick="closeTermsModal()">&times;</button>
+      </div>
+      <div class="terms-modal-body">
+        <h4 style="font-size: 1rem; margin-bottom: 8px; color: var(--primary);">Personalized Keepsake Storybooks</h4>
+        <p>
+          All TwinkleTale storybooks are personalized, custom-generated digital keepsakes. Because each book is individually authored and illustrated specifically for your child based on your uploaded photo and inputs, all sales are final. We do not offer returns or refunds once the book has been generated and delivered.
+        </p>
+        <h4 style="font-size: 1rem; margin-bottom: 8px; color: var(--primary);">Delivery & Customer Support</h4>
+        <p>
+          Your high-resolution, print-ready 300 DPI PDF is delivered immediately to your email address within 3 to 5 minutes of order completion. If you encounter any difficulty accessing, opening, or downloading your PDF file, our dedicated customer support team is available 24/7 at <a href="mailto:support@twinkletaleai.com" style="color: var(--border-focus); text-decoration: underline;">support@twinkletaleai.com</a> to ensure you receive your complete file.
+        </p>
+        <h4 style="font-size: 1rem; margin-bottom: 8px; color: var(--primary);">Child Privacy & COPPA Compliance</h4>
+        <p>
+          We strictly protect child safety and privacy. Uploaded photos are processed securely solely for the purpose of illustrating your child's personalized book and are never sold, shared, or used for model training.
+        </p>
+        <button class="btn-primary" style="width: 100%; margin-top: 10px; justify-content: center;" onclick="closeTermsModal()">
+          I Understand
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- TEST MODE SIMULATED CHECKOUT MODAL -->
@@ -2205,6 +2468,7 @@
     let selectedEdition = 'short'; // 'short' ($5.99) vs 'long' ($11.99)
     let uploadedPhotoBase64 = null;
     let pendingOrderData = null;
+    let currentPreviewId = null;
 
     // 1. GENDER SELECTION
     function selectGender(gender) {
@@ -2236,6 +2500,29 @@
       const stickyStrike = document.getElementById('stickyStrike');
       if (stickyPrice) stickyPrice.textContent = priceStr;
       if (stickyStrike) stickyStrike.textContent = strikeStr;
+
+      // Also update Preview Stage edition summary if open
+      const previewBadge = document.getElementById('previewEditionBadge');
+      const previewPrice = document.getElementById('previewEditionPrice');
+      const previewPages = document.getElementById('previewEditionPages');
+      const unlockPrice = document.getElementById('unlockBtnPrice');
+
+      if (previewBadge) {
+        previewBadge.innerHTML = tier === 'long'
+          ? '<i class="fas fa-crown"></i> Grand Treasury'
+          : '<i class="fas fa-book"></i> Treasury Edition';
+      }
+      if (previewPrice) {
+        previewPrice.innerHTML = tier === 'long'
+          ? '$11.99 <span style="font-size:0.9rem; text-decoration:line-through; color:var(--text-muted); font-weight:normal;">$23.99</span> <span style="font-size:0.82rem; color:var(--forest); font-weight:700;">50% OFF</span>'
+          : '$5.99 <span style="font-size:0.9rem; text-decoration:line-through; color:var(--text-muted); font-weight:normal;">$11.99</span> <span style="font-size:0.82rem; color:var(--forest); font-weight:700;">50% OFF</span>';
+      }
+      if (previewPages) {
+        previewPages.textContent = tier === 'long'
+          ? '22 Story Pages • 9 Fine-Art Double Spreads • Print-Ready 300 DPI PDF'
+          : '12 Story Pages • 4 Fine-Art Double Spreads • Print-Ready 300 DPI PDF';
+      }
+      if (unlockPrice) unlockPrice.textContent = priceStr;
     }
 
     // 4. DEDICATION PRESET
@@ -2300,7 +2587,7 @@
 
     // 7. LIVE PREVIEW UPDATE
     function updateLivePreview() {
-      const childName = document.getElementById('childName').value.trim() || 'Radha';
+      const childName = document.getElementById('childName').value.trim() || 'Elizabeth';
       const theme = document.getElementById('selectedTheme').value || 'Space & Stars';
       const heroTitle = document.getElementById('heroBookTitle');
       if (heroTitle) {
@@ -2310,9 +2597,9 @@
 
     // 8. SAMPLE SHOWCASE SWITCHER
     function switchSample(sample) {
-      const isRadha = sample === 'radha';
-      document.getElementById('tabRadha').classList.toggle('active', isRadha);
-      document.getElementById('tabSid').classList.toggle('active', !isRadha);
+      const isElizabeth = sample === 'elizabeth';
+      document.getElementById('tabElizabeth').classList.toggle('active', isElizabeth);
+      document.getElementById('tabLiam').classList.toggle('active', !isElizabeth);
 
       const coverImg = document.getElementById('sampleCoverImg');
       const themePill = document.getElementById('sampleThemePill');
@@ -2320,18 +2607,18 @@
       const snippet = document.getElementById('sampleSnippet');
       const dlBtn = document.getElementById('sampleDownloadBtn');
 
-      if (isRadha) {
-        coverImg.src = '/public/samples/sample-radha-cosmic-voyage.webp';
-        themePill.textContent = 'Space & Stars Theme';
-        nameTitle.textContent = "Radha's Cosmic Starlight Voyage";
-        snippet.textContent = '"Underneath the velvet sky where constellations dance and play, little Radha built a rocket ship to guide the Milky Way..."';
-        dlBtn.href = '/api/sample-download/radha';
+      if (isElizabeth) {
+        coverImg.src = '/public/samples/sample-elizabeth-enchanted-forest.webp';
+        themePill.textContent = 'Forest & Animals Theme';
+        nameTitle.textContent = "Elizabeth's Treasury of Enchanted Forest";
+        snippet.textContent = '"Deep within the whispering woods where fireflies softly glow, little Elizabeth discovered paths where silver rivers flow..."';
+        dlBtn.href = '/api/sample-download/elizabeth';
       } else {
-        coverImg.src = '/public/samples/sample-sid-dinosaur-wonder.webp';
-        themePill.textContent = 'Dinosaur Wonders Theme';
-        nameTitle.textContent = "Sid's Dinosaur Wonder Night";
-        snippet.textContent = '"Through prehistoric misty plains where giant brontosaurs roam free, little Sid discovered lands of fossil-carved majesty..."';
-        dlBtn.href = '/api/sample-download/sid';
+        coverImg.src = '/public/samples/sample-liam-moonlight-carnival.webp';
+        themePill.textContent = 'Circus & Carnivals Theme';
+        nameTitle.textContent = "Liam and the Moonlight Carnival";
+        snippet.textContent = '"Under carnival lanterns that twinkled like stars in the evening breeze, little Liam danced beneath the velvet trees..."';
+        dlBtn.href = '/api/sample-download/liam';
       }
     }
 
@@ -2343,7 +2630,7 @@
 
     // 10. FORM SUBMISSION -> ORDER CREATION (SERVER-AUTHORITATIVE $5.99 / $11.99)
     async function handleFormSubmit(event) {
-      event.preventDefault();
+      if (event) event.preventDefault();
       
       const childName = document.getElementById('childName').value.trim();
       const age = parseInt(document.getElementById('childAge').value, 10) || 5;
@@ -2354,10 +2641,12 @@
 
       if (!childName) {
         alert("Please provide your child's first name!");
+        document.getElementById('childName').focus();
         return;
       }
       if (!email) {
         alert("Please provide your email address for book delivery!");
+        document.getElementById('parentEmail').focus();
         return;
       }
 
@@ -2378,7 +2667,8 @@
       const payload = {
         market: 'US',
         currency: 'USD',
-        isDirectCheckout: true,
+        isDirectCheckout: !currentPreviewId,
+        previewId: currentPreviewId || undefined,
         childName,
         gender,
         age,
@@ -2454,6 +2744,9 @@
     // 11. COMPLETE FULFILLMENT AFTER PAYMENT
     async function completeBookFulfillment(paymentResponse, orderData) {
       document.getElementById('create').style.display = 'none';
+      const previewSection = document.getElementById('previewStage');
+      if (previewSection) previewSection.style.display = 'none';
+
       const prog = document.getElementById('progressStage');
       prog.style.display = 'block';
       prog.scrollIntoView({ behavior: 'smooth' });
@@ -2494,7 +2787,7 @@
       }
     }
 
-    // 12. FREE PREVIEW FIRST HANDLER
+    // 12. FREE PREVIEW FIRST HANDLER (REVEALS #previewStage BELOW BUILDER FORM)
     async function handlePreviewFirst() {
       const childName = document.getElementById('childName').value.trim();
       if (!childName) {
@@ -2540,14 +2833,33 @@
         prevBtn.disabled = false;
         prevBtn.innerHTML = origText;
 
-        if (data.success && data.coverUrl) {
-          const heroCover = document.getElementById('heroBookCover');
-          if (heroCover) {
-            heroCover.src = data.coverUrl;
-            document.getElementById('heroBookTitle').textContent = `${childName}'s Keepsake`;
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            alert("✨ Preview cover ready! Scroll up to see your child's illustrated cover!");
+        if (data.success && (data.coverUrl || data.coverDataUrl)) {
+          currentPreviewId = data.previewId;
+          const bookTitle = data.bookTitle || `${childName}'s Keepsake`;
+
+          document.getElementById('previewBookTitle').textContent = bookTitle;
+          document.getElementById('previewChildNameBadge').textContent = childName;
+          if (data.openingRhyme) {
+            document.getElementById('previewRhymeText').textContent = `"${data.openingRhyme}"`;
           }
+          document.getElementById('previewMockupChildName').textContent = `${childName}'s`;
+          document.getElementById('previewMockupCoverTitle').textContent = bookTitle;
+
+          const coverSrc = data.coverDataUrl || data.coverUrl;
+          if (coverSrc) {
+            const coverImg = document.getElementById('previewCoverImg');
+            coverImg.src = coverSrc;
+            coverImg.style.display = 'block';
+            document.getElementById('previewBookMockup').classList.add('has-cover');
+          }
+
+          // Sync edition selection display
+          selectEdition(selectedEdition);
+
+          // Reveal preview stage smoothly right below the form
+          const stage = document.getElementById('previewStage');
+          stage.style.display = 'block';
+          stage.scrollIntoView({ behavior: 'smooth' });
         } else {
           alert(`Preview error: ${data.error || 'Could not generate preview'}`);
         }
@@ -2558,7 +2870,35 @@
       }
     }
 
-    // 13. TEST MODE MODAL CONTROLS
+    // 13. UNLOCK PREVIEW CHECKOUT HANDLER
+    async function handlePreviewUnlock() {
+      const unlockBtn = document.getElementById('previewUnlockBtn');
+      const origText = unlockBtn ? unlockBtn.innerHTML : '';
+      if (unlockBtn) {
+        unlockBtn.disabled = true;
+        unlockBtn.innerHTML = `<span><i class="fas fa-spinner fa-spin"></i> Preparing Checkout...</span>`;
+      }
+      try {
+        await handleFormSubmit();
+      } finally {
+        if (unlockBtn) {
+          unlockBtn.disabled = false;
+          unlockBtn.innerHTML = origText;
+        }
+      }
+    }
+
+    // 14. TERMS & CONDITIONS MODAL
+    function openTermsModal() {
+      const modal = document.getElementById('termsModal');
+      if (modal) modal.style.display = 'flex';
+    }
+    function closeTermsModal() {
+      const modal = document.getElementById('termsModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    // 15. TEST MODE MODAL CONTROLS
     function openSimModal(orderData) {
       const childName = document.getElementById('childName').value.trim() || 'Your Child';
       document.getElementById('simChildName').textContent = childName;
@@ -2578,7 +2918,7 @@
       }, pendingOrderData);
     }
 
-    // 14. INTERSECTION OBSERVER TO HIDE STICKY MOBILE BAR WHEN FORM IS VISIBLE
+    // 16. INTERSECTION OBSERVER TO HIDE STICKY MOBILE BAR WHEN FORM IS VISIBLE
     document.addEventListener('DOMContentLoaded', () => {
       const createSection = document.getElementById('create');
       const mobileBar = document.getElementById('stickyMobileBar');

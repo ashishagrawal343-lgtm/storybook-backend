@@ -3867,7 +3867,13 @@ app.get('/api/sample-download/:sampleId', (req, res) => {
     const sampleId = String(req.params.sampleId || '').toLowerCase();
     let fileName = '';
     let downloadName = '';
-    if (sampleId === 'radha') {
+    if (sampleId === 'elizabeth') {
+        fileName = 'elizabeth-treasury-of-enchanted-forest-sample.pdf';
+        downloadName = 'Elizabeth-Treasury-Of-Enchanted-Forest-TwinkleTale-Sample.pdf';
+    } else if (sampleId === 'liam') {
+        fileName = 'liam-and-the-moonlight-carnival-sample.pdf';
+        downloadName = 'Liam-And-The-Moonlight-Carnival-TwinkleTale-Sample.pdf';
+    } else if (sampleId === 'radha') {
         fileName = 'radha-starlight-cosmic-voyage-sample.pdf';
         downloadName = 'Radha-Starlight-Cosmic-Voyage-TwinkleTale-Sample.pdf';
     } else if (sampleId === 'sid') {

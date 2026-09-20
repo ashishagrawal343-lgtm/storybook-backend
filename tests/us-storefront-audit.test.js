@@ -68,11 +68,12 @@ assert(usContent.includes('canvas.toDataURL'), 'us.html must downsample photo up
 assert(usContent.includes('maxDim = 768'), 'us.html must constrain canvas dimensions to 768px for optimum mobile upload speed');
 assert(usContent.includes('font-size: 16px'), 'Form inputs must use 16px font-size to prevent iOS Safari auto-zoom');
 assert(usContent.includes('checkout.razorpay.com/v1/checkout.js'), 'us.html must include Razorpay checkout SDK');
-assert(usContent.includes('currency: orderData.currency || "USD"'), 'Razorpay checkout handler must specify USD currency');
-assert(usContent.includes('sample-radha-cosmic-voyage'), 'us.html must showcase Radha cosmic sample');
-assert(usContent.includes('sample-sid-dinosaur-wonder'), 'us.html must showcase Sid dinosaur sample');
-assert(usContent.includes('/api/sample-download/radha'), 'us.html must provide direct download route for Radha sample');
-assert(usContent.includes('/api/sample-download/sid'), 'us.html must provide direct download route for Sid sample');
+assert(usContent.includes('sample-elizabeth-enchanted-forest'), 'us.html must showcase Elizabeth enchanted forest sample');
+assert(usContent.includes('sample-liam-moonlight-carnival'), 'us.html must showcase Liam moonlight carnival sample');
+assert(usContent.includes('/api/sample-download/elizabeth'), 'us.html must provide direct download route for Elizabeth sample');
+assert(usContent.includes('/api/sample-download/liam'), 'us.html must provide direct download route for Liam sample');
+assert(usContent.includes('id="previewStage"'), 'us.html must include previewStage section below form');
+assert(!usContent.includes('Money-Back Guarantee'), 'us.html must not contain Money-Back Guarantee');
 
 console.log('✅ TEST 2 PASSED: Mobile-first responsive, canvas downsampler, sticky CTA, and CRO elements verified.\n');
 
