@@ -3648,7 +3648,7 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
                         </p>
                         <p style="font-size:13px;color:#777;line-height:1.5">You can read this on any phone, iPad, tablet, or print it out on A4/Letter paper to make a physical bedside book.</p>
                         <hr style="border:none;border-top:1px solid #DDD;margin:24px 0">
-                        <p style="font-size:12px;color:#999;text-align:center">This download link is permanent and never expires.<br>Crafted with love by TwinkleTale Studios.</p>
+                        <p style="font-size:12px;color:#999;text-align:center">This download link is permanent and never expires.<br>Need assistance? Contact our team at <a href="mailto:support@twinkletaleai.com" style="color:#666;text-decoration:underline;">support@twinkletaleai.com</a>.<br>Crafted with love by TwinkleTale Studios.</p>
                     </div>`
                 });
                 emailed = true;
