@@ -255,9 +255,18 @@ console.log(`🚀 Image Generation Pipeline: ${PIPELINE_VERSION.toUpperCase()} (
 // Cover Pipeline Versioning (v2 reimagined default, with v1 instant rollback via COVER_PIPELINE_VERSION=v1)
 const { CoverDesignEngine } = require('./lib/cover/coverEngine');
 const { extractPhotoVisualAttributes } = require('./lib/vision/attributeExtractor');
+const { createCharacterProfile } = require('./lib/character/characterProfile');
+const { getOrGenerateCharacterMaster } = require('./lib/character/characterMaster');
+const { getOrGenerateCharacterSheet } = require('./lib/character/characterSheet');
+const { validateImageQuality, PageRegenerationBudget } = require('./lib/character/characterQA');
+const { OrderGenerationManifest } = require('./lib/observability/generationManifest');
+
 const COVER_PIPELINE_VERSION = process.env.COVER_PIPELINE_VERSION || 'v2';
 const IS_COVER_V2 = COVER_PIPELINE_VERSION !== 'v1';
+const CHARACTER_PIPELINE_VERSION = process.env.CHARACTER_PIPELINE_VERSION || 'v2';
+const UPSCALE_POLICY = process.env.UPSCALE_POLICY || 'threshold'; // 'threshold' (Sharp local default) | 'ai' | 'disabled'
 console.log(`🎨 Book Cover Pipeline: ${COVER_PIPELINE_VERSION.toUpperCase()} (v1 rollback available via COVER_PIPELINE_VERSION=v1)`);
+console.log(`👤 Character Master Pipeline: ${CHARACTER_PIPELINE_VERSION.toUpperCase()} | Upscale Policy: ${UPSCALE_POLICY}`);
 
 const coverEngine = new CoverDesignEngine({
     generateImage: (prompt, photoData, options) => generateImage(prompt, photoData, options),
@@ -1376,10 +1385,25 @@ async function generateCoverPainting(charAnchor, base, pal, photoData, bespokePr
 const QUALITY_SUFFIX = ' Composition: full-bleed page art, subject on rule-of-thirds, eye-level camera for child subjects, strong silhouette readability. Micro-detail: crisp fabric weave, individual hair strands, tiny specular highlights in eyes. Print finish: gallery-grade print quality, clean anti-aliased edges, no banding, no compression artifacts, no oversharpening.';
 let bookUpscalesCount = 0;
 
-// UPSCALE CHAIN (REAL-ESRGAN 4K SUPER-RES -> CLARITY-UPSCALER -> NATIVE FALLBACK)
+const upscaledAssetsCache = new Set();
+
+// UPSCALE CHAIN (LOCAL SHARP THRESHOLD -> REAL-ESRGAN -> CLARITY-UPSCALER -> NATIVE)
 async function upscaleImageWithFallback(url, isFace = false) {
     const cleanUrl = extractUrl(url);
     if (!cleanUrl) return url;
+
+    // Deduplication check: Never AI-upscale the same asset twice
+    if (upscaledAssetsCache.has(cleanUrl)) {
+        console.log(`⚡ [UPSCALE DEDUPLICATION] Asset already upscaled: ${cleanUrl}`);
+        return cleanUrl;
+    }
+
+    // Policy check: If local Sharp enhancement is active, bypass cloud AI upscaler
+    if (UPSCALE_POLICY === 'local' || process.env.UPSCALE_IMAGES === 'false') {
+        console.log(`⚡ [UPSCALE POLICY] Local Sharp enhancement active — bypassing cloud AI upscaling.`);
+        upscaledAssetsCache.add(cleanUrl);
+        return cleanUrl;
+    }
 
     // 1. High-speed 4K super-resolution via Real-ESRGAN (2-3s on Replicate, scale 4, zero facial distortion)
     try {
@@ -1393,6 +1417,8 @@ async function upscaleImageWithFallback(url, isFace = false) {
         if (upscaledUrl) {
             console.log("⬆️ 4K upscale via nightmareai/real-esrgan (scale=4, 4K super-resolution)");
             bookUpscalesCount++;
+            upscaledAssetsCache.add(cleanUrl);
+            upscaledAssetsCache.add(upscaledUrl);
             return upscaledUrl;
         }
     } catch (errB) {
@@ -1418,6 +1444,8 @@ async function upscaleImageWithFallback(url, isFace = false) {
         if (upscaledUrl) {
             console.log(`⬆️ 4K upscale via philz1337x/clarity-upscaler (isFace=${isFace})`);
             bookUpscalesCount++;
+            upscaledAssetsCache.add(cleanUrl);
+            upscaledAssetsCache.add(upscaledUrl);
             return upscaledUrl;
         }
     } catch (errA) {
@@ -1426,6 +1454,7 @@ async function upscaleImageWithFallback(url, isFace = false) {
 
     // 3. Graceful degradation
     console.warn("⚠️ upscale fallback to native");
+    upscaledAssetsCache.add(cleanUrl);
     return cleanUrl;
 }
 
@@ -1754,6 +1783,9 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme") MUST
             var coverDesignSpec = coverResult.designSpec || null;
             var coverCollision = coverResult.collisionResults || null;
             var coverDebugOverlay = coverResult.debugOverlayBuffer || null;
+            var coverCharacterMaster = coverResult.characterMaster || null;
+            var coverCharacterSheet = coverResult.characterSheet || null;
+            var coverCharacterProfile = coverResult.characterProfile || null;
         } else {
             // Legacy v1 Medallion fallback
             const storyJsonV1 = await storyPromise;
@@ -1811,10 +1843,13 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme") MUST
             childName, gender: genderClean, age: childAge, theme, language: lang,
             photoData, dedication, email,
             attributes: visualAttributes,
+            characterMaster: typeof coverCharacterMaster !== 'undefined' ? coverCharacterMaster : null,
+            characterSheet: typeof coverCharacterSheet !== 'undefined' ? coverCharacterSheet : null,
+            characterProfile: typeof coverCharacterProfile !== 'undefined' ? coverCharacterProfile : null,
             charAnchor, pronoun, subjectPronoun, pal,
             title: bookTitle, bookTitle,
             coverUrl: coverPublicUrl,
-            referencePortraitUrl: vigUrlRaw, // PRD FR-1 & FR-3: Single locked reference portrait anchor
+            referencePortraitUrl: (typeof coverCharacterMaster !== 'undefined' && coverCharacterMaster && coverCharacterMaster.masterUrl) ? coverCharacterMaster.masterUrl : vigUrlRaw, // PRD FR-1 & FR-3: Single locked reference portrait anchor
             coverProvenance: typeof coverProvenance !== 'undefined' ? coverProvenance : null,
             coverDesignSpec: typeof coverDesignSpec !== 'undefined' ? coverDesignSpec : null,
             coverCollision: typeof coverCollision !== 'undefined' ? coverCollision : null,
@@ -2862,6 +2897,11 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         console.log(`📖 Async Assembly Job ${jobId} | ${childName} | scenes=${scenes} | Lang=${language}`);
         const startUpscales = bookUpscalesCount;
 
+        // Initialize Order Manifest for cost, model, and quality audit
+        const manifest = new OrderGenerationManifest(jobId, session.previewId);
+        if (session.characterMaster) manifest.setCharacterMaster(session.characterMaster);
+        if (session.characterSheet) manifest.setCharacterSheet(session.characterSheet);
+
         // If direct checkout, generate bespoke story scenes via LLM if not already available
         let activeScenes = Array.isArray(scenesData) && scenesData.length > 0 ? scenesData : [];
         if (activeScenes.length === 0) {
@@ -2981,6 +3021,11 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
                 }
             }
         }
+
+        manifest.recordCover({
+            reused: !!(session.coverIsComposited !== false && !session.wasCoverRegenerated),
+            model: 'black-forest-labs/flux-kontext-pro'
+        });
 
         const cover = pdfDoc.addPage([PAGE_W, PAGE_H]);
         cover.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: pal.cover });
@@ -3149,6 +3194,46 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         const activeCharAnchor = charAnchor || charDetails.charAnchor;
         const activeOutfit = charDetails.outfit;
 
+        // Ensure Character Master v1 is established
+        let characterProfile = session.characterProfile || null;
+        let characterMaster = session.characterMaster || null;
+        let characterSheet = session.characterSheet || null;
+
+        if (!characterMaster && photoData) {
+            try {
+                if (!characterProfile) {
+                    characterProfile = createCharacterProfile({
+                        childName,
+                        gender,
+                        age,
+                        theme,
+                        attributes: bookAttributes,
+                        photoData,
+                        charAnchor: activeCharAnchor,
+                        outfit: activeOutfit
+                    });
+                    session.characterProfile = characterProfile;
+                }
+                characterMaster = await getOrGenerateCharacterMaster({
+                    photoData,
+                    profile: characterProfile,
+                    generateImageFn: (p, pd, opt) => generateImage(p, pd, opt)
+                });
+                if (characterMaster) {
+                    session.characterMaster = characterMaster;
+                    manifest.setCharacterMaster(characterMaster);
+                    manifest.recordAiCall({
+                        stage: 'character_master',
+                        model: 'black-forest-labs/flux-kontext-pro',
+                        reason: 'full_book_character_master_init',
+                        outputAssetId: characterMaster.masterUrl
+                    });
+                }
+            } catch (cmErr) {
+                console.warn('⚠️ [CharacterMaster] Could not establish Master in assembleFullBookAsync:', cmErr.message);
+            }
+        }
+
         // Validate or fallback scenes
         const effectiveScenes = (activeScenes || []).slice(0, scenes);
         while (effectiveScenes.length < scenes) {
@@ -3161,12 +3246,14 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         }
 
         // PRD FR-1 & FR-3: Identity Anchor setup
-        // CRITICAL IDENTITY PARITY:
-        // Always prioritize the original uploaded child photo (photoData / session.photoData) as the visualCondition
-        // for flux-kontext-pro across all interior scenes. Conditioning directly on the child's photo ensures
-        // identical facial contours, eye shape, smile, skin tone, and hair across the entire book.
+        // CRITICAL IDENTITY CONSISTENCY:
+        // Prioritize Character Master v1 (canonical stylized 1:1 portrait), then reference portrait, then uploaded photo.
+        // Conditioning on the Character Master ensures identical facial contours, eye shape, smile, skin tone,
+        // hair texture, glasses, and cultural headwear across both Cover and all interior scenes.
         let visualCondition = photoData || session.photoData || null;
-        if (!visualCondition && session.referencePortraitUrl) {
+        if (characterMaster && characterMaster.masterUrl) {
+            visualCondition = characterMaster.masterUrl;
+        } else if (!visualCondition && session.referencePortraitUrl) {
             visualCondition = session.referencePortraitUrl;
         } else if (!visualCondition) {
             try {
@@ -3182,6 +3269,7 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         // ================= INTERIOR SPREADS: ILLUSTRATION GENERATION (SEQUENTIAL & MEMORY-SAFE) =================
         // Process one scene at a time with native resolution (upscale: false) to keep RAM < 150MB on Render
         const sceneFilePaths = new Array(scenes);
+        const pageQaBudget = new PageRegenerationBudget(MAX_PAGE_QUALITY_REGENERATIONS);
 
         for (let i = 0; i < scenes; i++) {
             const currentSceneNum = i + 1;
@@ -3219,22 +3307,56 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
             }
 
             const identityDirective = (IS_V2 && visualCondition)
-                ? `${attributePrefix}Masterpiece modern children's picture book illustration in award-winning painterly realism, fine digital gouache and soft luminous artisan oils: featuring the exact same ${charDetails.genderClean || 'hero'} from the reference photo (${activeCharAnchor}), ${attributeNegative}preserving 80-90% facial likeness and identity: identical facial structure, eye shape, eyebrows, nose, mouth, authentic cheerful smile, natural skin tone, hair texture, and consistently ${activeOutfit}. In this scene: ${rawPrompt}`
+                ? `${attributePrefix}Masterpiece modern children's picture book illustration in award-winning painterly realism, fine digital gouache and soft luminous artisan oils: featuring the exact same ${charDetails.genderClean || 'hero'} from the reference character portrait (${activeCharAnchor}), ${attributeNegative}preserving 80-90% facial likeness and identity: identical facial structure, eye shape, eyebrows, nose, mouth, authentic cheerful smile, natural skin tone, hair texture, and consistently ${activeOutfit}. In this scene: ${rawPrompt}`
                 : `Masterpiece modern children's picture book illustration in award-winning painterly realism, fine digital gouache and soft luminous artisan oils: featuring ${activeCharAnchor}, consistently ${activeOutfit}. In this scene: ${rawPrompt}`;
             const scenePrompt = STYLE + identityDirective;
 
             // Generate native image without heavy 4K Real-ESRGAN upscaler to save ~6s and ~85MB RAM per scene
             let rawUrl;
+            let attempts = 0;
+            let qualityRegenerations = 0;
+            const tSceneStart = Date.now();
+
             try {
+                attempts++;
                 rawUrl = await withRetry(`scene ${i + 1} image`, async () => generateImage(scenePrompt, visualCondition, { isFace: true, upscale: false }));
+                manifest.recordAiCall({
+                    stage: 'page_generation',
+                    page: currentSceneNum,
+                    model: 'black-forest-labs/flux-kontext-pro',
+                    reason: 'initial_generation',
+                    attempt: attempts,
+                    latencyMs: Date.now() - tSceneStart,
+                    success: !!rawUrl
+                });
             } catch (sceneErr) {
                 console.warn(`⚠️ Scene ${i + 1} illustration notice (${sceneErr.message}). Gracefully recovering via locked character reference anchor...`);
                 const fallbackPrompt = STYLE + `Masterpiece modern children's picture book illustration in award-winning painterly realism, fine digital gouache: featuring a cheerful young ${charDetails.genderClean || 'hero'} in ${activeOutfit}, smiling happily in this scene: ${rawPrompt}`;
                 try {
+                    attempts++;
                     rawUrl = await generateImage(fallbackPrompt, session.referencePortraitUrl || null, { isFace: true, upscale: false });
+                    manifest.recordAiCall({
+                        stage: 'page_generation',
+                        page: currentSceneNum,
+                        model: 'black-forest-labs/flux-kontext-pro',
+                        reason: 'fallback_reference_portrait',
+                        attempt: attempts,
+                        latencyMs: Date.now() - tSceneStart,
+                        success: !!rawUrl
+                    });
                 } catch (refErr) {
                     console.warn(`⚠️ Scene ${i + 1} reference fallback notice (${refErr.message}). Recovering via pure text-to-image prompt...`);
+                    attempts++;
                     rawUrl = await generateImage(fallbackPrompt, null, { isFace: false, upscale: false });
+                    manifest.recordAiCall({
+                        stage: 'page_generation',
+                        page: currentSceneNum,
+                        model: 'black-forest-labs/flux-1.1-pro',
+                        reason: 'fallback_text_to_image',
+                        attempt: attempts,
+                        latencyMs: Date.now() - tSceneStart,
+                        success: !!rawUrl
+                    });
                 }
             }
             let rawBuf;
@@ -3245,6 +3367,46 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
                 await sleep(1500);
                 rawBuf = await fetchImageBuffer(rawUrl);
             }
+
+            // Quality Assurance & Budgeted Single Regeneration
+            const qaResult = await validateImageQuality(rawBuf, { minBytes: 5000, expectedRatio: 0.75 });
+            if (!qaResult.valid && pageQaBudget.canRegenerate(i)) {
+                pageQaBudget.recordAttempt(i);
+                qualityRegenerations++;
+                console.warn(`⚠️ [CharacterQA] Scene ${currentSceneNum} failed QA (${qaResult.reason}). Retrying once under budget...`);
+                const tQaRetry = Date.now();
+                try {
+                    attempts++;
+                    const retryUrl = await generateImage(scenePrompt, visualCondition, { isFace: true, upscale: false });
+                    if (retryUrl) {
+                        const retryBuf = await fetchImageBuffer(retryUrl);
+                        const retryQa = await validateImageQuality(retryBuf, { minBytes: 5000, expectedRatio: 0.75 });
+                        if (retryQa.valid) {
+                            rawBuf = retryBuf;
+                            rawUrl = retryUrl;
+                        }
+                    }
+                    manifest.recordAiCall({
+                        stage: 'page_generation',
+                        page: currentSceneNum,
+                        model: 'black-forest-labs/flux-kontext-pro',
+                        reason: `qa_regeneration_${qaResult.reason}`,
+                        attempt: attempts,
+                        latencyMs: Date.now() - tQaRetry,
+                        success: true
+                    });
+                } catch (qaRetryErr) {
+                    console.warn(`⚠️ [CharacterQA] Scene ${currentSceneNum} QA retry error: ${qaRetryErr.message}`);
+                }
+            }
+
+            manifest.recordPage({
+                page: currentSceneNum,
+                attempts,
+                qualityRegenerations,
+                upscaleCalls: 0,
+                latencyMs: Date.now() - tSceneStart
+            });
 
             // Memory-optimized 1200x1600 JPEG compression for 300 DPI print quality (<400KB per page on disk)
             const sceneDiskPath = path.join(booksFolder, `temp_scene_${jobId}_${i}.jpg`);
@@ -3481,6 +3643,15 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         saveJob(jobId, job);
         if (supabase) {
             await uploadToStorage(`metadata/job_${jobId}.json`, Buffer.from(JSON.stringify(job)), 'application/json');
+        }
+
+        // Finalize and persist Generation Manifest for complete observability & cost auditing
+        manifest.finalize();
+        manifest.saveToDisk(booksFolder);
+        if (supabase) {
+            try {
+                await uploadToStorage(`manifests/manifest_${jobId}.json`, Buffer.from(JSON.stringify(manifest.toJSON())), 'application/json');
+            } catch (_) {}
         }
 
         const jobUpscales = bookUpscalesCount - startUpscales;
