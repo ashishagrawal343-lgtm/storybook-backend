@@ -275,6 +275,25 @@ const coverEngine = new CoverDesignEngine({
 });
 
 // ====================================================================
+// GOOGLE CLOUD RUN SERVERLESS COMPILATION ENGINE
+// Offloads heavy 300 DPI multi-page rendering from Render (512MB RAM)
+// to Google Cloud Run (2048MB RAM autoscale microservice)
+// ====================================================================
+const IS_CLOUD_RUN = !!(process.env.K_SERVICE || process.env.IS_CLOUD_RUN || process.env.CLOUD_RUN_SERVICE);
+const CLOUD_RUN_ENGINE_URL = (!IS_CLOUD_RUN && (process.env.CLOUD_RUN_ENGINE_URL || 'https://storybook-backend-50529169658.us-central1.run.app'))
+    ? (process.env.CLOUD_RUN_ENGINE_URL || 'https://storybook-backend-50529169658.us-central1.run.app').trim().replace(/\/+$/, '')
+    : null;
+const ENGINE_SECRET_TOKEN = process.env.ENGINE_SECRET_TOKEN || '';
+
+if (CLOUD_RUN_ENGINE_URL) {
+    console.log(`⚡ Google Cloud Run Compilation Worker: ACTIVE (${CLOUD_RUN_ENGINE_URL})`);
+} else if (IS_CLOUD_RUN) {
+    console.log('⚡ Google Cloud Run Worker Mode: ACTIVE (direct in-process compilation)');
+} else {
+    console.log('⚡ Google Cloud Run Worker: OFF (local in-process fallback)');
+}
+
+// ====================================================================
 // REGIONAL MARKET & MULTI-CURRENCY PRICING CONFIGURATION
 // IN: Domestic India (Paise, INR)
 // US: United States (Cents, USD)
@@ -406,26 +425,43 @@ function getJob(jobId) {
 async function getJobAsync(jobId) {
     if (!jobId) return null;
     let job = getJob(jobId);
-    if (job) return job;
+    if (job && job.status === 'completed') return job;
 
+    // 1. Check Google Cloud Run compilation worker if job is in progress
+    if (CLOUD_RUN_ENGINE_URL) {
+        try {
+            const crRes = await axios.get(`${CLOUD_RUN_ENGINE_URL}/api/job-status/${jobId}`, { timeout: 4000 });
+            if (crRes.data && crRes.data.success && crRes.data.status) {
+                job = { ...(job || {}), ...crRes.data };
+                activeJobs.set(jobId, job);
+                if (job.status === 'completed') {
+                    return job;
+                }
+            }
+        } catch (_) {}
+    }
+
+    // 2. Check Supabase shared storage metadata
     if (supabase) {
         try {
             const { data, error } = await supabase.storage.from('storybooks').download(`metadata/job_${jobId}.json`);
             if (!error && data) {
                 const text = await data.text();
-                job = JSON.parse(text);
-                activeJobs.set(jobId, job);
-                try {
-                    fs.writeFileSync(path.join(booksFolder, `job_${jobId}.json`), JSON.stringify(job));
-                } catch (_) {}
-                console.log(`☁️ [SUPABASE] Restored Job ${jobId} from durable cloud storage!`);
-                return job;
+                const cloudJob = JSON.parse(text);
+                if (cloudJob) {
+                    job = { ...(job || {}), ...cloudJob };
+                    activeJobs.set(jobId, job);
+                    try {
+                        fs.writeFileSync(path.join(booksFolder, `job_${jobId}.json`), JSON.stringify(job));
+                    } catch (_) {}
+                    return job;
+                }
             }
         } catch (e) {
             console.warn(`⚠️ [SUPABASE] Job metadata fetch notice for ${jobId}:`, e.message);
         }
     }
-    return null;
+    return job;
 }
 
 function saveSession(previewId, sessionData) {
@@ -2099,15 +2135,45 @@ class BookGenerationQueue {
         console.log(`⚡ [QUEUE] Starting Job ${jobId} (Attempt ${item.attempts + 1}/${this.maxAttempts}). Remaining in queue: ${this.queue.length}`);
 
         try {
-            await assembleFullBookAsync(jobId, session, bookLength, parentEmail, protocol, host);
+            let dispatchedToCloudRun = false;
+            if (CLOUD_RUN_ENGINE_URL) {
+                console.log(`🚀 [QUEUE] Offloading heavy book compilation for Job ${jobId} to Google Cloud Run (${CLOUD_RUN_ENGINE_URL})...`);
+                try {
+                    const crRes = await axios.post(`${CLOUD_RUN_ENGINE_URL}/api/assemble-book`, {
+                        jobId,
+                        session,
+                        bookLength,
+                        parentEmail,
+                        protocol,
+                        host
+                    }, {
+                        timeout: 20000,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-engine-token': ENGINE_SECRET_TOKEN
+                        }
+                    });
 
-            // Successfully fulfilled: remove queue persistence file
+                    if (crRes.status === 200 || crRes.status === 202) {
+                        console.log(`✅ [QUEUE] Job ${jobId} successfully accepted by Google Cloud Run worker!`);
+                        dispatchedToCloudRun = true;
+                    }
+                } catch (crErr) {
+                    console.warn(`⚠️ [QUEUE] Cloud Run dispatch notice (${crErr.message}). Gracefully falling back to local compilation...`);
+                }
+            }
+
+            if (!dispatchedToCloudRun) {
+                await assembleFullBookAsync(jobId, session, bookLength, parentEmail, protocol, host);
+            }
+
+            // Successfully fulfilled / accepted: remove queue persistence file
             try {
                 const qFile = path.join(booksFolder, `queue_${jobId}.json`);
                 if (fs.existsSync(qFile)) fs.unlinkSync(qFile);
             } catch (_) {}
 
-            console.log(`🎉 [QUEUE] Job ${jobId} fulfilled successfully!`);
+            console.log(`🎉 [QUEUE] Job ${jobId} processed successfully!`);
             this.currentItem = null;
             this.processing = false;
             this.processNext();

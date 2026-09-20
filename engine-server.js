@@ -13,6 +13,7 @@ process.on('unhandledRejection', (reason) => {
 
 // Load environment variables
 require('dotenv').config();
+process.env.IS_CLOUD_RUN = 'true';
 
 // Pre-sanitize cloud environment variables before importing compilation helpers
 if (process.env.SUPABASE_URL) {
