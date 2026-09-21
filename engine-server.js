@@ -183,16 +183,40 @@ app.post('/api/assemble-book', verifyEngineAuth, async (req, res) => {
         return res.status(503).json({ success: false, error: 'Engine compilation worker not initialized' });
     }
 
-    console.log(`⚡ [CLOUD RUN ENGINE] Received assemble request for Job: ${jobId} (${session.childName}, ${bookLength || '12 pages'})`);
+    console.log(`⚡ [CLOUD RUN ENGINE] Active compilation started for Job: ${jobId} (${session.childName}, ${bookLength || '12 pages'})`);
 
-    res.status(202).json({
-        success: true,
-        message: 'Job accepted by Cloud Run engine worker',
-        jobId,
-        statusUrl: `/api/download/${jobId}`
-    });
+    // Ensure job is tracked in memory on Cloud Run
+    if (saveJob) {
+        saveJob(jobId, {
+            id: jobId,
+            status: 'generating',
+            progress: 10,
+            step: 'Cloud Run worker compiling storybook...',
+            timestamp: Date.now()
+        });
+    }
 
     try {
+        // Normalize any serialized buffers in session
+        if (session.coverBuffer) {
+            if (Buffer.isBuffer(session.coverBuffer)) {
+                // already buffer
+            } else if (session.coverBuffer.type === 'Buffer' && Array.isArray(session.coverBuffer.data)) {
+                session.coverBuffer = Buffer.from(session.coverBuffer.data);
+            } else if (typeof session.coverBuffer === 'string' && session.coverBuffer.startsWith('data:')) {
+                session.coverBuffer = Buffer.from(session.coverBuffer.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+            }
+        }
+        if (session.bgBuffer && !Buffer.isBuffer(session.bgBuffer) && session.bgBuffer.type === 'Buffer' && Array.isArray(session.bgBuffer.data)) {
+            session.bgBuffer = Buffer.from(session.bgBuffer.data);
+        }
+        if (session.vigBuffer && !Buffer.isBuffer(session.vigBuffer) && session.vigBuffer.type === 'Buffer' && Array.isArray(session.vigBuffer.data)) {
+            session.vigBuffer = Buffer.from(session.vigBuffer.data);
+        }
+
+        // CRITICAL CLOUD RUN ARCHITECTURAL FIX:
+        // Cloud Run throttles container CPU to near-zero as soon as an HTTP response is returned.
+        // Holding this HTTP request open ensures Cloud Run allocates 100% CPU capacity for the entire generation!
         await assembleFullBookAsync(
             jobId,
             session,
@@ -201,9 +225,22 @@ app.post('/api/assemble-book', verifyEngineAuth, async (req, res) => {
             protocol || 'https',
             host || req.get('host')
         );
+
+        const completedJob = getJobAsync ? await getJobAsync(jobId) : (getJob ? getJob(jobId) : null);
         console.log(`🎉 [CLOUD RUN ENGINE] Job ${jobId} successfully assembled and uploaded to permanent storage!`);
+
+        return res.json({
+            success: true,
+            jobId,
+            status: 'completed',
+            progress: 100,
+            pdfUrl: completedJob?.pdfUrl,
+            directPdfUrl: completedJob?.directPdfUrl,
+            supabaseUrl: completedJob?.supabaseUrl
+        });
     } catch (err) {
         console.error(`❌ [CLOUD RUN ENGINE] Job ${jobId} compilation error:`, err.message);
+        return res.status(500).json({ success: false, error: err.message });
     }
 });
 

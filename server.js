@@ -1628,6 +1628,15 @@ async function fetchImageBuffer(url) {
 }
 
 async function embedImageBuffer(pdfDoc, buf, label = 'image') {
+    if (buf && !Buffer.isBuffer(buf)) {
+        if (buf.type === 'Buffer' && Array.isArray(buf.data)) {
+            buf = Buffer.from(buf.data);
+        } else if (typeof buf === 'string' && buf.startsWith('data:')) {
+            buf = Buffer.from(buf.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+        } else if (buf.data && Array.isArray(buf.data)) {
+            buf = Buffer.from(buf.data);
+        }
+    }
     let img;
     // Fast magic byte check: PNG starts with 0x89 0x50 0x4E 0x47
     const isPng = buf && buf.length > 4 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47;
@@ -2147,15 +2156,15 @@ class BookGenerationQueue {
                         protocol,
                         host
                     }, {
-                        timeout: 20000,
+                        timeout: 600000, // 10 minutes: keep HTTP connection active so Cloud Run allocates 100% CPU
                         headers: {
                             'Content-Type': 'application/json',
                             'x-engine-token': ENGINE_SECRET_TOKEN
                         }
                     });
 
-                    if (crRes.status === 200 || crRes.status === 202) {
-                        console.log(`✅ [QUEUE] Job ${jobId} successfully accepted by Google Cloud Run worker!`);
+                    if ((crRes.status === 200 || crRes.status === 202) && crRes.data && crRes.data.success) {
+                        console.log(`✅ [QUEUE] Job ${jobId} successfully compiled and finalized by Google Cloud Run worker!`);
                         dispatchedToCloudRun = true;
                     }
                 } catch (crErr) {
@@ -2593,10 +2602,10 @@ app.post('/api/verify-and-complete-book', rateLimiter, async (req, res) => {
 // ====================================================================
 async function handleOrderFulfillment(req, res) {
     try {
-        const paymentId = req.body.paymentId || req.query.paymentId;
-        const orderId = req.body.orderId || req.query.orderId;
-        const previewId = req.body.previewId || req.query.previewId;
-        let targetEmail = req.body.email || req.query.email;
+        const paymentId = (req.body && req.body.paymentId) || req.query.paymentId;
+        const orderId = (req.body && req.body.orderId) || req.query.orderId;
+        const previewId = (req.body && req.body.previewId) || req.query.previewId;
+        let targetEmail = (req.body && req.body.email) || req.query.email;
 
         console.log(`🔧 [ORDER FULFILLMENT] Request received: paymentId=${paymentId || 'none'}, orderId=${orderId || 'none'}, previewId=${previewId || 'none'}, email=${targetEmail || 'none'}`);
 
@@ -3022,6 +3031,15 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         // ================= PAGE 1: FRONT COVER (THEME BORDER & MEDALLION) =================
         update(30, 'Binding theme-framed front cover...');
         let coverImgBuffer = session.coverBuffer;
+        if (coverImgBuffer && !Buffer.isBuffer(coverImgBuffer)) {
+            if (coverImgBuffer.type === 'Buffer' && Array.isArray(coverImgBuffer.data)) {
+                coverImgBuffer = Buffer.from(coverImgBuffer.data);
+            } else if (typeof coverImgBuffer === 'string' && coverImgBuffer.startsWith('data:')) {
+                coverImgBuffer = Buffer.from(coverImgBuffer.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+            } else if (coverImgBuffer.data && Array.isArray(coverImgBuffer.data)) {
+                coverImgBuffer = Buffer.from(coverImgBuffer.data);
+            }
+        }
 
         // PRD FR-5: Strict Parity Check — Cloud storage first (survives restarts/TTL), then disk cache
         if (!coverImgBuffer && session.coverUrl && typeof session.coverUrl === 'string' && session.coverUrl.startsWith('http')) {
@@ -3115,14 +3133,16 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
             // High-fidelity print enhancement: 1200x1600 (200 DPI print-fidelity for 600x800 pt page)
             // Uses JPEG with 4:4:4 chroma subsampling at 92 quality, cutting RAM by ~80MB vs uncompressed PNG
             try {
-                coverImgBuffer = await sharp(coverImgBuffer)
-                    .resize(1200, 1600, {
-                        fit: 'cover'
-                    })
-                    .sharpen({ sigma: 1.0, m1: 0.5, m2: 0.5 })
-                    .jpeg({ quality: 92, chromaSubsampling: '4:4:4' })
-                    .toBuffer();
-                console.log(`✅ [COVER PRINT ENHANCEMENT] Final book cover enhanced to 1200x1600 (JPEG 92 4:4:4) for crisp print perfection & minimal RAM.`);
+                if (coverImgBuffer && Buffer.isBuffer(coverImgBuffer)) {
+                    coverImgBuffer = await sharp(coverImgBuffer)
+                        .resize(1200, 1600, {
+                            fit: 'cover'
+                        })
+                        .sharpen({ sigma: 1.0, m1: 0.5, m2: 0.5 })
+                        .jpeg({ quality: 92, chromaSubsampling: '4:4:4' })
+                        .toBuffer();
+                    console.log(`✅ [COVER PRINT ENHANCEMENT] Final book cover enhanced to 1200x1600 (JPEG 92 4:4:4) for crisp print perfection & minimal RAM.`);
+                }
             } catch (sharpErr) {
                 console.warn(`⚠️ [COVER PRINT ENHANCEMENT] Sharp enhancement notice:`, sharpErr.message);
             }
