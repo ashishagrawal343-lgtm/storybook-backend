@@ -234,6 +234,7 @@ app.post('/api/assemble-book', verifyEngineAuth, async (req, res) => {
             jobId,
             status: 'completed',
             progress: 100,
+            fileName: completedJob?.fileName,
             pdfUrl: completedJob?.pdfUrl,
             directPdfUrl: completedJob?.directPdfUrl,
             supabaseUrl: completedJob?.supabaseUrl
@@ -334,6 +335,14 @@ app.get('/api/download/:jobId', async (req, res) => {
     if (job.status !== 'completed') {
         return res.json({ status: job.status, progress: job.progress, step: job.step });
     }
+    const fileName = job.fileName || `twinkletale_${job.id}.pdf`;
+    const localFile = path.join(__dirname, 'books', fileName);
+    if (fs.existsSync(localFile) && fs.statSync(localFile).size > 0) {
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
+        return res.sendFile(localFile);
+    }
+
     if (job.supabaseUrl) {
         return res.redirect(job.supabaseUrl);
     }

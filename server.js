@@ -425,16 +425,17 @@ function getJob(jobId) {
 async function getJobAsync(jobId) {
     if (!jobId) return null;
     let job = getJob(jobId);
-    if (job && job.status === 'completed') return job;
+    if (job && job.status === 'completed' && (job.supabaseUrl || job.directPdfUrl || job.fileName)) return job;
 
-    // 1. Check Google Cloud Run compilation worker if job is in progress
+    // 1. Check Google Cloud Run compilation worker if job is in progress or needs cloud asset links
     if (CLOUD_RUN_ENGINE_URL) {
         try {
             const crRes = await axios.get(`${CLOUD_RUN_ENGINE_URL}/api/job-status/${jobId}`, { timeout: 4000 });
             if (crRes.data && crRes.data.success && crRes.data.status) {
                 job = { ...(job || {}), ...crRes.data };
                 activeJobs.set(jobId, job);
-                if (job.status === 'completed') {
+                saveJob(jobId, job);
+                if (job.status === 'completed' && (job.supabaseUrl || job.directPdfUrl || job.fileName)) {
                     return job;
                 }
             }
@@ -2166,6 +2167,20 @@ class BookGenerationQueue {
                     if ((crRes.status === 200 || crRes.status === 202) && crRes.data && crRes.data.success) {
                         console.log(`✅ [QUEUE] Job ${jobId} successfully compiled and finalized by Google Cloud Run worker!`);
                         dispatchedToCloudRun = true;
+                        const existing = getJob(jobId) || { id: jobId };
+                        const updatedJob = {
+                            ...existing,
+                            ...crRes.data,
+                            status: 'completed',
+                            progress: 100,
+                            step: 'Your storybook is ready!',
+                            fileName: crRes.data.fileName || existing.fileName,
+                            directPdfUrl: crRes.data.directPdfUrl || existing.directPdfUrl,
+                            supabaseUrl: crRes.data.supabaseUrl || existing.supabaseUrl,
+                            pdfUrl: existing.pdfUrl || crRes.data.pdfUrl,
+                            completedAt: Date.now()
+                        };
+                        saveJob(jobId, updatedJob);
                     }
                 } catch (crErr) {
                     console.warn(`⚠️ [QUEUE] Cloud Run dispatch notice (${crErr.message}). Gracefully falling back to local compilation...`);
@@ -2752,6 +2767,9 @@ app.get('/api/job-status/:jobId', async (req, res) => {
         progress: job.progress,
         step: job.step,
         pdfUrl: job.pdfUrl,
+        directPdfUrl: job.directPdfUrl || null,
+        supabaseUrl: job.supabaseUrl || null,
+        fileName: job.fileName || null,
         emailed: job.emailed,
         error: job.error,
         refundId: job.refundId || null,
@@ -2860,7 +2878,18 @@ async function handleDownloadStorybook(req, res) {
         return res.sendFile(localFile);
     }
 
-    // 2. Cloud Storage retrieval: Stream from Supabase into local cache, then send
+    // 2. Fast cloud redirect: Direct 30-day pre-signed Supabase URL
+    if (job.supabaseUrl && typeof job.supabaseUrl === 'string' && job.supabaseUrl.startsWith('http')) {
+        console.log(`☁️ [DOWNLOAD] Redirecting user directly to cloud storage for Job ${jobId}`);
+        return res.redirect(job.supabaseUrl);
+    }
+
+    // 3. Fallback to directPdfUrl if valid external URL
+    if (job.directPdfUrl && typeof job.directPdfUrl === 'string' && job.directPdfUrl.startsWith('http') && !job.directPdfUrl.includes('/api/download/')) {
+        return res.redirect(job.directPdfUrl);
+    }
+
+    // 4. Cloud Storage retrieval: Stream from Supabase into local cache, then send
     if (supabase && job.fileName) {
         try {
             console.log(`☁️ [SUPABASE] Downloading ${job.fileName} to local cache to stream to user...`);
@@ -2880,7 +2909,6 @@ async function handleDownloadStorybook(req, res) {
             console.warn(`⚠️ [SUPABASE] Download exception for ${job.fileName}:`, dlEx.message);
         }
 
-        // 3. Fallback: Generate a fresh 30-day pre-signed Supabase URL and redirect
         try {
             const signedRes = await supabase.storage.from('storybooks').createSignedUrl(job.fileName, 2592000);
             if (signedRes && signedRes.data && signedRes.data.signedUrl) {
@@ -2892,11 +2920,28 @@ async function handleDownloadStorybook(req, res) {
         }
     }
 
-    // 4. Fallback to directPdfUrl or stored pdfUrl if valid external URL
-    if (job.directPdfUrl && job.directPdfUrl.startsWith('http') && !job.directPdfUrl.includes('/api/download/')) {
-        return res.redirect(job.directPdfUrl);
+    // 5. Cloud Run compilation worker proxy: Stream PDF directly from Cloud Run engine
+    if (CLOUD_RUN_ENGINE_URL) {
+        try {
+            console.log(`🚀 [CLOUD RUN PROXY] Fetching storybook PDF for Job ${jobId} from Cloud Run engine...`);
+            const crStream = await axios.get(`${CLOUD_RUN_ENGINE_URL}/api/download/${jobId}${forceDownload ? '?download=1' : ''}`, {
+                responseType: 'stream',
+                timeout: 30000,
+                maxRedirects: 5,
+                validateStatus: (s) => s < 400
+            });
+            if (crStream.status === 200 && crStream.headers['content-type']?.includes('pdf')) {
+                res.setHeader('Content-Type', 'application/pdf');
+                res.setHeader('Content-Disposition', `${dispositionType}; filename="${fileName}"`);
+                return crStream.data.pipe(res);
+            }
+        } catch (crErr) {
+            console.warn(`⚠️ [CLOUD RUN PROXY] Download proxy notice for ${jobId}:`, crErr.message);
+        }
     }
-    if (job.pdfUrl && job.pdfUrl.startsWith('http') && !job.pdfUrl.includes('/api/download/')) {
+
+    // 6. External pdfUrl fallback
+    if (job.pdfUrl && typeof job.pdfUrl === 'string' && job.pdfUrl.startsWith('http') && !job.pdfUrl.includes('/api/download/')) {
         return res.redirect(job.pdfUrl);
     }
 
