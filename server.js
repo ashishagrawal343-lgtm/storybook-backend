@@ -2104,7 +2104,8 @@ app.post('/api/create-order', rateLimiter, async (req, res) => {
                 notes: {
                     previewId: effectivePreviewId || '',
                     bookLength: isLong ? '22 pages' : '12 pages',
-                    childName: session ? session.childName : 'Child',
+                    childName: session ? session.childName : (req.body.childName || 'Child'),
+                    gender: session ? (session.gender || 'hero') : (req.body.gender || 'hero'),
                     email: email || (session ? session.email : ''),
                     market: marketKey,
                     currency: currency,
@@ -2555,7 +2556,9 @@ app.post('/api/verify-and-complete-book', rateLimiter, async (req, res) => {
             razorpay_signature,
             bookLength,
             email,
-            coverDataUrl
+            coverDataUrl,
+            childName: reqChildName,
+            gender: reqGender
         } = req.body;
 
         let session = getSession(previewId);
@@ -2580,11 +2583,11 @@ app.post('/api/verify-and-complete-book', rateLimiter, async (req, res) => {
                 console.log(`♻️ Recovering preview session from disk/client for ${previewId}...`);
                 session = {
                     previewId,
-                    childName: 'Child',
-                    gender: 'little star',
-                    age: 5,
-                    theme: 'Story',
-                    language: 'English',
+                    childName: reqChildName || 'Child',
+                    gender: reqGender || 'little star',
+                    age: req.body.age || 5,
+                    theme: req.body.theme || 'Story',
+                    language: req.body.language || 'English',
                     coverBuffer: coverBuf,
                     coverUrl: coverDataUrl || '',
                     email: email || '',

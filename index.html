@@ -3546,7 +3546,9 @@
             razorpay_signature: paymentResponse.razorpay_signature,
             bookLength: isLong ? '22 pages' : '12 pages',
             email,
-            coverDataUrl: coverPayload
+            coverDataUrl: coverPayload,
+            childName: document.getElementById('childName')?.value?.trim() || undefined,
+            gender: document.getElementById('childGender')?.value || undefined
           })
         }, 2, 3500);
 

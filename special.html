@@ -2250,7 +2250,9 @@
             bookLength: isLong ? '22 pages' : '12 pages',
             email,
             coverDataUrl: currentCoverUrl,
-            offer: 'special99'
+            offer: 'special99',
+            childName: document.getElementById('childName')?.value?.trim() || undefined,
+            gender: (typeof selectedGender !== 'undefined' ? selectedGender : document.getElementById('genderInput')?.value) || undefined
           })
         }, 2, 2500);
 

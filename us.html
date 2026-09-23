@@ -2657,7 +2657,9 @@
             bookLength: selectedEdition === 'long' ? '22 pages' : '12 pages',
             market: 'US',
             currency: 'USD',
-            email
+            email,
+            childName: document.getElementById('childName')?.value?.trim() || undefined,
+            gender: document.getElementById('childGender')?.value || undefined
           })
         });
         const verifyData = await verifyRes.json();
