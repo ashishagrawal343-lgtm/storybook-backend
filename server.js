@@ -220,7 +220,7 @@ async function uploadToStorage(fileName, fileBuffer, contentType = 'application/
 // Email delivery
 let mailer = null;
 const cleanBrevoKey = String(process.env.BREVO_API_KEY || '').trim().replace(/^["']|["']$/g, '');
-const cleanSenderEmail = String(process.env.SENDER_EMAIL || 'support@twinkletaleai.com').trim().replace(/^["']|["']$/g, '') || 'support@twinkletaleai.com';
+const cleanSenderEmail = String(process.env.SENDER_EMAIL || 'storybook.studio.ai@gmail.com').trim().replace(/^["']|["']$/g, '') || 'storybook.studio.ai@gmail.com';
 if (cleanBrevoKey && cleanSenderEmail) {
     mailer = {
         sendMail: async ({ to, subject, html, text }) => {
@@ -228,6 +228,7 @@ if (cleanBrevoKey && cleanSenderEmail) {
                 await axios.post('https://api.brevo.com/v3/smtp/email', {
                     sender: { name: 'TwinkleTale', email: cleanSenderEmail },
                     to: [{ email: String(to || '').trim() }],
+                    replyTo: { name: 'TwinkleTale Support', email: 'support@twinkletaleai.com' },
                     subject: subject,
                     htmlContent: html || `<p>${text}</p>`
                 }, { 

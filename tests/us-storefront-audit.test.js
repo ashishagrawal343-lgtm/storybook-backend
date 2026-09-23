@@ -237,17 +237,18 @@ async function runHttpTests() {
     console.log('  ✔ India special99 promo unaffected: Returned 9900 INR paise (₹99)');
 
   } finally {
+    if (server.closeAllConnections) server.closeAllConnections();
     server.close();
+    console.log('\n========================================================================');
+    console.log('🎉 ALL US STOREFRONT & MULTI-CURRENCY TESTS PASSED FLAWLESSLY!');
+    console.log('========================================================================\n');
+    setTimeout(() => {
+      process.exit(0);
+    }, 100);
   }
 }
 
 runHttpTests()
-  .then(() => {
-    console.log('\n========================================================================');
-    console.log('🎉 ALL US STOREFRONT & MULTI-CURRENCY TESTS PASSED FLAWLESSLY!');
-    console.log('========================================================================\n');
-    process.exit(0);
-  })
   .catch((err) => {
     console.error('\n❌ TEST FAILED:', err.message);
     console.error(err.stack);

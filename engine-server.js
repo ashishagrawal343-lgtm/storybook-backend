@@ -39,7 +39,7 @@ if (process.env.BREVO_API_KEY) {
 if (process.env.SENDER_EMAIL) {
     process.env.SENDER_EMAIL = String(process.env.SENDER_EMAIL || '').trim().replace(/^["']|["']$/g, '');
 } else {
-    process.env.SENDER_EMAIL = 'support@twinkletaleai.com';
+    process.env.SENDER_EMAIL = 'storybook.studio.ai@gmail.com';
 }
 
 // Ensure WebSocket constructor is available for Supabase RealtimeClient
