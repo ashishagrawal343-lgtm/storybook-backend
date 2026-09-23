@@ -1222,8 +1222,8 @@
         <!-- Gender Pills -->
         <div class="form-group">
           <label class="form-label">Child Character <span class="req">*</span></label>
-          <div class="gender-grid">
-            <button type="button" class="gender-btn active" data-gender="boy" onclick="setGender('boy')">
+          <div class="gender-grid" id="genderGrid">
+            <button type="button" class="gender-btn" data-gender="boy" onclick="setGender('boy')">
               👦 Boy
             </button>
             <button type="button" class="gender-btn" data-gender="girl" onclick="setGender('girl')">
@@ -1233,7 +1233,10 @@
               ⭐ Little Star
             </button>
           </div>
-          <input type="hidden" id="genderInput" value="boy">
+          <input type="hidden" id="genderInput" value="">
+          <div id="genderError" style="display:none; color:var(--coral); font-size:0.82rem; margin-top:5px; font-weight:600;">
+            <i class="fa-solid fa-circle-exclamation"></i> Please select whether your child is a Boy, Girl, or Little Star
+          </div>
         </div>
 
         <!-- Age Chips -->
@@ -1725,7 +1728,7 @@
       : 'https://storybook-backend-85eh.onrender.com';
 
     // State Variables
-    let selectedGender = 'boy';
+    let selectedGender = '';
     let selectedAge = 5;
     let selectedTheme = 'Space & Stars';
     let currentPhotoBase64 = null;
@@ -1819,6 +1822,10 @@
       document.querySelectorAll('.gender-btn').forEach(b => {
         b.classList.toggle('active', b.dataset.gender === gender);
       });
+      const err = document.getElementById('genderError');
+      if (err) err.style.display = 'none';
+      const grid = document.getElementById('genderGrid');
+      if (grid) grid.style.border = 'none';
     }
 
     // Age Selection
@@ -1981,6 +1988,18 @@
       if (!childName) {
         alert("Please enter your child's name!");
         document.getElementById('childName').focus();
+        return;
+      }
+      if (!selectedGender) {
+        const err = document.getElementById('genderError');
+        if (err) err.style.display = 'block';
+        const grid = document.getElementById('genderGrid');
+        if (grid) {
+          grid.style.border = '2px solid var(--coral)';
+          grid.style.borderRadius = '12px';
+          grid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        alert("Please select whether your child is a Boy, Girl, or Little Star!");
         return;
       }
       if (!email || !email.includes('@')) {

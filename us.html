@@ -1873,9 +1873,9 @@
 
             <!-- Identity / Pronouns -->
             <div class="field-group" style="margin-top: 6px;">
-              <label class="field-label">Child's Pronouns (For personalized story narration)</label>
-              <div class="gender-grid">
-                <div class="gender-pill active" id="pillBoy" onclick="selectGender('boy')">
+              <label class="field-label">Child's Character <span style="color: var(--accent); font-weight: 700;">*</span> (Required for personalized story & illustration)</label>
+              <div class="gender-grid" id="genderGrid">
+                <div class="gender-pill" id="pillBoy" onclick="selectGender('boy')">
                   <i class="fas fa-child"></i>
                   <span class="pill-title">Boy</span>
                   <span class="pill-sub">He / Him</span>
@@ -1891,7 +1891,10 @@
                   <span class="pill-sub">They / Them</span>
                 </div>
               </div>
-              <input type="hidden" id="childGender" value="boy">
+              <input type="hidden" id="childGender" value="">
+              <div id="genderError" style="display:none; color: var(--accent); font-size: 0.82rem; margin-top: 5px; font-weight: 600;">
+                <i class="fas fa-exclamation-circle"></i> Please select whether your child is a Boy, Girl, or Little Star
+              </div>
             </div>
           </div>
 
@@ -2364,6 +2367,10 @@
       const activeEl = document.getElementById(gender === 'boy' ? 'pillBoy' : (gender === 'girl' ? 'pillGirl' : 'pillStar'));
       if (activeEl) activeEl.classList.add('active');
       document.getElementById('childGender').value = gender;
+      const err = document.getElementById('genderError');
+      if (err) err.style.display = 'none';
+      const grid = document.getElementById('genderGrid');
+      if (grid) grid.style.border = 'none';
     }
 
     // 2. THEME SELECTION
@@ -2532,6 +2539,18 @@
         document.getElementById('childName').focus();
         return;
       }
+      if (!gender) {
+        const err = document.getElementById('genderError');
+        if (err) err.style.display = 'block';
+        const grid = document.getElementById('genderGrid');
+        if (grid) {
+          grid.style.border = '2px solid var(--accent)';
+          grid.style.borderRadius = 'var(--radius-md)';
+          grid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        alert("Please select whether your child is a Boy, Girl, or Little Star!");
+        return;
+      }
       if (!email) {
         alert("Please provide your email address for book delivery!");
         document.getElementById('parentEmail').focus();
@@ -2683,6 +2702,19 @@
       if (!childName) {
         alert("Please enter your child's first name to generate a preview!");
         document.getElementById('childName').focus();
+        return;
+      }
+      const gender = document.getElementById('childGender').value.trim();
+      if (!gender) {
+        const err = document.getElementById('genderError');
+        if (err) err.style.display = 'block';
+        const grid = document.getElementById('genderGrid');
+        if (grid) {
+          grid.style.border = '2px solid var(--accent)';
+          grid.style.borderRadius = 'var(--radius-md)';
+          grid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        alert("Please select whether your child is a Boy, Girl, or Little Star before generating the preview!");
         return;
       }
       if (!uploadedPhotoBase64) {

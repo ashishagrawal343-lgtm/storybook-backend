@@ -2408,9 +2408,9 @@
 
             <!-- Gender Selector: Boy, Girl, Little Star (Inclusive) -->
             <div style="margin-top: 18px;">
-              <label style="display:block; font-size:0.88rem; font-weight:600; margin-bottom:6px;">Child's Identity (Ensures personalized pronouns & character art)</label>
-              <div class="gender-selector">
-                <div class="gender-btn selected" id="btnBoy" onclick="selectGender('boy')">
+              <label style="display:block; font-size:0.88rem; font-weight:600; margin-bottom:6px;">Child's Character <span style="color:var(--coral); font-weight:700;">*</span> (Ensures personalized pronouns & character art)</label>
+              <div class="gender-selector" id="genderSelectorGrid">
+                <div class="gender-btn" id="btnBoy" onclick="selectGender('boy')">
                   <i class="fas fa-child"></i>
                   <span>Boy</span>
                   <span class="sub">He / Him</span>
@@ -2426,7 +2426,10 @@
                   <span class="sub">Gender-Inclusive / They</span>
                 </div>
               </div>
-              <input type="hidden" id="childGender" value="boy">
+              <input type="hidden" id="childGender" value="">
+              <div id="genderError" style="display:none; color:var(--coral); font-size:0.82rem; margin-top:5px; font-weight:600;">
+                <i class="fas fa-exclamation-circle"></i> Please select whether your child is a Boy, Girl, or Little Star
+              </div>
             </div>
 
             <!-- Story Language (Default: English) -->
@@ -3087,6 +3090,10 @@
       document.getElementById('btnBoy').classList.toggle('selected', gender === 'boy');
       document.getElementById('btnGirl').classList.toggle('selected', gender === 'girl');
       document.getElementById('btnStar').classList.toggle('selected', gender === 'star');
+      const err = document.getElementById('genderError');
+      if (err) err.style.display = 'none';
+      const grid = document.getElementById('genderSelectorGrid');
+      if (grid) grid.style.border = 'none';
     }
 
     // Theme Selection (12 themes)
@@ -3229,6 +3236,18 @@
       const email = document.getElementById('parentEmail').value.trim();
 
       if (!childName) { alert("Please enter your child's name!"); return; }
+      if (!gender) {
+        const err = document.getElementById('genderError');
+        if (err) err.style.display = 'block';
+        const grid = document.getElementById('genderSelectorGrid');
+        if (grid) {
+          grid.style.border = '2px solid var(--coral)';
+          grid.style.borderRadius = '12px';
+          grid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        alert("Please select whether your child is a Boy, Girl, or Little Star!");
+        return;
+      }
       if (!email) { alert("Please enter your email to receive your preview!"); return; }
 
       const previewBtn = document.getElementById('previewBtn');
@@ -3355,13 +3374,25 @@
       const age = document.getElementById('childAge').value;
       const language = (document.getElementById('storyLanguage') && document.getElementById('storyLanguage').value) || 'English';
       const theme = (document.getElementById('selectedTheme') && document.getElementById('selectedTheme').value) || 'Space & Stars';
-      const gender = (document.getElementById('childGender') && document.getElementById('childGender').value) || 'boy';
+      const gender = (document.getElementById('childGender') && document.getElementById('childGender').value) || '';
       const dedication = document.getElementById('dedicationText')?.value.trim() || '';
       const isLong = selectedEdition === 'long';
       const bookLength = isLong ? '22 pages' : '12 pages';
 
       if (!childName) {
         alert("Please enter your child's name.");
+        return;
+      }
+      if (!gender) {
+        const err = document.getElementById('genderError');
+        if (err) err.style.display = 'block';
+        const grid = document.getElementById('genderSelectorGrid');
+        if (grid) {
+          grid.style.border = '2px solid var(--coral)';
+          grid.style.borderRadius = '12px';
+          grid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        alert("Please select whether your child is a Boy, Girl, or Little Star!");
         return;
       }
       if (!email) {

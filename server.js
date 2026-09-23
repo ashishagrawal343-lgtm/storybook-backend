@@ -748,20 +748,23 @@ function getSceneCount(bookLength) {
 
 function getCharacterDetails(childName, gender, age, theme, attributes = {}) {
     const g = String(gender || '').toLowerCase().trim();
-    const isGirlName = /^(mia|emma|olivia|sophia|ava|isabella|charlotte|amelia|harper|evelyn|abigail|emily|elizabeth|mila|ella|avery|sofia|camila|aria|scarlett|victoria|madison|luna|grace|chloe|penelope|layla|riley|zoey|nora|lily|eleanor|hannah|lillian|addison|aubrey|ellie|stella|natalie|zoe|leah|hazel|violet|aurora|savannah|audrey|brooklyn|bella|claire|skylar|lucy|paisley|everly|anna|caroline|nova|genesis|emilia|kennedy|samantha|maya|willow|kinsley|naomi|aaliyah|elena|sarah|ariana|allison|gabriella|alice|madelyn|cora|ruby|eva|serenity|autumn|adeline|hailey|gianna|valentina|isla|eliana|quinn|nevaeh|ivy|sadie|piper|lydia|alexa|josephine|emery|delilah|arianna|camilla|amara|ananya|aadhya|kiara|myra|diya|isha|saanvi|aanvi|aaradhya|anika|navya|pari|riya|tanvi|ira|avani)$/i.test(String(childName || '').trim());
 
     let genderClean = 'boy';
     let pronoun = 'his';
     let subjectPronoun = 'he';
 
-    if (g === 'girl' || g === 'female' || g === 'daughter' || g === 'f' || (!gender && isGirlName) || (g === 'hero' && isGirlName)) {
+    if (g === 'girl' || g === 'female' || g === 'daughter' || g === 'f') {
         genderClean = 'girl';
         pronoun = 'her';
         subjectPronoun = 'she';
-    } else if (g === 'neutral' || g === 'star' || g === 'star child' || g === 'little star') {
+    } else if (g === 'neutral' || g === 'star' || g === 'star child' || g === 'little star' || g === 'they') {
         genderClean = 'little star';
         pronoun = 'their';
         subjectPronoun = 'they';
+    } else {
+        genderClean = 'boy';
+        pronoun = 'his';
+        subjectPronoun = 'he';
     }
 
     const childAge = parseInt(age, 10) || 5;
@@ -1812,6 +1815,10 @@ app.post('/api/create-preview', rateLimiter, async (req, res) => {
     try {
         const { childName, gender, age, theme, language, photoData, dedication, email, offer, attributes: clientAttributes } = req.body;
         if (!childName) return res.status(400).json({ success: false, error: 'Child name is required' });
+        const rawGender = String(gender || '').toLowerCase().trim();
+        if (!rawGender || !['boy', 'girl', 'star', 'little star', 'female', 'male', 'they', 'neutral'].includes(rawGender)) {
+            return res.status(400).json({ success: false, error: 'Please select whether your child is a Boy, Girl, or Little Star.' });
+        }
 
         const lang = String(language || 'English').trim();
 
@@ -2058,6 +2065,10 @@ app.post('/api/create-order', rateLimiter, async (req, res) => {
         // Direct Checkout Support (instant payment without prior preview generation)
         if (req.body.isDirectCheckout || (!session && req.body.childName)) {
             const { childName, gender, age, theme, language, photoData, dedication, email: reqEmail, attributes: clientAttributes } = req.body;
+            const rawGender = String(gender || '').toLowerCase().trim();
+            if (!rawGender || !['boy', 'girl', 'star', 'little star', 'female', 'male', 'they', 'neutral'].includes(rawGender)) {
+                return res.status(400).json({ success: false, error: 'Please select whether your child is a Boy, Girl, or Little Star.' });
+            }
             effectivePreviewId = `direct_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
             const visualAttributes = await extractPhotoVisualAttributes(photoData, clientAttributes);
             const { genderClean, childAge, pronoun, subjectPronoun, charAnchor } = getCharacterDetails(childName, gender, age, theme, visualAttributes);
@@ -4030,6 +4041,10 @@ app.post('/api/create-book', rateLimiter, async (req, res) => {
     try {
         const { childName, gender, age, theme, language, photoData, bookLength, dedication, email } = req.body;
         if (!childName) return res.status(400).json({ success: false, error: 'Child name is required' });
+        const rawGender = String(gender || '').toLowerCase().trim();
+        if (!rawGender || !['boy', 'girl', 'star', 'little star', 'female', 'male', 'they', 'neutral'].includes(rawGender)) {
+            return res.status(400).json({ success: false, error: 'Please select whether your child is a Boy, Girl, or Little Star.' });
+        }
 
         const lang = String(language || 'English').trim();
         const { genderClean, childAge, pronoun, subjectPronoun, charAnchor } = getCharacterDetails(childName, gender, age, theme);
