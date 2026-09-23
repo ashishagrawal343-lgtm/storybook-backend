@@ -220,7 +220,7 @@ async function uploadToStorage(fileName, fileBuffer, contentType = 'application/
 // Email delivery
 let mailer = null;
 const cleanBrevoKey = String(process.env.BREVO_API_KEY || '').trim().replace(/^["']|["']$/g, '');
-const cleanSenderEmail = String(process.env.SENDER_EMAIL || '').trim().replace(/^["']|["']$/g, '');
+const cleanSenderEmail = String(process.env.SENDER_EMAIL || 'support@twinkletaleai.com').trim().replace(/^["']|["']$/g, '') || 'support@twinkletaleai.com';
 if (cleanBrevoKey && cleanSenderEmail) {
     mailer = {
         sendMail: async ({ to, subject, html, text }) => {
@@ -242,7 +242,7 @@ if (cleanBrevoKey && cleanSenderEmail) {
             }
         }
     };
-    console.log('📧 Email delivery: ON (Brevo HTTPS)');
+    console.log(`📧 Email delivery: ON (Brevo HTTPS, sender: ${cleanSenderEmail})`);
 } else {
     console.log('⚠️ Brevo not configured — link-only delivery');
 }
@@ -748,11 +748,13 @@ function getSceneCount(bookLength) {
 
 function getCharacterDetails(childName, gender, age, theme, attributes = {}) {
     const g = String(gender || '').toLowerCase().trim();
+    const isGirlName = /^(mia|emma|olivia|sophia|ava|isabella|charlotte|amelia|harper|evelyn|abigail|emily|elizabeth|mila|ella|avery|sofia|camila|aria|scarlett|victoria|madison|luna|grace|chloe|penelope|layla|riley|zoey|nora|lily|eleanor|hannah|lillian|addison|aubrey|ellie|stella|natalie|zoe|leah|hazel|violet|aurora|savannah|audrey|brooklyn|bella|claire|skylar|lucy|paisley|everly|anna|caroline|nova|genesis|emilia|kennedy|samantha|maya|willow|kinsley|naomi|aaliyah|elena|sarah|ariana|allison|gabriella|alice|madelyn|cora|ruby|eva|serenity|autumn|adeline|hailey|gianna|valentina|isla|eliana|quinn|nevaeh|ivy|sadie|piper|lydia|alexa|josephine|emery|delilah|arianna|camilla|amara|ananya|aadhya|kiara|myra|diya|isha|saanvi|aanvi|aaradhya|anika|navya|pari|riya|tanvi|ira|avani)$/i.test(String(childName || '').trim());
+
     let genderClean = 'boy';
     let pronoun = 'his';
     let subjectPronoun = 'he';
 
-    if (g === 'girl') {
+    if (g === 'girl' || g === 'female' || g === 'daughter' || g === 'f' || (!gender && isGirlName) || (g === 'hero' && isGirlName)) {
         genderClean = 'girl';
         pronoun = 'her';
         subjectPronoun = 'she';
@@ -767,25 +769,49 @@ function getCharacterDetails(childName, gender, age, theme, attributes = {}) {
     // Theme-locked signature outfit to prevent wardrobe drift across pages
     const t = String(theme || '').toLowerCase();
     let outfit = 'wearing a soft pastel mint-cream cotton t-shirt with a tiny embroidered golden star and cozy navy trousers';
-    if (t.includes('ocean') || t.includes('dolphin') || t.includes('mermaid')) {
-        outfit = 'wearing a cozy sea-breeze cyan star t-shirt and adventure trousers';
-    } else if (t.includes('space') || t.includes('star')) {
-        outfit = 'wearing a cozy midnight-blue star-patterned onesie with golden starlight trim';
-    } else if (t.includes('animal') || t.includes('forest') || t.includes('safari') || t.includes('jungle')) {
-        outfit = 'wearing a soft sage-green adventure vest over a cream cotton tee and khaki trousers';
-    } else if (t.includes('princess') || t.includes('castle') || t.includes('kingdom') || t.includes('magic') || t.includes('fairy')) {
-        outfit = 'wearing an enchanted pastel lavender tunic with tiny golden star embroidery';
-    } else if (t.includes('super')) {
-        outfit = 'wearing a heroic soft crimson tunic with a gentle golden sun emblem and cozy joggers';
-    } else if (t.includes('dinosaur')) {
-        outfit = 'wearing a warm amber-ochre explorer hoodie with little leaf patches and rolled trousers';
-    } else if (t.includes('circus') || t.includes('carnival')) {
-        outfit = 'wearing a festive berry-red and gold-trimmed festive tunic with playful suspenders';
-    } else if (t.includes('lullaby') || t.includes('bedtime') || t.includes('cloud')) {
-        outfit = 'wearing warm fluffy cloud-white bedtime pajamas sprinkled with tiny golden stars';
+    if (genderClean === 'girl') {
+        if (t.includes('ocean') || t.includes('dolphin') || t.includes('mermaid')) {
+            outfit = 'wearing a breezy sea-sparkle cyan sundress with a tiny golden shell pendant and soft matching hair ribbons';
+        } else if (t.includes('space') || t.includes('star')) {
+            outfit = 'wearing an enchanting starlight-navy adventure dress with golden stardust trim and matching ribbon in hair';
+        } else if (t.includes('animal') || t.includes('forest') || t.includes('safari') || t.includes('jungle')) {
+            outfit = 'wearing an adorable soft sage-green adventure pinafore dress over a cream blouse with tiny wildflower embroidery and delicate hair ribbons';
+        } else if (t.includes('princess') || t.includes('castle') || t.includes('kingdom') || t.includes('magic') || t.includes('fairy')) {
+            outfit = 'wearing an enchanted pastel lavender princess dress with shimmering golden star embroidery and delicate hair ribbons';
+        } else if (t.includes('super')) {
+            outfit = 'wearing a heroic soft crimson adventurer tunic with a golden star emblem and cute flutter cape';
+        } else if (t.includes('dinosaur')) {
+            outfit = 'wearing a warm amber-ochre explorer pinafore with little leaf patches over a cream tee with soft hair clips';
+        } else if (t.includes('circus') || t.includes('carnival')) {
+            outfit = 'wearing a festive berry-red and gold-trimmed carnival dress with playful ruffles';
+        } else if (t.includes('lullaby') || t.includes('bedtime') || t.includes('cloud')) {
+            outfit = 'wearing warm fluffy cloud-white bedtime nightgown sprinkled with tiny golden stars';
+        } else {
+            outfit = 'wearing an adorable soft pastel lavender-cream cotton dress with tiny embroidered golden stars and delicate ribbons';
+        }
+    } else {
+        if (t.includes('ocean') || t.includes('dolphin') || t.includes('mermaid')) {
+            outfit = 'wearing a cozy sea-breeze cyan star t-shirt and adventure trousers';
+        } else if (t.includes('space') || t.includes('star')) {
+            outfit = 'wearing a cozy midnight-blue star-patterned onesie with golden starlight trim';
+        } else if (t.includes('animal') || t.includes('forest') || t.includes('safari') || t.includes('jungle')) {
+            outfit = 'wearing a soft sage-green adventure vest over a cream cotton tee and khaki trousers';
+        } else if (t.includes('princess') || t.includes('castle') || t.includes('kingdom') || t.includes('magic') || t.includes('fairy')) {
+            outfit = 'wearing an enchanted pastel lavender tunic with tiny golden star embroidery';
+        } else if (t.includes('super')) {
+            outfit = 'wearing a heroic soft crimson tunic with a gentle golden sun emblem and cozy joggers';
+        } else if (t.includes('dinosaur')) {
+            outfit = 'wearing a warm amber-ochre explorer hoodie with little leaf patches and rolled trousers';
+        } else if (t.includes('circus') || t.includes('carnival')) {
+            outfit = 'wearing a festive berry-red and gold-trimmed festive tunic with playful suspenders';
+        } else if (t.includes('lullaby') || t.includes('bedtime') || t.includes('cloud')) {
+            outfit = 'wearing warm fluffy cloud-white bedtime pajamas sprinkled with tiny golden stars';
+        }
     }
 
-    let headAndHairDesc = 'finely rendered natural hair with golden rim lighting';
+    let headAndHairDesc = (genderClean === 'girl')
+        ? 'charming little girl hairstyle with delicate hair ribbons, finely rendered natural hair catching the golden rim light'
+        : 'finely rendered natural hair with golden rim lighting';
     if (attributes && attributes.hasHeadwear) {
         const rawHeadwear = String(attributes.headwearDescription || (attributes.headwearType && attributes.headwearType !== 'none' ? attributes.headwearType : '')).trim();
         if (rawHeadwear) {
@@ -1338,8 +1364,23 @@ async function generateAvatar(photoData, charAnchor, attributes = {}) {
                     }
                 });
             }, 2, 3000);
-            const u = extractUrl(out);
+            let u = extractUrl(out);
             if (!u) throw new Error("Empty URL returned from avatar model");
+            if (supabase && u && typeof u === 'string' && u.startsWith('http')) {
+                try {
+                    const avatarBuf = await fetchImageBuffer(u);
+                    if (avatarBuf && avatarBuf.length > 1000) {
+                        const avatarFileName = `portraits/portrait_${Date.now()}_${crypto.randomBytes(4).toString('hex')}.png`;
+                        const cloudAvatar = await uploadToStorage(avatarFileName, avatarBuf, 'image/png');
+                        if (cloudAvatar && (cloudAvatar.signedUrl || cloudAvatar.publicUrl || cloudAvatar.finalUrl)) {
+                            u = cloudAvatar.signedUrl || cloudAvatar.publicUrl || cloudAvatar.finalUrl;
+                            console.log(`☁️ [AVATAR] Stored portrait permanently in Supabase: ${u}`);
+                        }
+                    }
+                } catch (storeErr) {
+                    console.warn(`⚠️ [AVATAR] Could not persist portrait to Supabase (${storeErr.message}), using direct URL`);
+                }
+            }
             console.log(`📊 [IMAGE_GEN] Model: ${modelUsed} | Mode: photo-conditioned | Status: OK | Latency: ${Date.now() - t0}ms`);
             return u;
         } catch (e) {
@@ -1359,8 +1400,20 @@ async function generateAvatar(photoData, charAnchor, attributes = {}) {
                             prompt_upsampling: false
                         }
                     });
-                    const safeUrl = extractUrl(safeOut);
+                    let safeUrl = extractUrl(safeOut);
                     if (safeUrl) {
+                        if (supabase && safeUrl.startsWith('http')) {
+                            try {
+                                const sBuf = await fetchImageBuffer(safeUrl);
+                                if (sBuf && sBuf.length > 1000) {
+                                    const safeName = `portraits/portrait_safe_${Date.now()}_${crypto.randomBytes(4).toString('hex')}.png`;
+                                    const cloudSafe = await uploadToStorage(safeName, sBuf, 'image/png');
+                                    if (cloudSafe && (cloudSafe.signedUrl || cloudSafe.publicUrl || cloudSafe.finalUrl)) {
+                                        safeUrl = cloudSafe.signedUrl || cloudSafe.publicUrl || cloudSafe.finalUrl;
+                                    }
+                                }
+                            } catch (_) {}
+                        }
                         console.log(`✅ [AVATAR] Sanitized recovery succeeded!`);
                         return safeUrl;
                     }
@@ -1883,11 +1936,47 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme") MUST
             }
         }
 
+        let durableReferencePortraitUrl = (typeof coverCharacterMaster !== 'undefined' && coverCharacterMaster && coverCharacterMaster.masterUrl) ? coverCharacterMaster.masterUrl : vigUrlRaw;
+        if (supabase && durableReferencePortraitUrl && typeof durableReferencePortraitUrl === 'string' && durableReferencePortraitUrl.startsWith('https://replicate.delivery')) {
+            try {
+                const refBuf = await fetchImageBuffer(durableReferencePortraitUrl);
+                if (refBuf && refBuf.length > 1000) {
+                    const refFileName = `portraits/ref_${previewId}_${crypto.randomBytes(4).toString('hex')}.png`;
+                    const cloudRef = await uploadToStorage(refFileName, refBuf, 'image/png');
+                    if (cloudRef && (cloudRef.signedUrl || cloudRef.publicUrl || cloudRef.finalUrl)) {
+                        durableReferencePortraitUrl = cloudRef.signedUrl || cloudRef.publicUrl || cloudRef.finalUrl;
+                        if (typeof coverCharacterMaster !== 'undefined' && coverCharacterMaster) {
+                            coverCharacterMaster.masterUrl = durableReferencePortraitUrl;
+                        }
+                        console.log(`☁️ [CHARACTER] Anchored permanent Supabase reference portrait: ${durableReferencePortraitUrl}`);
+                    }
+                }
+            } catch (pErr) {
+                console.warn('⚠️ [CHARACTER] Could not anchor reference to Supabase:', pErr.message);
+            }
+        }
+
+        let permanentPhotoUrl = null;
+        if (supabase && photoData && typeof photoData === 'string' && photoData.startsWith('data:')) {
+            try {
+                const photoBuf = Buffer.from(photoData.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+                const photoFileName = `photos/photo_${previewId}.jpg`;
+                const cloudPhoto = await uploadToStorage(photoFileName, photoBuf, 'image/jpeg');
+                if (cloudPhoto && (cloudPhoto.signedUrl || cloudPhoto.publicUrl || cloudPhoto.finalUrl)) {
+                    permanentPhotoUrl = cloudPhoto.signedUrl || cloudPhoto.publicUrl || cloudPhoto.finalUrl;
+                    console.log(`☁️ [PHOTO] Stored child photo permanently in Supabase: ${permanentPhotoUrl}`);
+                }
+            } catch (photoUpErr) {
+                console.warn('⚠️ [PHOTO] Could not store photo to Supabase:', photoUpErr.message);
+            }
+        }
+
         saveSession(previewId, {
             previewId,
             timestamp: Date.now(),
             childName, gender: genderClean, age: childAge, theme, language: lang,
             photoData, dedication, email,
+            photoUrl: permanentPhotoUrl,
             attributes: visualAttributes,
             characterMaster: typeof coverCharacterMaster !== 'undefined' ? coverCharacterMaster : null,
             characterSheet: typeof coverCharacterSheet !== 'undefined' ? coverCharacterSheet : null,
@@ -1895,7 +1984,7 @@ LANGUAGE REQUIREMENT: All child-facing text ("book_title", "opening_rhyme") MUST
             charAnchor, pronoun, subjectPronoun, pal,
             title: bookTitle, bookTitle,
             coverUrl: coverPublicUrl,
-            referencePortraitUrl: (typeof coverCharacterMaster !== 'undefined' && coverCharacterMaster && coverCharacterMaster.masterUrl) ? coverCharacterMaster.masterUrl : vigUrlRaw, // PRD FR-1 & FR-3: Single locked reference portrait anchor
+            referencePortraitUrl: durableReferencePortraitUrl, // PRD FR-1 & FR-3: Single locked reference portrait anchor
             coverProvenance: typeof coverProvenance !== 'undefined' ? coverProvenance : null,
             coverDesignSpec: typeof coverDesignSpec !== 'undefined' ? coverDesignSpec : null,
             coverCollision: typeof coverCollision !== 'undefined' ? coverCollision : null,
@@ -2181,6 +2270,36 @@ class BookGenerationQueue {
                             completedAt: Date.now()
                         };
                         saveJob(jobId, updatedJob);
+
+                        // Secondary email delivery safeguard: if Cloud Run did not send email, dispatch from Render
+                        const isAlreadyEmailed = Boolean(crRes.data.emailed || updatedJob.emailed);
+                        if (!isAlreadyEmailed && mailer && parentEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(parentEmail)) {
+                            console.log(`📧 [QUEUE SAFEGUARD] Dispatching personalized delivery email from Render for Job ${jobId} to ${parentEmail}...`);
+                            try {
+                                const downloadLink = updatedJob.pdfUrl || `${protocol}://${host}/api/download/${jobId}`;
+                                const childDisplayName = session.childName || 'Your Child';
+                                const langDisplay = session.language || 'English';
+                                await mailer.sendMail({
+                                    to: parentEmail,
+                                    subject: `✨ ${childDisplayName}'s Personalized Storybook is Ready! (TwinkleTale)`,
+                                    html: `<div style="font-family:Georgia,serif;padding:32px;background:#FAF7F2;border-radius:12px;max-width:600px;margin:0 auto;border:1px solid #EAE4D9">
+                                        <h2 style="color:#161B33;margin-top:0">✨ ${childDisplayName}'s storybook is ready!</h2>
+                                        <p style="font-size:16px;color:#333;line-height:1.6">Hello! We have finished crafting your personalized keepsake bedtime storybook for <strong>${childDisplayName}</strong> in <strong>${langDisplay}</strong>.</p>
+                                        <p style="text-align:center;margin:30px 0">
+                                            <a href="${downloadLink}" target="_blank" style="background:#1B4938;color:#FAF7F2;padding:14px 28px;border-radius:8px;text-decoration:none;font-size:16px;font-weight:bold;display:inline-block">📥 Download Print-Ready Storybook (PDF)</a>
+                                        </p>
+                                        <p style="font-size:13px;color:#777;line-height:1.5">You can read this on any phone, iPad, tablet, or print it out on A4/Letter paper to make a physical bedside book.</p>
+                                        <hr style="border:none;border-top:1px solid #DDD;margin:24px 0">
+                                        <p style="font-size:12px;color:#999;text-align:center">This download link is permanent and never expires.<br>Need assistance? Contact our team at <a href="mailto:support@twinkletaleai.com" style="color:#666;text-decoration:underline;">support@twinkletaleai.com</a>.<br>Crafted with love by TwinkleTale Studios.</p>
+                                    </div>`
+                                });
+                                updatedJob.emailed = true;
+                                saveJob(jobId, updatedJob);
+                                console.log(`📧 [QUEUE SAFEGUARD] Delivery email sent successfully to ${parentEmail}`);
+                            } catch (safeMailErr) {
+                                console.warn(`⚠️ [QUEUE SAFEGUARD] Email delivery notice:`, safeMailErr.message);
+                            }
+                        }
                     }
                 } catch (crErr) {
                     console.warn(`⚠️ [QUEUE] Cloud Run dispatch notice (${crErr.message}). Gracefully falling back to local compilation...`);
@@ -3386,6 +3505,8 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
             visualCondition = characterMaster.masterUrl;
         } else if (!visualCondition && session.referencePortraitUrl) {
             visualCondition = session.referencePortraitUrl;
+        } else if (!visualCondition && session.photoUrl) {
+            visualCondition = session.photoUrl;
         } else if (!visualCondition) {
             try {
                 console.log("🎨 Generating locked reference portrait for text-only book session...");
@@ -3396,6 +3517,26 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
             }
         }
         let referencePortrait = visualCondition;
+
+        // Ensure visualCondition is durable and not an expired ephemeral link
+        if (visualCondition && typeof visualCondition === 'string' && visualCondition.startsWith('https://replicate.delivery')) {
+            try {
+                const testBuf = await fetchImageBuffer(visualCondition);
+                if (testBuf && testBuf.length > 1000 && supabase) {
+                    const durName = `portraits/durable_${jobId}_${crypto.randomBytes(4).toString('hex')}.png`;
+                    const upRes = await uploadToStorage(durName, testBuf, 'image/png');
+                    if (upRes && (upRes.signedUrl || upRes.publicUrl || upRes.finalUrl)) {
+                        visualCondition = upRes.signedUrl || upRes.publicUrl || upRes.finalUrl;
+                        if (characterMaster) characterMaster.masterUrl = visualCondition;
+                        session.referencePortraitUrl = visualCondition;
+                        console.log(`☁️ [DURABILITY] Promoted ephemeral conditioning URL to permanent Supabase storage: ${visualCondition}`);
+                    }
+                }
+            } catch (durErr) {
+                console.warn(`⚠️ [DURABILITY] Ephemeral conditioning URL is unavailable (${durErr.message}). Falling back to photoData or photoUrl...`);
+                visualCondition = photoData || session.photoData || session.photoUrl || null;
+            }
+        }
 
         // ================= INTERIOR SPREADS: ILLUSTRATION GENERATION (SEQUENTIAL & MEMORY-SAFE) =================
         // Process one scene at a time with native resolution (upscale: false) to keep RAM < 150MB on Render
@@ -3462,32 +3603,51 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
                 });
             } catch (sceneErr) {
                 console.warn(`⚠️ Scene ${i + 1} illustration notice (${sceneErr.message}). Gracefully recovering via locked character reference anchor...`);
-                const fallbackPrompt = STYLE + `Masterpiece modern children's picture book illustration in award-winning painterly realism, fine digital gouache: featuring a cheerful young ${charDetails.genderClean || 'hero'} in ${activeOutfit}, smiling happily in this scene: ${rawPrompt}`;
-                try {
-                    attempts++;
-                    rawUrl = await generateImage(fallbackPrompt, session.referencePortraitUrl || null, { isFace: true, upscale: false });
-                    manifest.recordAiCall({
-                        stage: 'page_generation',
-                        page: currentSceneNum,
-                        model: 'black-forest-labs/flux-kontext-pro',
-                        reason: 'fallback_reference_portrait',
-                        attempt: attempts,
-                        latencyMs: Date.now() - tSceneStart,
-                        success: !!rawUrl
-                    });
-                } catch (refErr) {
-                    console.warn(`⚠️ Scene ${i + 1} reference fallback notice (${refErr.message}). Recovering via pure text-to-image prompt...`);
-                    attempts++;
-                    rawUrl = await generateImage(fallbackPrompt, null, { isFace: false, upscale: false });
-                    manifest.recordAiCall({
-                        stage: 'page_generation',
-                        page: currentSceneNum,
-                        model: 'black-forest-labs/flux-1.1-pro',
-                        reason: 'fallback_text_to_image',
-                        attempt: attempts,
-                        latencyMs: Date.now() - tSceneStart,
-                        success: !!rawUrl
-                    });
+                
+                // If the error was a 404 on the conditioning URL, switch to photoData or photoUrl immediately
+                if (String(sceneErr.message || '').includes('404') && visualCondition !== (photoData || session.photoData || session.photoUrl)) {
+                    visualCondition = photoData || session.photoData || session.photoUrl || null;
+                    if (visualCondition) {
+                        try {
+                            attempts++;
+                            rawUrl = await generateImage(scenePrompt, visualCondition, { isFace: true, upscale: false });
+                        } catch (_) {}
+                    }
+                }
+
+                if (!rawUrl) {
+                    const genderEmphasis = (charDetails.genderClean === 'girl')
+                        ? `(adorable 5-year-old girl named ${childName}:1.4), (female child:1.3), charming young girl with sweet feminine features and hair ribbons, `
+                        : ((charDetails.genderClean === 'boy')
+                            ? `(adorable 5-year-old boy named ${childName}:1.4), (male child:1.3), charming young boy, `
+                            : `(adorable 5-year-old child named ${childName}:1.4), `);
+                    const fallbackPrompt = STYLE + `${genderEmphasis}Masterpiece modern children's picture book illustration in award-winning painterly realism, fine digital gouache: featuring a cheerful young ${charDetails.genderClean || 'hero'} in ${activeOutfit}, smiling happily in this scene: ${rawPrompt}`;
+                    try {
+                        attempts++;
+                        rawUrl = await generateImage(fallbackPrompt, session.referencePortraitUrl || session.photoUrl || null, { isFace: true, upscale: false });
+                        manifest.recordAiCall({
+                            stage: 'page_generation',
+                            page: currentSceneNum,
+                            model: 'black-forest-labs/flux-kontext-pro',
+                            reason: 'fallback_reference_portrait',
+                            attempt: attempts,
+                            latencyMs: Date.now() - tSceneStart,
+                            success: !!rawUrl
+                        });
+                    } catch (refErr) {
+                        console.warn(`⚠️ Scene ${i + 1} reference fallback notice (${refErr.message}). Recovering via pure text-to-image prompt...`);
+                        attempts++;
+                        rawUrl = await generateImage(fallbackPrompt, null, { isFace: false, upscale: false });
+                        manifest.recordAiCall({
+                            stage: 'page_generation',
+                            page: currentSceneNum,
+                            model: 'black-forest-labs/flux-1.1-pro',
+                            reason: 'fallback_text_to_image',
+                            attempt: attempts,
+                            latencyMs: Date.now() - tSceneStart,
+                            success: !!rawUrl
+                        });
+                    }
                 }
             }
             let rawBuf = null;
@@ -3541,7 +3701,12 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
             if (!rawBuf || !Buffer.isBuffer(rawBuf) || rawBuf.length < 500) {
                 console.warn(`⚠️ Scene ${currentSceneNum} buffer missing or corrupted. Generating text-to-image emergency recovery...`);
                 try {
-                    const emergPrompt = STYLE + `Masterpiece modern children's picture book illustration in award-winning painterly realism, fine digital gouache: featuring a cheerful young ${charDetails.genderClean || 'hero'} in ${activeOutfit}, smiling happily in this scene: ${rawPrompt}`;
+                    const emergGenderEmphasis = (charDetails.genderClean === 'girl')
+                        ? `(adorable 5-year-old girl named ${childName}:1.4), (female child:1.3), charming young girl with sweet feminine features and hair ribbons, `
+                        : ((charDetails.genderClean === 'boy')
+                            ? `(adorable 5-year-old boy named ${childName}:1.4), (male child:1.3), charming young boy, `
+                            : `(adorable 5-year-old child named ${childName}:1.4), `);
+                    const emergPrompt = STYLE + `${emergGenderEmphasis}Masterpiece modern children's picture book illustration in award-winning painterly realism, fine digital gouache: featuring a cheerful young ${charDetails.genderClean || 'hero'} in ${activeOutfit}, smiling happily in this scene: ${rawPrompt}`;
                     const emergUrl = await generateImage(emergPrompt, null, { isFace: false, upscale: false });
                     if (emergUrl) rawBuf = await fetchImageBuffer(emergUrl);
                 } catch (emergErr) {

@@ -37,6 +37,8 @@ if (process.env.BREVO_API_KEY) {
 }
 if (process.env.SENDER_EMAIL) {
     process.env.SENDER_EMAIL = String(process.env.SENDER_EMAIL || '').trim().replace(/^["']|["']$/g, '');
+} else {
+    process.env.SENDER_EMAIL = 'support@twinkletaleai.com';
 }
 
 // Ensure WebSocket constructor is available for Supabase RealtimeClient
@@ -237,7 +239,8 @@ app.post('/api/assemble-book', verifyEngineAuth, async (req, res) => {
             fileName: completedJob?.fileName,
             pdfUrl: completedJob?.pdfUrl,
             directPdfUrl: completedJob?.directPdfUrl,
-            supabaseUrl: completedJob?.supabaseUrl
+            supabaseUrl: completedJob?.supabaseUrl,
+            emailed: completedJob?.emailed || false
         });
     } catch (err) {
         console.error(`❌ [CLOUD RUN ENGINE] Job ${jobId} compilation error:`, err.message);
