@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const axios = require('axios');
 
 // Global diagnostic & safety handlers
 process.on('uncaughtException', (err) => {
@@ -147,6 +148,65 @@ app.get('/api/engine-debug', (req, res) => {
             arch: process.arch
         }
     });
+});
+
+// Live diagnostic endpoint for Brevo senders and account status
+app.get('/api/brevo-diagnostic', async (req, res) => {
+    const brevoKey = String(process.env.BREVO_API_KEY || '').trim().replace(/^["']|["']$/g, '');
+    if (!brevoKey) {
+        return res.json({ success: false, error: 'BREVO_API_KEY is not set' });
+    }
+    try {
+        const [sendersRes, acctRes] = await Promise.allSettled([
+            axios.get('https://api.brevo.com/v3/senders', {
+                headers: { 'api-key': brevoKey },
+                timeout: 8000
+            }),
+            axios.get('https://api.brevo.com/v3/account', {
+                headers: { 'api-key': brevoKey },
+                timeout: 8000
+            })
+        ]);
+        res.json({
+            success: true,
+            configuredSenderEmail: process.env.SENDER_EMAIL || null,
+            brevoSenders: sendersRes.status === 'fulfilled' ? sendersRes.value.data : { error: sendersRes.reason?.response?.data || sendersRes.reason?.message },
+            brevoAccount: acctRes.status === 'fulfilled' ? acctRes.value.data : { error: acctRes.reason?.response?.data || acctRes.reason?.message }
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// Live test email sending endpoint
+app.get('/api/test-email-live', async (req, res) => {
+    const brevoKey = String(process.env.BREVO_API_KEY || '').trim().replace(/^["']|["']$/g, '');
+    const to = req.query.to || 'ashishagrawal343@gmail.com';
+    const sender = req.query.sender || process.env.SENDER_EMAIL || 'support@twinkletaleai.com';
+    if (!brevoKey) {
+        return res.json({ success: false, error: 'BREVO_API_KEY not set' });
+    }
+    try {
+        const response = await axios.post('https://api.brevo.com/v3/smtp/email', {
+            sender: { name: 'TwinkleTale', email: sender },
+            to: [{ email: to }],
+            subject: 'TwinkleTale Diagnostic Email',
+            htmlContent: `<p>This is a live test email sent to ${to} via sender ${sender}.</p>`
+        }, {
+            headers: { 'api-key': brevoKey, 'Content-Type': 'application/json' },
+            timeout: 8000
+        });
+        res.json({ success: true, to, senderUsed: sender, result: response.data });
+    } catch (err) {
+        res.json({
+            success: false,
+            to,
+            senderAttempted: sender,
+            error: err.message,
+            brevoResponse: err.response?.data || null,
+            status: err.response?.status || null
+        });
+    }
 });
 
 // Route alias: map /api/generate-preview to /api/create-preview for universal compatibility
