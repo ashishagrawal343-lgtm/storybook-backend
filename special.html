@@ -1551,6 +1551,9 @@
         <span><i class="fa-solid fa-bolt"></i> Instant UPI / Cards</span>
         <span><i class="fa-solid fa-rotate-left"></i> 100% Money-Back Guarantee</span>
       </div>
+      <p style="text-align:center; font-size:0.8rem; color:var(--text-muted); margin-top:10px; line-height:1.4;">
+        Not happy with the likeness or any issues with your generated book? reach out to us at <a href="mailto:support@twinkletaleai.com" style="color:var(--coral); font-weight:600; text-decoration:underline;">support@twinkletaleai.com</a> and we will do our best to help you!
+      </p>
 
     </section>
 
@@ -1640,6 +1643,16 @@
       <h3 style="font-size:1.25rem;font-weight:800;color:var(--navy);margin-bottom:14px;">
         ❓ Frequently Asked Questions
       </h3>
+
+      <div class="faq-item" onclick="toggleFaq(this)">
+        <div class="faq-question">
+          <span>What if the illustrations don't look like my child?</span>
+          <i class="fa-solid fa-chevron-down"></i>
+        </div>
+        <div class="faq-answer">
+          Email support@twinkletaleai.com within 7 days with your Order ID. We will help you solve the issue.
+        </div>
+      </div>
 
       <div class="faq-item" onclick="toggleFaq(this)">
         <div class="faq-question">
@@ -2319,13 +2332,13 @@
           <h4>2. Personal Use License</h4>
           <p>Your purchased keepsake storybook comes with a perpetual personal license to read, share with family, and print at any home or local commercial print studio for personal enjoyment.</p>
           <h4>3. Non-Refundable Product Policy</h4>
-          <p>This is a non-refundable digital product. Due to the custom, automated, and personalized nature of our digital children's storybooks (which begin custom AI rendering and cloud computation immediately upon payment confirmation), all purchases are final and non-refundable once an order is placed. In the rare event of a technical rendering or delivery issue, our support team will promptly assist with re-generating your storybook.</p>
+          <p>This is a non-refundable digital product. Due to the custom, automated, and personalized nature of our digital children's storybooks (which begin custom AI rendering and cloud computation immediately upon payment confirmation), all purchases are final and non-refundable once an order is placed. In the rare event of a technical rendering or delivery issue, our support team will promptly assist with re-generating your storybook. We are here to help: Although every book is custom-generated and sales are generally final, if your generated book has issues, Email us at <a href="mailto:support@twinkletaleai.com" style="color:var(--coral);">support@twinkletaleai.com</a> and we will do our best to help you!</p>
         `;
       } else if (type === 'refund') {
         title.innerText = 'Refund & Cancellation Policy';
         body.innerHTML = `
           <h4>1. Custom Personalized Digital Goods</h4>
-          <p>This is a non-refundable digital product. Each storybook is custom-crafted and rendered individually for your child. Because cloud generation begins automatically upon payment confirmation, orders cannot be cancelled or refunded once placed.</p>
+          <p>This is a non-refundable digital product. Each storybook is custom-crafted and rendered individually for your child. Because cloud generation begins automatically upon payment confirmation, orders cannot be cancelled or refunded once placed. We are here to help: Although every book is custom-generated and sales are generally final, if your generated book has issues, Email us at <a href="mailto:support@twinkletaleai.com" style="color:var(--coral);">support@twinkletaleai.com</a> and we will do our best to help you!</p>
           <h4>2. Quality & Delivery Assurance</h4>
           <p>We guarantee 100% successful digital delivery. If your download link is broken or you experience any technical rendering defect, our studio provides free immediate re-generation. Simply contact us at <a href="mailto:support@twinkletaleai.com" style="color:var(--coral);">support@twinkletaleai.com</a> and our team will resolve it within 24 hours.</p>
         `;
