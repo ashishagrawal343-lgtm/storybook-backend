@@ -136,8 +136,8 @@ async function runGoldenRegressionTest() {
 
     // Canvas size
     const meta = await sharp(result.coverBuffer).metadata();
-    assert.strictEqual(meta.width, 600, 'Width must be exactly 600');
-    assert.strictEqual(meta.height, 800, 'Height must be exactly 800');
+    assert.strictEqual(meta.width, 612, 'Width must be exactly 612');
+    assert.strictEqual(meta.height, 612, 'Height must be exactly 612');
 
     // Provenance verification
     assert.strictEqual(result.provenance.coverSourceType, 'customer-photo', 'Provenance source type must be customer-photo');
@@ -175,7 +175,7 @@ async function runGoldenRegressionTest() {
     console.log(`• Theme / Archetype: ${goldenInput.theme} / ${result.designSpec.archetypeName}`);
     console.log(`• Cover Source: ${result.provenance.coverSourceType} (Asset: ${result.provenance.referenceAssetId})`);
     console.log(`• Character Reference Anchor: ${result.characterReferenceUrl}`);
-    console.log(`• Canvas Dimensions: ${meta.width}x${meta.height} (600x800 required: PASS)`);
+    console.log(`• Canvas Dimensions: ${meta.width}x${meta.height} (612x612 required: PASS)`);
     console.log(`• Hero Surface Area Ratio: ${(result.qa.metrics.heroAreaRatio * 100).toFixed(1)}% (60-65% target: PASS)`);
     console.log(`• Title Zone Geometry: Y [44px - 220px] | Max 2 Lines`);
     console.log(`• Hero Zone Geometry: Y [240px - 740px] | Min 20px Buffer`);

@@ -73,6 +73,24 @@ async function testAssemble() {
         console.log('✅ assembleFullBookAsync succeeded!');
         const job = getJob(jobId);
         console.log('Job status:', job.status, 'File:', job.fileName);
+
+        // Verify PDF file on disk
+        const pdfPath = path.join(__dirname, '..', 'books', job.fileName);
+        assert.ok(fs.existsSync(pdfPath), `PDF file should exist at ${pdfPath}`);
+        const { PDFDocument } = require('pdf-lib');
+        const pdfBytes = fs.readFileSync(pdfPath);
+        const doc = await PDFDocument.load(pdfBytes);
+        const pages = doc.getPages();
+        console.log(`Verifying ${pages.length} pages in PDF...`);
+        assert.strictEqual(pages.length, 12, 'Page count must be 12');
+        for (let i = 0; i < pages.length; i++) {
+            const { width, height } = pages[i].getSize();
+            console.log(`Page ${i + 1}: ${width} x ${height} pt`);
+            assert.strictEqual(width, 612, `Page ${i + 1} width must be 612 pt (8.5")`);
+            assert.strictEqual(height, 612, `Page ${i + 1} height must be 612 pt (8.5")`);
+        }
+        console.log('🎉 ALL 12 PAGES VERIFIED AT EXACT 612x612 pt (8.5" x 8.5" Square)!');
+        process.exit(0);
     } catch (err) {
         console.error('❌ assembleFullBookAsync threw error:', err);
         throw err;
