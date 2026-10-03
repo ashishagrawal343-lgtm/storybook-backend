@@ -385,7 +385,7 @@ function getSvgFontFaceStyle(lang = 'en', textSample = '') {
     return fontFace ? `<style>\n${fontFace}\n</style>` : '';
 }
 
-const PAGE_W = 612, PAGE_H = 612; // Standard 8.5" x 8.5" Square Format (612 x 612 pt @ 72 DPI)
+const PAGE_W = 612, PAGE_H = 792; // Standard 8.5" x 11" Portrait Format (612 x 792 pt @ 72 DPI)
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const STYLE = 'Masterpiece children\'s storybook illustration, rich painterly storybook realism, soft digital gouache and fine oils texture, warm cinematic volumetric lighting, gentle golden hour rim light, adorable expressive child character with soulful sparkling dark eyes, natural soft dimensional skin tones with gentle peachy warmth, finely rendered silky hair catching the light, charming button nose and joyful smile, highly detailed enchanted surroundings with floating magical motes and glowing starlight, cinematic depth of field, art by Oliver Jeffers and Chris Van Allsburg, award-winning picture book, no text, no words, no letters, no watermark, not flat 2D cartoon, not 3D CGI plastic render: ';
 const PACING = 0; // High-efficiency async dispatch (eliminates 40-90s of idle waiting)
@@ -1593,7 +1593,7 @@ async function generateImage(prompt, photoData, options = {}) {
                 const inputPayload = {
                     input_image: photoData,
                     prompt: finalPrompt,
-                    aspect_ratio: options.aspect_ratio || "1:1",
+                    aspect_ratio: options.aspect_ratio || "3:4",
                     output_format: "png",
                     safety_tolerance: 2,
                     prompt_upsampling: options.prompt_upsampling !== undefined ? options.prompt_upsampling : false
@@ -1618,7 +1618,7 @@ async function generateImage(prompt, photoData, options = {}) {
                         input: {
                             input_image: photoData,
                             prompt: safeCleanPrompt,
-                            aspect_ratio: options.aspect_ratio || "1:1",
+                            aspect_ratio: options.aspect_ratio || "3:4",
                             output_format: "png",
                             safety_tolerance: 2,
                             prompt_upsampling: false
@@ -2301,7 +2301,7 @@ class BookGenerationQueue {
                                         <p style="text-align:center;margin:30px 0">
                                             <a href="${downloadLink}" target="_blank" style="background:#1B4938;color:#FAF7F2;padding:14px 28px;border-radius:8px;text-decoration:none;font-size:16px;font-weight:bold;display:inline-block">📥 Download Print-Ready Storybook (PDF)</a>
                                         </p>
-                                        <p style="font-size:13px;color:#777;line-height:1.5">You can read this on any phone, iPad, tablet, or print it out in standard 8.5" x 8.5" square format on home or photo printers.</p>
+                                        <p style="font-size:13px;color:#777;line-height:1.5">You can read this on any phone, iPad, tablet, or print it out in standard 8.5" x 11" format on home or photo printers.</p>
                                         <hr style="border:none;border-top:1px solid #DDD;margin:24px 0">
                                         <p style="font-size:12px;color:#999;text-align:center">This download link is permanent and never expires.<br>Need assistance? Contact our team at <a href="mailto:support@twinkletaleai.com" style="color:#666;text-decoration:underline;">support@twinkletaleai.com</a>.<br>Crafted with love by TwinkleTale Studios.</p>
                                     </div>`
@@ -3309,18 +3309,18 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
                 }
             }
 
-            // High-fidelity print enhancement: 1400x1400 (~165-200 DPI print-fidelity for 612x612 pt page)
+            // High-fidelity print enhancement: 1224x1584 (~150-180 DPI print-fidelity for 612x792 pt page)
             // Uses JPEG with 4:4:4 chroma subsampling at 92 quality, cutting RAM by ~80MB vs uncompressed PNG
             try {
                 if (coverImgBuffer && Buffer.isBuffer(coverImgBuffer)) {
                     coverImgBuffer = await sharp(coverImgBuffer)
-                        .resize(1400, 1400, {
+                        .resize(1224, 1584, {
                             fit: 'cover'
                         })
                         .sharpen({ sigma: 1.0, m1: 0.5, m2: 0.5 })
                         .jpeg({ quality: 92, chromaSubsampling: '4:4:4' })
                         .toBuffer();
-                    console.log(`✅ [COVER PRINT ENHANCEMENT] Final book cover enhanced to 1400x1400 (JPEG 92 4:4:4) for crisp print perfection & minimal RAM.`);
+                    console.log(`✅ [COVER PRINT ENHANCEMENT] Final book cover enhanced to 1224x1584 (JPEG 92 4:4:4) for crisp print perfection & minimal RAM.`);
                 }
             } catch (sharpErr) {
                 console.warn(`⚠️ [COVER PRINT ENHANCEMENT] Sharp enhancement notice:`, sharpErr.message);
@@ -3409,14 +3409,14 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         }
         if (!dedRendered) {
             // Top Header
-            drawCentered(dedPage, 'TWINKLETALE KEEPSAKE TREASURY', 535, 10, serifB, textColors.accentColor, 0.95);
-            drawVectorDiamond(dedPage, PAGE_W / 2, 518, 6, textColors.accentColor);
+            drawCentered(dedPage, 'TWINKLETALE KEEPSAKE TREASURY', 705, 10, serifB, textColors.accentColor, 0.95);
+            drawVectorDiamond(dedPage, PAGE_W / 2, 688, 6, textColors.accentColor);
 
             const dedTitleFont = chooseFont(dedTitle, bookFont, serifB);
             let dtSize = 24;
             let dtLines = wrapText(dedTitle, dedTitleFont, dtSize, 420);
             if (dtLines.length > 2) { dtSize = 20; dtLines = wrapText(dedTitle, dedTitleFont, dtSize, 420); }
-            let dty = 485;
+            let dty = 650;
             for (const line of dtLines) {
                 drawCentered(dedPage, line, dty, dtSize, dedTitleFont, textColors.titleColor);
                 dty -= 30;
@@ -3424,23 +3424,23 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
 
             const rhymeFont = chooseFont(rhyme, bookFont, serifI);
             const rhymeLines = wrapText(rhyme, rhymeFont, 13, 400);
-            let ry = dty - 14;
+            let ry = dty - 16;
             for (const line of rhymeLines) {
                 drawCentered(dedPage, line, ry, 13, rhymeFont, textColors.bodyColor, 0.95);
                 ry -= 22;
             }
 
             // Golden divider
-            dedPage.drawLine({ start: { x: 140, y: ry - 10 }, end: { x: PAGE_W - 140, y: ry - 10 }, color: textColors.accentColor, thickness: 1, opacity: 0.6 });
-            drawVectorStar(dedPage, PAGE_W / 2, ry - 10, 5, 8, 3.5, textColors.accentColor);
+            dedPage.drawLine({ start: { x: 140, y: ry - 12 }, end: { x: PAGE_W - 140, y: ry - 12 }, color: textColors.accentColor, thickness: 1, opacity: 0.6 });
+            drawVectorStar(dedPage, PAGE_W / 2, ry - 12, 5, 8, 3.5, textColors.accentColor);
 
             // Personalized Parent Dedication Block
             const dedForFont = chooseFont(forLabel, bookFont, serifB);
-            drawCentered(dedPage, forLabel, ry - 36, 15, dedForFont, textColors.titleColor);
+            drawCentered(dedPage, forLabel, ry - 40, 15, dedForFont, textColors.titleColor);
 
             const dedMsgFont = chooseFont(dedMsg, bookFont, serifI);
             const dedMsgLines = wrapText(dedMsg, dedMsgFont, 12, 390);
-            let my = ry - 60;
+            let my = ry - 66;
             for (const line of dedMsgLines) {
                 drawCentered(dedPage, line, my, 12, dedMsgFont, textColors.bodyColor, 0.9);
                 my -= 20;
@@ -3448,7 +3448,7 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         }
 
         // Keepsake footer
-        drawCentered(dedPage, 'TwinkleTale Studios • Keepsake Treasury Edition', 40, 9, serif, textColors.subtextColor, 0.7);
+        drawCentered(dedPage, 'TwinkleTale Studios • Keepsake Treasury Edition', 48, 9, serif, textColors.subtextColor, 0.7);
 
         // Character Traits & Consistent Wardrobe Anchors
         const charDetails = getCharacterDetails(childName, gender, age, theme);
@@ -3681,7 +3681,7 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
             }
 
             // Quality Assurance & Budgeted Single Regeneration
-            const qaResult = await validateImageQuality(rawBuf, { minBytes: 1000, expectedRatio: 1.0 });
+            const qaResult = await validateImageQuality(rawBuf, { minBytes: 1000, expectedRatio: 0.75 });
             if (!qaResult.valid && pageQaBudget.canRegenerate(i)) {
                 pageQaBudget.recordAttempt(i);
                 qualityRegenerations++;
@@ -3692,7 +3692,7 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
                     const retryUrl = await generateImage(scenePrompt, visualCondition, { isFace: true, upscale: false });
                     if (retryUrl) {
                         const retryBuf = await fetchImageBuffer(retryUrl);
-                        const retryQa = await validateImageQuality(retryBuf, { minBytes: 1000, expectedRatio: 1.0 });
+                        const retryQa = await validateImageQuality(retryBuf, { minBytes: 1000, expectedRatio: 0.75 });
                         if (retryQa.valid) {
                             rawBuf = retryBuf;
                             rawUrl = retryUrl;
@@ -3815,21 +3815,21 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
             if (!verseRendered) {
                 // Scene Title
                 const sceneTitleFont = chooseFont(scene.scene_title, bookFont, serifB);
-                drawCentered(textPage, scene.scene_title, 450, 24, sceneTitleFont, textColors.titleColor);
-                drawVectorDiamond(textPage, PAGE_W / 2, 425, 7, textColors.accentColor);
+                drawCentered(textPage, scene.scene_title, 600, 24, sceneTitleFont, textColors.titleColor);
+                drawVectorDiamond(textPage, PAGE_W / 2, 575, 7, textColors.accentColor);
 
                 // Verse Text
                 const verseFont = chooseFont(scene.page_text, bookFont, serif);
-                const verseLines = wrapText(scene.page_text, verseFont, 16, 400);
-                let by = 360 - ((360 - 150) - verseLines.length * 28) / 2;
+                const verseLines = wrapText(scene.page_text, verseFont, 18, 400);
+                let by = Math.max(380, 520 - (verseLines.length * 15));
                 for (const line of verseLines) {
-                    drawCentered(textPage, line, by, 16, verseFont, textColors.bodyColor);
-                    by -= 28;
+                    drawCentered(textPage, line, by, 18, verseFont, textColors.bodyColor);
+                    by -= 30;
                 }
             }
 
             // Spread Number
-            drawCentered(textPage, `— ${spreadIndex} —`, 45, 11, serif, textColors.subtextColor, 0.75);
+            drawCentered(textPage, `— ${spreadIndex} —`, 95, 12, serif, textColors.subtextColor, 0.75);
             spreadIndex++;
         }
 
@@ -3840,44 +3840,44 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         drawFrameVectors(endPage, pal);
 
         // Golden seal star at the top center
-        drawVectorStar(endPage, PAGE_W / 2, 540, 5, 18, 8, pal.accent);
+        drawVectorStar(endPage, PAGE_W / 2, 675, 5, 20, 9, pal.accent);
 
         // Title
-        drawCentered(endPage, 'TwinkleTale', 495, 26, serifBI, pal.accent);
-        drawCentered(endPage, 'Personalized Keepsake Treasury', 470, 12, serifI, rgb(0.95, 0.95, 0.95), 0.9);
+        drawCentered(endPage, 'TwinkleTale', 625, 28, serifBI, pal.accent);
+        drawCentered(endPage, 'Personalized Keepsake Treasury', 598, 13, serifI, rgb(0.95, 0.95, 0.95), 0.9);
 
         // Horizontal divider with small gold diamonds
-        endPage.drawLine({ start: { x: 120, y: 445 }, end: { x: PAGE_W - 120, y: 445 }, color: pal.accent, thickness: 1, opacity: 0.6 });
-        drawVectorDiamond(endPage, PAGE_W / 2, 445, 7, pal.accent);
+        endPage.drawLine({ start: { x: 120, y: 570 }, end: { x: PAGE_W - 120, y: 570 }, color: pal.accent, thickness: 1, opacity: 0.6 });
+        drawVectorDiamond(endPage, PAGE_W / 2, 570, 8, pal.accent);
 
         // Bedtime Blessing Block
         const forText = `Sleep With The Stars, ${childName}`;
         const blessTitleFont = chooseFont(forText, bookFont, serifB);
-        drawCentered(endPage, forText, 405, 18, blessTitleFont, pal.accent);
+        drawCentered(endPage, forText, 520, 20, blessTitleFont, pal.accent);
 
         const closingBlessing = `May your dreams tonight take you on wondrous journeys across starlit skies and enchanted lands. Rest your eyes, little adventurer, knowing you are deeply loved, hugely cherished, and capable of wonderful things.`;
         const blessFont = chooseFont(closingBlessing, bookFont, serifI);
-        const blessLines = wrapText(closingBlessing, blessFont, 14, 420);
-        let dy = 355;
+        const blessLines = wrapText(closingBlessing, blessFont, 16, 420);
+        let dy = 465;
         for (const line of blessLines) {
-            drawCentered(endPage, line, dy, 14, blessFont, rgb(0.98, 0.98, 0.98), 0.95);
-            dy -= 22;
+            drawCentered(endPage, line, dy, 16, blessFont, rgb(0.98, 0.98, 0.98), 0.95);
+            dy -= 26;
         }
 
         // Closing bedtime wish
         const closingWish = 'Every child is the hero of their own bedtime story.';
-        drawCentered(endPage, closingWish, Math.min(dy - 16, 235), 12, serifI, rgb(0.90, 0.90, 0.90), 0.85);
+        drawCentered(endPage, closingWish, Math.min(dy - 20, 305), 13, serifI, rgb(0.90, 0.90, 0.90), 0.85);
 
         // Gold seal with vector stars
-        const sealY = 145;
-        endPage.drawCircle({ x: PAGE_W / 2, y: sealY, size: 38, borderColor: pal.accent, borderWidth: 2 });
-        endPage.drawCircle({ x: PAGE_W / 2, y: sealY, size: 34, borderColor: pal.accent, borderWidth: 1, borderOpacity: 0.7 });
-        drawVectorStar(endPage, PAGE_W / 2, sealY, 5, 12, 5, pal.accent);
-        drawCentered(endPage, 'OFFICIAL KEEPSAKE', sealY - 22, 7.5, serifB, pal.accent, 0.9);
+        const sealY = 205;
+        endPage.drawCircle({ x: PAGE_W / 2, y: sealY, size: 45, borderColor: pal.accent, borderWidth: 2 });
+        endPage.drawCircle({ x: PAGE_W / 2, y: sealY, size: 41, borderColor: pal.accent, borderWidth: 1, borderOpacity: 0.7 });
+        drawVectorStar(endPage, PAGE_W / 2, sealY, 5, 14, 6, pal.accent);
+        drawCentered(endPage, 'OFFICIAL KEEPSAKE', sealY - 26, 8, serifB, pal.accent, 0.9);
 
         // Footer
         const yr = new Date().getFullYear();
-        drawCentered(endPage, `Handcrafted with love • ${yr} • All Rights Reserved`, 40, 9, serif, pal.accent, 0.75);
+        drawCentered(endPage, `Handcrafted with love • ${yr} • All Rights Reserved`, 95, 10, serif, pal.accent, 0.75);
 
         // ================= FINAL PAGE: OFFICIAL KEEPSAKE BACK COVER =================
         update(96, 'Binding official keepsake back cover...');
@@ -3886,19 +3886,19 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
         drawFrameVectors(backCover, pal);
 
         // Central gold seal
-        drawVectorStar(backCover, PAGE_W / 2, 470, 5, 20, 9, pal.accent);
-        drawCentered(backCover, 'TwinkleTale', 420, 24, serifBI, pal.accent);
-        drawCentered(backCover, 'Personalized Keepsake Storybooks', 395, 11, serifI, rgb(0.95, 0.95, 0.95), 0.9);
+        drawVectorStar(backCover, PAGE_W / 2, 525, 5, 24, 11, pal.accent);
+        drawCentered(backCover, 'TwinkleTale', 475, 26, serifBI, pal.accent);
+        drawCentered(backCover, 'Personalized Keepsake Storybooks', 450, 12, serifI, rgb(0.95, 0.95, 0.95), 0.9);
 
-        backCover.drawLine({ start: { x: 160, y: 365 }, end: { x: PAGE_W - 160, y: 365 }, color: pal.accent, thickness: 1, opacity: 0.6 });
-        drawVectorDiamond(backCover, PAGE_W / 2, 365, 6, pal.accent);
+        backCover.drawLine({ start: { x: 160, y: 420 }, end: { x: PAGE_W - 160, y: 420 }, color: pal.accent, thickness: 1, opacity: 0.6 });
+        drawVectorDiamond(backCover, PAGE_W / 2, 420, 7, pal.accent);
 
-        drawCentered(backCover, '"Every child is the hero of their own bedtime story."', 325, 12, serifI, rgb(0.92, 0.92, 0.92), 0.85);
+        drawCentered(backCover, '"Every child is the hero of their own bedtime story."', 380, 13, serifI, rgb(0.92, 0.92, 0.92), 0.85);
         const backHeroTag = `Handcrafted with love for ${childName}`;
-        drawCentered(backCover, backHeroTag, 295, 11, chooseFont(backHeroTag, bookFont, serifB), pal.accent, 0.9);
+        drawCentered(backCover, backHeroTag, 350, 12, chooseFont(backHeroTag, bookFont, serifB), pal.accent, 0.9);
 
-        drawCentered(backCover, 'A Keepsake Treasury To Treasure Forever', 110, 10, serifI, pal.accent, 0.85);
-        drawCentered(backCover, 'www.twinkletaleai.com • Keepsake Edition', 45, 9, serif, pal.accent, 0.7);
+        drawCentered(backCover, 'A Keepsake Treasury To Treasure Forever', 155, 11, serifI, pal.accent, 0.85);
+        drawCentered(backCover, 'www.twinkletaleai.com • Keepsake Edition', 55, 10, serif, pal.accent, 0.7);
 
         // ================= STRICT PAGE COUNT GUARDRAIL (PRINT-SHOP MULTIPLES OF 4) =================
         const expectedPages = (scenes * 2) + 4;
@@ -3957,7 +3957,7 @@ async function assembleFullBookAsync(jobId, session, bookLength, parentEmail, pr
                         <p style="text-align:center;margin:30px 0">
                             <a href="${persistentDownloadUrl}" target="_blank" style="background:#1B4938;color:#FAF7F2;padding:14px 28px;border-radius:8px;text-decoration:none;font-size:16px;font-weight:bold;display:inline-block">📥 Download Print-Ready Storybook (PDF)</a>
                         </p>
-                        <p style="font-size:13px;color:#777;line-height:1.5">You can read this on any phone, iPad, tablet, or print it out in standard 8.5" x 8.5" square format on home or photo printers.</p>
+                        <p style="font-size:13px;color:#777;line-height:1.5">You can read this on any phone, iPad, tablet, or print it out in standard 8.5" x 11" format on home or photo printers.</p>
                         <hr style="border:none;border-top:1px solid #DDD;margin:24px 0">
                         <p style="font-size:12px;color:#999;text-align:center">This download link is permanent and never expires.<br>Need assistance? Contact our team at <a href="mailto:support@twinkletaleai.com" style="color:#666;text-decoration:underline;">support@twinkletaleai.com</a>.<br>Crafted with love by TwinkleTale Studios.</p>
                     </div>`

@@ -87,9 +87,9 @@ async function testAssemble() {
             const { width, height } = pages[i].getSize();
             console.log(`Page ${i + 1}: ${width} x ${height} pt`);
             assert.strictEqual(width, 612, `Page ${i + 1} width must be 612 pt (8.5")`);
-            assert.strictEqual(height, 612, `Page ${i + 1} height must be 612 pt (8.5")`);
+            assert.strictEqual(height, 792, `Page ${i + 1} height must be 792 pt (11.0")`);
         }
-        console.log('🎉 ALL 12 PAGES VERIFIED AT EXACT 612x612 pt (8.5" x 8.5" Square)!');
+        console.log('🎉 ALL 12 PAGES VERIFIED AT EXACT 612x792 pt (8.5" x 11" Portrait)!');
         process.exit(0);
     } catch (err) {
         console.error('❌ assembleFullBookAsync threw error:', err);
